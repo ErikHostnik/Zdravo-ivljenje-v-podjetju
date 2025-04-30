@@ -1,4 +1,4 @@
-var WeatherdataModel = require('../models/WeatherDataModel.js');
+const WeatherdataModel = require('../models/WeatherDataModel.js');
 
 /**
  * WeatherDataController.js
@@ -10,121 +10,103 @@ module.exports = {
     /**
      * WeatherDataController.list()
      */
-    list: function (req, res) {
-        WeatherdataModel.find(function (err, WeatherDatas) {
-            if (err) {
-                return res.status(500).json({
-                    message: 'Error when getting WeatherData.',
-                    error: err
-                });
-            }
-
-            return res.json(WeatherDatas);
-        });
+    list: async function (req, res) {
+        try {
+            const weatherDataList = await WeatherdataModel.find();
+            return res.json(weatherDataList);
+        } catch (err) {
+            return res.status(500).json({
+                message: 'Error when getting WeatherData.',
+                error: err
+            });
+        }
     },
 
     /**
      * WeatherDataController.show()
      */
-    show: function (req, res) {
-        var id = req.params.id;
+    show: async function (req, res) {
+        try {
+            const id = req.params.id;
+            const weatherData = await WeatherdataModel.findById(id);
 
-        WeatherdataModel.findOne({_id: id}, function (err, WeatherData) {
-            if (err) {
-                return res.status(500).json({
-                    message: 'Error when getting WeatherData.',
-                    error: err
-                });
+            if (!weatherData) {
+                return res.status(404).json({ message: 'No such WeatherData' });
             }
 
-            if (!WeatherData) {
-                return res.status(404).json({
-                    message: 'No such WeatherData'
-                });
-            }
-
-            return res.json(WeatherData);
-        });
+            return res.json(weatherData);
+        } catch (err) {
+            return res.status(500).json({
+                message: 'Error when getting WeatherData.',
+                error: err
+            });
+        }
     },
 
     /**
      * WeatherDataController.create()
      */
-    create: function (req, res) {
-        var WeatherData = new WeatherdataModel({
-			date : req.body.date,
-			location : req.body.location,
-			temperature : req.body.temperature,
-			humidity : req.body.humidity,
-			weatherConditions : req.body.weatherConditions
-        });
+    create: async function (req, res) {
+        try {
+            const weatherData = new WeatherdataModel({
+                date: req.body.date,
+                location: req.body.location,
+                temperature: req.body.temperature,
+                humidity: req.body.humidity,
+                weatherConditions: req.body.weatherConditions
+            });
 
-        WeatherData.save(function (err, WeatherData) {
-            if (err) {
-                return res.status(500).json({
-                    message: 'Error when creating WeatherData',
-                    error: err
-                });
-            }
-
-            return res.status(201).json(WeatherData);
-        });
+            const savedData = await weatherData.save();
+            return res.status(201).json(savedData);
+        } catch (err) {
+            return res.status(500).json({
+                message: 'Error when creating WeatherData',
+                error: err
+            });
+        }
     },
 
     /**
      * WeatherDataController.update()
      */
-    update: function (req, res) {
-        var id = req.params.id;
+    update: async function (req, res) {
+        try {
+            const id = req.params.id;
+            const weatherData = await WeatherdataModel.findById(id);
 
-        WeatherdataModel.findOne({_id: id}, function (err, WeatherData) {
-            if (err) {
-                return res.status(500).json({
-                    message: 'Error when getting WeatherData',
-                    error: err
-                });
+            if (!weatherData) {
+                return res.status(404).json({ message: 'No such WeatherData' });
             }
 
-            if (!WeatherData) {
-                return res.status(404).json({
-                    message: 'No such WeatherData'
-                });
-            }
+            weatherData.date = req.body.date ?? weatherData.date;
+            weatherData.location = req.body.location ?? weatherData.location;
+            weatherData.temperature = req.body.temperature ?? weatherData.temperature;
+            weatherData.humidity = req.body.humidity ?? weatherData.humidity;
+            weatherData.weatherConditions = req.body.weatherConditions ?? weatherData.weatherConditions;
 
-            WeatherData.date = req.body.date ? req.body.date : WeatherData.date;
-			WeatherData.location = req.body.location ? req.body.location : WeatherData.location;
-			WeatherData.temperature = req.body.temperature ? req.body.temperature : WeatherData.temperature;
-			WeatherData.humidity = req.body.humidity ? req.body.humidity : WeatherData.humidity;
-			WeatherData.weatherConditions = req.body.weatherConditions ? req.body.weatherConditions : WeatherData.weatherConditions;
-			
-            WeatherData.save(function (err, WeatherData) {
-                if (err) {
-                    return res.status(500).json({
-                        message: 'Error when updating WeatherData.',
-                        error: err
-                    });
-                }
-
-                return res.json(WeatherData);
+            const updatedData = await weatherData.save();
+            return res.json(updatedData);
+        } catch (err) {
+            return res.status(500).json({
+                message: 'Error when updating WeatherData.',
+                error: err
             });
-        });
+        }
     },
 
     /**
      * WeatherDataController.remove()
      */
-    remove: function (req, res) {
-        var id = req.params.id;
-
-        WeatherdataModel.findByIdAndRemove(id, function (err, WeatherData) {
-            if (err) {
-                return res.status(500).json({
-                    message: 'Error when deleting the WeatherData.',
-                    error: err
-                });
-            }
-
-            return res.status(204).json();
-        });
+    remove: async function (req, res) {
+        try {
+            const id = req.params.id;
+            await WeatherdataModel.findByIdAndDelete(id);
+            return res.status(204).send();
+        } catch (err) {
+            return res.status(500).json({
+                message: 'Error when deleting the WeatherData.',
+                error: err
+            });
+        }
     }
 };
