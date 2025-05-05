@@ -10,32 +10,26 @@ module.exports = {
     /**
      * UserController.list()
      */
-    list: function (req, res) {
-        UserModel.find(function (err, Users) {
-            if (err) {
-                return res.status(500).json({
-                    message: 'Error when getting User.',
-                    error: err
-                });
-            }
-
+    list: async function (req, res) {
+        try {
+            const Users = await UserModel.find();
             return res.json(Users);
-        });
+        } catch (err) {
+            return res.status(500).json({
+                message: 'Error when getting User.',
+                error: err
+            });
+        }
     },
 
     /**
      * UserController.show()
      */
-    show: function (req, res) {
-        var id = req.params.id;
+    show: async function (req, res) {
+        const id = req.params.id;
 
-        UserModel.findOne({_id: id}, function (err, User) {
-            if (err) {
-                return res.status(500).json({
-                    message: 'Error when getting User.',
-                    error: err
-                });
-            }
+        try {
+            const User = await UserModel.findOne({ _id: id });
 
             if (!User) {
                 return res.status(404).json({
@@ -44,47 +38,47 @@ module.exports = {
             }
 
             return res.json(User);
-        });
+        } catch (err) {
+            return res.status(500).json({
+                message: 'Error when getting User.',
+                error: err
+            });
+        }
     },
 
     /**
      * UserController.create()
      */
-    create: function (req, res) {
-        var User = new UserModel({
-			name : req.body.name,
-			email : req.body.email,
-			stepCount : req.body.stepCount,
-			distance : req.body.distance,
-			routes : req.body.routes,
-			createdAt : req.body.createdAt
+    create: async function (req, res) {
+        const User = new UserModel({
+            username: req.body.username,
+            email: req.body.email,
+            password: req.body.password,
+            stepCount: req.body.stepCount,
+            distance: req.body.distance,
+            routes: req.body.routes,
+            createdAt: req.body.createdAt
         });
 
-        User.save(function (err, User) {
-            if (err) {
-                return res.status(500).json({
-                    message: 'Error when creating User',
-                    error: err
-                });
-            }
-
-            return res.status(201).json(User);
-        });
+        try {
+            const newUser = await User.save();
+            return res.status(201).json(newUser);
+        } catch (err) {
+            return res.status(500).json({
+                message: 'Error when creating User',
+                error: err
+            });
+        }
     },
 
     /**
      * UserController.update()
      */
-    update: function (req, res) {
-        var id = req.params.id;
+    update: async function (req, res) {
+        const id = req.params.id;
 
-        UserModel.findOne({_id: id}, function (err, User) {
-            if (err) {
-                return res.status(500).json({
-                    message: 'Error when getting User',
-                    error: err
-                });
-            }
+        try {
+            let User = await UserModel.findOne({ _id: id });
 
             if (!User) {
                 return res.status(404).json({
@@ -92,41 +86,79 @@ module.exports = {
                 });
             }
 
-            User.name = req.body.name ? req.body.name : User.name;
-			User.email = req.body.email ? req.body.email : User.email;
-			User.stepCount = req.body.stepCount ? req.body.stepCount : User.stepCount;
-			User.distance = req.body.distance ? req.body.distance : User.distance;
-			User.routes = req.body.routes ? req.body.routes : User.routes;
-			User.createdAt = req.body.createdAt ? req.body.createdAt : User.createdAt;
-			
-            User.save(function (err, User) {
-                if (err) {
-                    return res.status(500).json({
-                        message: 'Error when updating User.',
-                        error: err
-                    });
-                }
+            User.name = req.body.name || User.name;
+            User.email = req.body.email || User.email;
+            User.stepCount = req.body.stepCount || User.stepCount;
+            User.distance = req.body.distance || User.distance;
+            User.routes = req.body.routes || User.routes;
+            User.createdAt = req.body.createdAt || User.createdAt;
 
-                return res.json(User);
+            const updatedUser = await User.save();
+            return res.json(updatedUser);
+        } catch (err) {
+            return res.status(500).json({
+                message: 'Error when updating User.',
+                error: err
             });
-        });
+        }
     },
 
     /**
      * UserController.remove()
      */
-    remove: function (req, res) {
-        var id = req.params.id;
+    remove: async function (req, res) {
+        const id = req.params.id;
 
-        UserModel.findByIdAndRemove(id, function (err, User) {
-            if (err) {
-                return res.status(500).json({
-                    message: 'Error when deleting the User.',
-                    error: err
+        try {
+            const User = await UserModel.findByIdAndRemove(id);
+
+            if (!User) {
+                return res.status(404).json({
+                    message: 'No such User'
                 });
             }
 
             return res.status(204).json();
-        });
-    }
+        } catch (err) {
+            return res.status(500).json({
+                message: 'Error when deleting the User.',
+                error: err
+            });
+        }
+    },
+
+    login: async function (req, res) {
+        const { username, password } = req.body;
+
+        try {
+            const User = await UserModel.authenticate(username, password);
+
+            if (!User) {
+                return res.status(401).json({
+                    message: 'Invalid email or password.'
+                });
+            }
+            req.session.userId = User._id;
+            return res.json(User);
+        } catch (err) {
+            return res.status(500).json({
+                message: 'Error when logging in.',
+                error: err
+            });
+        }
+    },
+
+    logout: async function (req, res) {
+        try {
+            await req.session.destroy();
+            return res.status(200).json({
+                message: 'Logged out successfully.'
+            });
+        } catch (err) {
+            return res.status(500).json({
+                message: 'Error when logging out.',
+                error: err
+            });
+        }
+    },
 };

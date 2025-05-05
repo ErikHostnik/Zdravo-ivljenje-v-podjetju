@@ -8,7 +8,14 @@ const MongoStore = require('connect-mongo');
 const createError = require('http-errors');
 
 const app = express();
-const PORT = 3000;
+
+
+// Routers
+const userRoutes = require('./routes/UserRoutes');
+const activityRoutes = require('./routes/ActivityRoutes');
+const routeRoutes = require('./routes/RouteRoutes');
+const weatherDataRoutes = require('./routes/WeatherDataRoutes');
+const challengeRoutes = require('./routes/ChallengeRoutes');
 
 // MongoDB connection URI
 const mongoDB = 'mongodb+srv://root:hojladrijadrom@zdravozivpodjetja.1hunr7p.mongodb.net/?retryWrites=true&w=majority&appName=ZdravoZivPodjetja';
@@ -42,17 +49,24 @@ app.use(function (req, res, next) {
   next();
 });
 
-// Example root route
-app.get('/', (req, res) => {
-  res.send('API is working!');
-});
 
-// Routers
-const userRoutes = require('./routes/UserRoutes');
-const activityRoutes = require('./routes/ActivityRoutes');
-const routeRoutes = require('./routes/RouteRoutes');
-const weatherDataRoutes = require('./routes/WeatherDataRoutes');
-const challengeRoutes = require('./routes/ChallengeRoutes');
+var cors = require('cors');
+var allowedOrigins = ['http://localhost:3000', 'http://localhost:3001'];
+app.use(cors({
+  credentials: true,
+  origin: function(origin, callback){
+    if(!origin) return callback(null, true);
+    if(allowedOrigins.indexOf(origin)===-1){
+      var msg = "The CORS policy does not allow access from the specified Origin.";
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  }
+}));
+
+
+
+
 
 // Use routers
 app.use('/api/users', userRoutes);

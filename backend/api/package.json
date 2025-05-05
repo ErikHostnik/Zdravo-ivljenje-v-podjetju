@@ -7,6 +7,7 @@
   },
   "dependencies": {
     "axios": "^1.9.0",
+    "bcrypt": "^5.1.1",
     "body-parser": "^2.2.0",
     "connect-mongo": "^5.1.0",
     "cookie-parser": "~1.4.4",
@@ -20,6 +21,7 @@
     "mongoose": "^8.14.1",
     "morgan": "~1.9.1",
     "npm": "^11.3.0",
+    "react-router-dom": "^7.5.3",
     "sparse-bitfield": "^3.0.3",
     "start": "^5.1.0"
   }
