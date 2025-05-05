@@ -1,0 +1,30 @@
+var express = require('express');
+var router = express.Router();
+var SensorDataController = require('../controllers/SensorDataController.js');
+
+/*
+ * GET
+ */
+router.get('/', SensorDataController.list);
+
+/*
+ * GET
+ */
+router.get('/:id', SensorDataController.show);
+
+/*
+ * POST
+ */
+router.post('/', SensorDataController.create);
+
+/*
+ * PUT
+ */
+router.put('/:id', SensorDataController.update);
+
+/*
+ * DELETE
+ */
+router.delete('/:id', SensorDataController.remove);
+
+module.exports = router;
