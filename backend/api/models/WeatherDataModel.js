@@ -8,7 +8,6 @@ var WeatherDataSchema = new Schema({
     'lon': Number
   },
   'temperature': { type: Number },
-  'humidity': { type: Number },
   'weatherConditions': { type: String } // Npr. 'sunny', 'rainy'
 });
 

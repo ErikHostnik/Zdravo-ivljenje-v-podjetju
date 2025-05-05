@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-// Lokacija (npr. Ljubljana)
+// Lokacija (npr. Ljubljana) - verjetn bomo pridobil pol podatke na lokacijo dirkento
 const latitude = 46.0569;
 const longitude = 14.5058;
 
