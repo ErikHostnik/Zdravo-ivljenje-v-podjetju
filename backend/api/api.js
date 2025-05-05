@@ -12,10 +12,10 @@ const app = express();
 
 // Routers
 const userRoutes = require('./routes/UserRoutes');
-const activityRoutes = require('./routes/ActivityRoutes');
-const routeRoutes = require('./routes/RouteRoutes');
+const sensorDataRoutes = require('./routes/SensorDataRoutes');
+const processDataRoutes = require('./routes/ProccessedDataRoutes');
 const weatherDataRoutes = require('./routes/WeatherDataRoutes');
-const challengeRoutes = require('./routes/ChallengeRoutes');
+
 
 // MongoDB connection URI
 const mongoDB = 'mongodb+srv://root:hojladrijadrom@zdravozivpodjetja.1hunr7p.mongodb.net/?retryWrites=true&w=majority&appName=ZdravoZivPodjetja';
@@ -70,10 +70,9 @@ app.use(cors({
 
 // Use routers
 app.use('/api/users', userRoutes);
-app.use('/api/activities', activityRoutes);
-app.use('/api/routes', routeRoutes);
+app.use('/api/sensordata', sensorDataRoutes);
+app.use('/api/processdata', processDataRoutes);
 app.use('/api/weatherdata', weatherDataRoutes);
-app.use('/api/challenges', challengeRoutes);
 
 // Catch 404 and forward to error handler
 app.use(function(req, res, next) {
