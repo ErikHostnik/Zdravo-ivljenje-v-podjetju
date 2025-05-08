@@ -65,8 +65,6 @@ app.use(cors({
 
 
 
-
-
 // Use routers
 app.use('/api/users', userRoutes);
 app.use('/api/sensordata', sensorDataRoutes);

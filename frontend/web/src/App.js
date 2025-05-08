@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { UserContext } from "./userContext";
+import 'leaflet/dist/leaflet.css';
+
 import Header from "./components/Header";
 import Login from "./components/Login";
 import Logout from "./components/Logout";
 import Register from './components/Register';
+import Map from './components/Map';
 
 function App() {
   const [user, setUser] = useState(() => {
@@ -29,11 +32,11 @@ function App() {
         setUserContext: updateUserData
       }}>
         <div className="App">
-          <Header title="Zdravo življenje v podjetju"></Header>
+        <Header title="Zdravo življenje v podjetju"></Header>
           <Routes>
-            <Route path="/" exact element={<Login />} />
             <Route path="/login" exact element={<Login />} />
             <Route path="/register" exact element={<Register />} />
+            <Route path="/map" exact element={<Map />} />
             <Route path="/logout" element={<Logout />} />
           </Routes>
         </div>
