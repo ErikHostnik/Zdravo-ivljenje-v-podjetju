@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'login_register.dart';
 
 void main() {
   runApp(const FitOfficeApp());
@@ -20,26 +21,9 @@ class FitOfficeApp extends StatelessWidget {
           inversePrimary: const Color(0xFFBB86FC),
         ),
       ),
-      home: const HomePage(),
+      home: const LoginRegisterPage(),
     );
   }
 }
 
-class HomePage extends StatelessWidget {
-  const HomePage({super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('FitOffice'),
-      ),
-      body: const Center(
-        child: Text(
-          'Dobrodošli v FitOffice!',
-          style: TextStyle(fontSize: 20),
-        ),
-      ),
-    );
-  }
-}
