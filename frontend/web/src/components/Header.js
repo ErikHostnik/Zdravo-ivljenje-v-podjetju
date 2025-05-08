@@ -13,6 +13,7 @@ function Header(props) {
                                 <>
                                     <li><Link to='/logout'>Logout</Link></li>
                                     <li><Link to="/map">Map</Link></li>
+                                    <li><Link to="/userProfile">UserProfile</Link></li>
                                 </>
                             :
                                 <>

@@ -8,6 +8,7 @@ import Login from "./components/Login";
 import Logout from "./components/Logout";
 import Register from './components/Register';
 import Map from './components/Map';
+import UserProfile from './components/UserProfile';
 
 function App() {
   const [user, setUser] = useState(() => {
@@ -37,6 +38,7 @@ function App() {
             <Route path="/login" exact element={<Login />} />
             <Route path="/register" exact element={<Register />} />
             <Route path="/map" exact element={<Map />} />
+            <Route path="/userProfile" exact element={<UserProfile />} />
             <Route path="/logout" element={<Logout />} />
           </Routes>
         </div>
