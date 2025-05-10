@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'sensor_mqtt.dart';  // Uvoz strani za MQTT zajemanje podatkov
 import 'login_register.dart';
 
 void main() {
@@ -21,9 +22,10 @@ class FitOfficeApp extends StatelessWidget {
           inversePrimary: const Color(0xFFBB86FC),
         ),
       ),
-      home: const LoginRegisterPage(),
+      home: const LoginRegisterPage(),  // Zamenjajte z glavno stranjo, če želite
+      routes: {
+        '/sensor': (context) => const SensorMQTTPage(),
+      },
     );
   }
 }
-
-
