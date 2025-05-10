@@ -50,7 +50,7 @@ app.use(function (req, res, next) {
 
 
 var cors = require('cors');
-var allowedOrigins = ['http://localhost:3000', 'http://localhost:3001'];
+var allowedOrigins = ['http://localhost:3000', 'http://localhost:3001', 'http://192.168.0.40:3001', 'http://192.168.0.40:3000'];
 app.use(cors({
   credentials: true,
   origin: function(origin, callback){
