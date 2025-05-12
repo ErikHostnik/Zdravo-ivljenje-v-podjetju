@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:pedometer/pedometer.dart';
 
 class SensorMQTTPage extends StatefulWidget {
   const SensorMQTTPage({super.key});
@@ -17,34 +18,47 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
   late MqttServerClient client;
   String status = 'Povezovanje...';
 
-  double speed = 0.0;
-  double steps = 0;
+  int stepCount = 0;
   double temperature = 36.5;
-  double lat = 0;
-  double lon = 0;
 
   Timer? _timer;
+  StreamSubscription<StepCount>? _stepSubscription;
 
   static const broker = 'test.mosquitto.org';
   static const port = 1883;
-  static const topic = 'sensors/test'; 
+  static const topic = 'sensors/test';
+
+  bool _isPublishing = false;
 
   @override
   void initState() {
     super.initState();
-    _requestPermissions().then((granted) {
-      if (granted) {
-        _initializeMqttClient().then((_) => _connectToBroker());
-      } else {
-        setState(() => status = 'Dovoljenja zavrnjena.');
-      }
-    });
+    _startSetup();
+  }
+
+  Future<void> _startSetup() async {
+    final granted = await _requestPermissions();
+    if (granted) {
+      _initializeStepCounter();
+      await _initializeMqttClient();
+      await _connectToBroker();
+    } else {
+      _updateStatus('Dovoljenja za lokacijo ali pedometer zavrnjena.');
+    }
+  }
+
+  void _initializeStepCounter() {
+    _stepSubscription = Pedometer.stepCountStream.listen(
+      (event) => stepCount = event.steps,
+      onError: (error) => _updateStatus('Napaka pri branju pedometra: $error'),
+      cancelOnError: true,
+    );
   }
 
   Future<void> _initializeMqttClient() async {
     client = MqttServerClient(broker, '');
     client.port = port;
-    client.secure = false; // Brez TLS
+    client.secure = false;
     client.logging(on: false);
     client.keepAlivePeriod = 20;
     client.onDisconnected = _onDisconnected;
@@ -57,17 +71,17 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
     client.connectionMessage = connMessage;
   }
 
-  void _connectToBroker() async {
+  Future<void> _connectToBroker() async {
     try {
       await client.connect();
       if (client.connectionStatus!.state == MqttConnectionState.connected) {
-        setState(() => status = 'Povezan na MQTT!');
+        _updateStatus('Povezan na MQTT strežnik!');
         _startPublishing();
       } else {
-        setState(() => status = 'Napaka pri povezavi: ${client.connectionStatus!.returnCode}');
+        _updateStatus('Napaka: ${client.connectionStatus!.returnCode}');
       }
     } catch (e) {
-      setState(() => status = 'Neuspela povezava: $e');
+      _updateStatus('Napaka pri povezavi: $e');
       client.disconnect();
       _retryConnection();
     }
@@ -75,42 +89,48 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
 
   void _retryConnection() {
     Future.delayed(const Duration(seconds: 5), () {
-      if (client.connectionStatus!.state != MqttConnectionState.connected) {
-        setState(() => status = 'Poskus ponovne povezave...');
+      if (client.connectionStatus?.state != MqttConnectionState.connected) {
+        _updateStatus('Ponovno povezovanje...');
         _connectToBroker();
       }
     });
   }
 
   void _onDisconnected() {
-    setState(() => status = 'Povezava prekinjena.');
+    _updateStatus('Povezava prekinjena.');
+    _isPublishing = false;
+    _timer?.cancel();
   }
 
   void _startPublishing() {
+    _isPublishing = true;
     _timer = Timer.periodic(const Duration(seconds: 5), (_) async {
-      try {
-        final position = await Geolocator.getCurrentPosition();
-        lat = position.latitude;
-        lon = position.longitude;
-        speed = position.speed;
-        steps += Random().nextDouble() * 2;
-
-        final payload = jsonEncode({
-          'latitude': lat,
-          'longitude': lon,
-          'speed': speed,
-          'steps': steps.toStringAsFixed(2),
-          'temperature': temperature
-        });
-
-        final builder = MqttClientPayloadBuilder();
-        builder.addString(payload);
-        client.publishMessage(topic, MqttQos.atLeastOnce, builder.payload!);
-        setState(() => status = 'Podatki poslani: $payload');
-      } catch (e) {
-        setState(() => status = 'Napaka pri pošiljanju: $e');
-      }
+      await _publishSensorData();
     });
+  }
+
+  Future<void> _publishSensorData() async {
+    if (!_isPublishing || client.connectionStatus?.state != MqttConnectionState.connected) return;
+
+    try {
+      final position = await Geolocator.getCurrentPosition();
+
+      final payload = jsonEncode({
+        'latitude': position.latitude,
+        'longitude': position.longitude,
+        'speed': position.speed,
+        'steps': stepCount,
+        'temperature': temperature,
+      });
+
+      final builder = MqttClientPayloadBuilder();
+      builder.addString(payload);
+      client.publishMessage(topic, MqttQos.atLeastOnce, builder.payload!);
+
+      _updateStatus('Podatki poslani ob ${DateTime.now().toIso8601String()}');
+    } catch (e) {
+      _updateStatus('Napaka pri zajemu ali pošiljanju: $e');
+    }
   }
 
   Future<bool> _requestPermissions() async {
@@ -121,12 +141,20 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
     }
+
     return permission == LocationPermission.always || permission == LocationPermission.whileInUse;
+  }
+
+  void _updateStatus(String newStatus) {
+    if (mounted && status != newStatus) {
+      setState(() => status = newStatus);
+    }
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _stepSubscription?.cancel();
     client.disconnect();
     super.dispose();
   }
@@ -134,8 +162,17 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('MQTT Sensor App')),
-      body: Center(child: Text(status, textAlign: TextAlign.center)),
+      appBar: AppBar(title: const Text('Senzorji')),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            status,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 18),
+          ),
+        ),
+      ),
     );
   }
 }

@@ -12,6 +12,8 @@ dependencies:
   mqtt_client: ^10.0.0
   geolocator: ^11.0.0
   sensors_plus: ^3.0.3
+  pedometer: ^4.0.1
+  
     
   http: ^1.0.0
 
