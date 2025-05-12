@@ -1,19 +1,45 @@
 import json
+import os
+import subprocess
 from pymongo import MongoClient
 import paho.mqtt.client as mqtt
 
-# MongoDB povezava
 MONGO_URI = "mongodb+srv://root:hojladrijadrom@zdravozivpodjetja.1hunr7p.mongodb.net/?retryWrites=true&w=majority&appName=ZdravoZivPodjetja"
 mongo_client = MongoClient(MONGO_URI)
 db = mongo_client.zdravozivpodjetja
 sensor_collection = db.sensordatas
 
-# MQTT nastavitve
 BROKER_HOST = "test.mosquitto.org"
 BROKER_PORT = 1883
-TOPIC = "sensors/test"  
+TOPIC = "sensors/test"
 
-def on_connect(client, userdata, flags, rc):
+def call_scraper(lat, lon):
+    try:
+        script_path = os.path.join(os.path.dirname(__file__), '..', 'scripts', 'weather-scrapper.js')
+        print("Using scraper path:", script_path)
+
+        result = subprocess.run(
+            ["node", script_path, str(lat), str(lon)],
+            capture_output=True, text=True, check=True
+        )
+        print("Weather Scraper result:", result.stdout)
+
+        if not result.stdout:
+            print("❌ Empty response from weather scraper")
+            return None
+
+        weather_data = json.loads(result.stdout)
+        print("Weather data:", weather_data)
+        return weather_data  
+        
+    except subprocess.CalledProcessError as e:
+        print("Scraper error:", e.stderr)
+        return None
+    except json.JSONDecodeError:
+        print("Failed to decode weather data JSON")
+        return None
+
+def on_connect(client, rc):
     if rc == 0:
         print("Connected to MQTT broker")
         client.subscribe(TOPIC)
@@ -21,17 +47,29 @@ def on_connect(client, userdata, flags, rc):
     else:
         print("Connection failed with code:", rc)
 
-def on_message(client, userdata, msg):
+def on_message(msg):
     try:
         payload = json.loads(msg.payload.decode())
         print("Received:", payload)
-        
+
         if "session" in payload:
-            sensor_collection.insert_one({
+            session_data = {
                 "user": payload.get("userId"),
                 "session": payload["session"]
-            })
-            print("Session data saved to MongoDB")
+            }
+
+            if isinstance(payload["session"], list) and payload["session"]:
+                last = payload["session"][-1]
+                lat = last.get("latitude")
+                lon = last.get("longitude")
+
+                if lat and lon:
+                    weather = call_scraper(lat, lon)
+                    if weather:
+                        session_data["weather"] = weather
+
+            sensor_collection.insert_one(session_data)
+            print("Session data with weather saved to MongoDB")
         else:
             print("No session data found.")
     except Exception as e:
