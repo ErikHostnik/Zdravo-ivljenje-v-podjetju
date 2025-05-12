@@ -82,14 +82,6 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
               },
               child: Text(isLogin ? 'Nimate računa? Registracija' : 'Imate račun? Prijava'),
             ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                // Preusmeri na stran za MQTT senzorje
-                Navigator.pushNamed(context, '/sensor');
-              },
-              child: const Text('Začni s spremljanjem podatkov'),
-            ),
           ],
         ),
       ),
