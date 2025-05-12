@@ -25,10 +25,17 @@ def on_message(client, userdata, msg):
     try:
         payload = json.loads(msg.payload.decode())
         print("Received:", payload)
-        sensor_collection.insert_one(payload)
-        print("saved to MongoDB")
+        
+        if "session" in payload:
+            sensor_collection.insert_one({
+                "user": payload.get("userId"),
+                "session": payload["session"]
+            })
+            print("Session data saved to MongoDB")
+        else:
+            print("No session data found.")
     except Exception as e:
-        print(" Error:", e)
+        print("Error:", e)
 
 def main():
     client = mqtt.Client()

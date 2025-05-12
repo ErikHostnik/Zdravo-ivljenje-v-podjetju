@@ -29,6 +29,7 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
   static const topic = 'sensors/test';
 
   bool _isPublishing = false;
+  List<Map<String, dynamic>> _collectedData = [];
 
   @override
   void initState() {
@@ -76,7 +77,6 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
       await client.connect();
       if (client.connectionStatus!.state == MqttConnectionState.connected) {
         _updateStatus('Povezan na MQTT strežnik!');
-        _startPublishing();
       } else {
         _updateStatus('Napaka: ${client.connectionStatus!.returnCode}');
       }
@@ -102,34 +102,46 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
     _timer?.cancel();
   }
 
-  void _startPublishing() {
+  void _startCollecting() {
+    _collectedData.clear(); // Reset
     _isPublishing = true;
-    _timer = Timer.periodic(const Duration(seconds: 5), (_) async {
-      await _publishSensorData();
+    _updateStatus("Zajemanje podatkov ...");
+
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) async {
+      try {
+        final position = await Geolocator.getCurrentPosition();
+        final dataPoint = {
+          'timestamp': DateTime.now().toIso8601String(),
+          'latitude': position.latitude,
+          'longitude': position.longitude,
+          'speed': position.speed,
+          'steps': stepCount,
+          'temperature': temperature,
+        };
+        _collectedData.add(dataPoint);
+        _updateStatus('Zbranih točk: ${_collectedData.length}');
+      } catch (e) {
+        _updateStatus('Napaka pri lokaciji: $e');
+      }
     });
   }
 
-  Future<void> _publishSensorData() async {
-    if (!_isPublishing || client.connectionStatus?.state != MqttConnectionState.connected) return;
+  void _stopAndSendData() {
+    _isPublishing = false;
+    _timer?.cancel();
 
-    try {
-      final position = await Geolocator.getCurrentPosition();
-
-      final payload = jsonEncode({
-        'latitude': position.latitude,
-        'longitude': position.longitude,
-        'speed': position.speed,
-        'steps': stepCount,
-        'temperature': temperature,
-      });
+    if (client.connectionStatus?.state == MqttConnectionState.connected && _collectedData.isNotEmpty) {
+      final payload = jsonEncode({'session': _collectedData});
 
       final builder = MqttClientPayloadBuilder();
       builder.addString(payload);
-      client.publishMessage(topic, MqttQos.atLeastOnce, builder.payload!);
 
-      _updateStatus('Podatki poslani ob ${DateTime.now().toIso8601String()}');
-    } catch (e) {
-      _updateStatus('Napaka pri zajemu ali pošiljanju: $e');
+      client.publishMessage(topic, MqttQos.atLeastOnce, builder.payload!);
+      _updateStatus("Podatki poslani: ${_collectedData.length} točk");
+
+      _collectedData.clear();
+    } else {
+      _updateStatus("Ni podatkov za pošiljanje ali ni povezave.");
     }
   }
 
@@ -166,10 +178,31 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: Text(
-            status,
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 18),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                status,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 18),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: _isPublishing ? null : _startCollecting,
+                icon: const Icon(Icons.play_arrow),
+                label: const Text("Začni zajemanje"),
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton.icon(
+                onPressed: _isPublishing ? _stopAndSendData : null,
+                icon: const Icon(Icons.stop),
+                label: const Text("Ustavi in pošlji"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ],
           ),
         ),
       ),

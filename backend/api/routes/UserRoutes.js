@@ -19,6 +19,7 @@ router.get('/:id', UserController.show);
 router.post('/', UserController.create);
 router.post('/login', UserController.login);
 
+
 /*
  * PUT
  */
