@@ -18,7 +18,7 @@ export default function Map() {
   };
 
   return (
-    <div style={{ height: '100vh', width: '100%' }}>
+    <div style={{ height: '50vh', width: '100%' }}>
       <MapContainer 
         center={[mockLocation.latitude, mockLocation.longitude]} 
         zoom={13} 

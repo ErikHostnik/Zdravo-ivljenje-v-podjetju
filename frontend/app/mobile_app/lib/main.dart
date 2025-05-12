@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'home.dart';
+import 'sensor_mqtt.dart';
 import 'login_register.dart';
 
 void main() {
@@ -18,12 +20,14 @@ class FitOfficeApp extends StatelessWidget {
           brightness: Brightness.light,
           primary: const Color(0xFF6750A4),
           secondary: const Color(0xFF03DAC6),
-          inversePrimary: const Color(0xFFBB86FC),
         ),
       ),
-      home: const LoginRegisterPage(),
+      initialRoute: '/',
+      routes: {
+        '/': (context) => const HomePage(),
+        '/login': (context) => const LoginRegisterPage(),
+        '/sensor': (context) => const SensorMQTTPage(),
+      },
     );
   }
 }
-
-

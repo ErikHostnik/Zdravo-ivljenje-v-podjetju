@@ -4,13 +4,16 @@ const Schema = mongoose.Schema;
 const SensorDataSchema = new Schema({
   user: { type: Schema.Types.ObjectId, ref: 'User' },
   timestamp: { type: Date, default: Date.now },
-  steps: Number,
-  speed: Number,
-  temperature: Number,
-  location: {
-    lat: Number,
-    lon: Number
-  },
+  activity: [
+    {
+      timestamp: Date,
+      steps: Number,
+      speed: Number,
+      temperature: Number,
+      latitude: Number,
+      longitude: Number
+    }
+  ],
   weather: {
     temperature: Number,
     conditions: String

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'sensor_mqtt.dart';
 import 'dart:convert';
+import 'package:http/http.dart' as http;
 
-//Glavni widget za prijavo in registracijo
+
 class LoginRegisterPage extends StatefulWidget {
   const LoginRegisterPage({super.key});
 
@@ -16,9 +17,9 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
   final TextEditingController emailCtrl = TextEditingController();
   final TextEditingController passwordCtrl = TextEditingController();
 
-  final String baseUrl = 'http://localhost:3001/api/users'; // zamenjaj z IP ce se bo testiral na fizični napravi cuj ne pozabit cors
+  final String baseUrl = 'http://192.168.0.40:3001/api/users';
 
-//Funkcija ki se izvede ob kliko na gumb za prijavo ali registracjo
+  // Funkcija za prijavo ali registracijo
   Future<void> _submit() async {
     final username = usernameCtrl.text;
     final email = emailCtrl.text;
@@ -55,9 +56,8 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
       );
     }
   }
-  
 
-  //Tukaj se določi UI (spremeni gleden na isLogin)
+  // UI za prijavo ali registracijo
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -81,7 +81,7 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
                 setState(() => isLogin = !isLogin);
               },
               child: Text(isLogin ? 'Nimate računa? Registracija' : 'Imate račun? Prijava'),
-            )
+            ),
           ],
         ),
       ),
