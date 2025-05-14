@@ -24,7 +24,7 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
   Timer? _timer;
   StreamSubscription<StepCount>? _stepSubscription;
 
-  static const broker = 'test.mosquitto.org';
+  static const broker = '192.168.0.11' ;
   static const port = 1883;
   static const topic = 'sensors/test';
 
