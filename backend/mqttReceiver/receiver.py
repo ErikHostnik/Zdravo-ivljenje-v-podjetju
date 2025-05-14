@@ -9,7 +9,7 @@ mongo_client = MongoClient(MONGO_URI)
 db = mongo_client.zdravozivpodjetja
 sensor_collection = db.sensordatas
 
-BROKER_HOST = "test.mosquitto.org"
+BROKER_HOST = "127.0.0.1"
 BROKER_PORT = 1883
 TOPIC = "sensors/test"
 
@@ -39,7 +39,7 @@ def call_scraper(lat, lon):
         print("Failed to decode weather data JSON")
         return None
 
-def on_connect(client, rc):
+def on_connect(client, userdata, flags, rc):
     if rc == 0:
         print("Connected to MQTT broker")
         client.subscribe(TOPIC)
@@ -47,7 +47,7 @@ def on_connect(client, rc):
     else:
         print("Connection failed with code:", rc)
 
-def on_message(msg):
+def on_message(client, userdata, msg):
     try:
         payload = json.loads(msg.payload.decode())
         print("Received:", payload)
