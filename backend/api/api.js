@@ -53,9 +53,9 @@ var cors = require('cors');
 var allowedOrigins = ['http://localhost:3000', 'http://localhost:3001', 'http://192.168.0.40:3001', 'http://192.168.0.40:3000'];
 app.use(cors({
   credentials: true,
-  origin: function(origin, callback){
-    if(!origin) return callback(null, true);
-    if(allowedOrigins.indexOf(origin)===-1){
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
       var msg = "The CORS policy does not allow access from the specified Origin.";
       return callback(new Error(msg), false);
     }
@@ -71,12 +71,12 @@ app.use('/api/sensordata', sensorDataRoutes);
 app.use('/api/processdata', processDataRoutes);
 
 // Catch 404 and forward to error handler
-app.use(function(req, res, next) {
+app.use(function (req, res, next) {
   next(createError(404, 'Not Found'));
 });
 
 // Error handler - return JSON, not HTML
-app.use(function(err, req, res, next) {
+app.use(function (err, req, res, next) {
   res.status(err.status || 500).json({
     message: err.message,
     error: req.app.get('env') === 'development' ? err : {}

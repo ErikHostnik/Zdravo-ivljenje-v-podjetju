@@ -5,13 +5,17 @@ const User = require('../models/UserModel');
 const MongoStore = require('connect-mongo');
 
 beforeAll(async () => {
+    const mongoURI = 'mongodb+srv://root:hojladrijadrom@zdravozivpodjetja.1hunr7p.mongodb.net/?retryWrites=true&w=majority&appName=ZdravoZivPodjetja';
     if (mongoose.connection.readyState === 0) {
-        await mongoose.connect('mongodb://localhost:27017/testdb');
+        await mongoose.connect(mongoURI, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+        });
     }
 });
 
 beforeEach(async () => {
-    await User.deleteMany();
+    await User.deleteOne({ username: 'testuser' });
 });
 
 afterAll(async () => {
