@@ -41,14 +41,10 @@ module.exports = {
   create: async function (req, res) {
     try {
       const newSensorData = new SensordataModel({
-        user: req.session.userId,
-        timestamp:req.body.timestamp,
-        steps: req.body.steps,
-        speed: req.body.speed,
-        temperature: req.body.temperature,
-        location: req.body.location,
-        weather:  req.body.weather
+        activity: req.body.activity,  
+        weather: req.body.weather
       });
+
       const saved = await newSensorData.save();
       return res.status(201).json(saved);
     } catch (err) {
