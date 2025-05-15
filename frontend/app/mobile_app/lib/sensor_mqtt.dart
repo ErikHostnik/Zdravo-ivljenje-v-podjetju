@@ -143,7 +143,6 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
 
     if (client.connectionStatus?.state == MqttConnectionState.connected && _collectedData.isNotEmpty) {
       final payload = jsonEncode({
-        'user_id': _userId,
         'session': _collectedData,
       });
 
