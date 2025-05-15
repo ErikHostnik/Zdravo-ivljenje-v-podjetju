@@ -13,6 +13,7 @@ dependencies:
   geolocator: ^11.0.0
   sensors_plus: ^3.0.3
   pedometer: ^4.0.1
+  shared_preferences: ^2.2.2
   
     
   http: ^1.0.0

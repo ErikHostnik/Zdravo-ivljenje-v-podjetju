@@ -20,7 +20,8 @@ function Login(){
             })
         });
         const data = await res.json();
-        if(data._id !== undefined){
+
+        if(data.user && data.user._id){
             userContext.setUserContext(data);
         } else {
             setUsername("");

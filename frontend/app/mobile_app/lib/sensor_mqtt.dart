@@ -6,6 +6,7 @@ import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:pedometer/pedometer.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SensorMQTTPage extends StatefulWidget {
   const SensorMQTTPage({super.key});
@@ -19,25 +20,33 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
   String status = 'Povezovanje...';
 
   int stepCount = 0;
-  
 
   Timer? _timer;
   StreamSubscription<StepCount>? _stepSubscription;
 
-  static const broker = '192.168.0.11' ;
+  static const broker = '192.168.0.11';
   static const port = 1883;
   static const topic = 'sensors/test';
 
   bool _isPublishing = false;
   List<Map<String, dynamic>> _collectedData = [];
 
+  String? _userId; // Shranimo user_id
+
   @override
   void initState() {
     super.initState();
-    _startSetup();
+    _loadUserIdAndSetup();
   }
 
-  Future<void> _startSetup() async {
+  Future<void> _loadUserIdAndSetup() async {
+    final prefs = await SharedPreferences.getInstance();
+    _userId = prefs.getString('user_id');
+    if (_userId == null) {
+      _updateStatus('User ID ni najden. Prosim, prijavite se.');
+      return;
+    }
+
     final granted = await _requestPermissions();
     if (granted) {
       _initializeStepCounter();
@@ -50,7 +59,9 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
 
   void _initializeStepCounter() {
     _stepSubscription = Pedometer.stepCountStream.listen(
-      (event) => stepCount = event.steps,
+      (event) => setState(() {
+        stepCount = event.steps;
+      }),
       onError: (error) => _updateStatus('Napaka pri branju pedometra: $error'),
       cancelOnError: true,
     );
@@ -116,6 +127,7 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
           'longitude': position.longitude,
           'speed': position.speed,
           'steps': stepCount,
+          'userId': _userId,  
         };
         _collectedData.add(dataPoint);
         _updateStatus('Zbranih točk: ${_collectedData.length}');
@@ -130,7 +142,9 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
     _timer?.cancel();
 
     if (client.connectionStatus?.state == MqttConnectionState.connected && _collectedData.isNotEmpty) {
-      final payload = jsonEncode({'session': _collectedData});
+      final payload = jsonEncode({
+        'session': _collectedData,
+      });
 
       final builder = MqttClientPayloadBuilder();
       builder.addString(payload);
@@ -187,7 +201,7 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
               ),
               const SizedBox(height: 24),
               ElevatedButton.icon(
-                onPressed: _isPublishing ? null : _startCollecting,
+                onPressed: _isPublishing || _userId == null ? null : _startCollecting,
                 icon: const Icon(Icons.play_arrow),
                 label: const Text("Začni zajemanje"),
               ),

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'sensor_mqtt.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginRegisterPage extends StatefulWidget {
   const LoginRegisterPage({super.key});
@@ -19,11 +19,10 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
 
   final String baseUrl = 'http://192.168.0.11:3001/api/users';
 
-  // Funkcija za prijavo ali registracijo
   Future<void> _submit() async {
-    final username = usernameCtrl.text;
-    final email = emailCtrl.text;
-    final password = passwordCtrl.text;
+    final username = usernameCtrl.text.trim();
+    final email = emailCtrl.text.trim();
+    final password = passwordCtrl.text.trim();
 
     try {
       final url = isLogin ? '$baseUrl/login' : '$baseUrl';
@@ -41,10 +40,25 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = jsonDecode(response.body);
+
+        // Shrani token in user ID v SharedPreferences
+        final prefs = await SharedPreferences.getInstance();
+        if (data['token'] != null) {
+          await prefs.setString('jwt_token', data['token']);
+        }
+        if (data['user'] != null && data['user']['_id'] != null) {
+          await prefs.setString('user_id', data['user']['_id']);
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('${isLogin ? 'Prijava' : 'Registracija'} uspešna!')),
         );
+
         print(data);
+
+        // Opcijsko: Po uspešni prijavi preusmeri na drugo stran
+        // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => SensorMQTTPage()));
+
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Napaka: ${response.body}')),
@@ -57,7 +71,6 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
     }
   }
 
-  // UI za prijavo ali registracijo
   @override
   Widget build(BuildContext context) {
     return Scaffold(
