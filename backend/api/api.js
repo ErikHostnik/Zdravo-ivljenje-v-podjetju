@@ -17,7 +17,7 @@ const processDataRoutes = require('./routes/ProccessedDataRoutes');
 
 
 // MongoDB connection URI
-const mongoDB = 'mongodb+srv://root:hojladrijadrom@zdravozivpodjetja.1hunr7p.mongodb.net/?retryWrites=true&w=majority&appName=ZdravoZivPodjetja';
+const mongoDB = 'mongodb+srv://root:hojladrijadrom@zdravozivpodjetja.1hunr7p.mongodb.net/zdravozivpodjetja?retryWrites=true&w=majority&appName=ZdravoZivPodjetja';
 
 // Connect to MongoDB
 mongoose.connect(mongoDB, {

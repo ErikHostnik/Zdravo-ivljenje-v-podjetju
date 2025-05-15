@@ -19,7 +19,7 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
   String status = 'Povezovanje...';
 
   int stepCount = 0;
-  double temperature = 36.5;
+  
 
   Timer? _timer;
   StreamSubscription<StepCount>? _stepSubscription;
@@ -116,7 +116,6 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
           'longitude': position.longitude,
           'speed': position.speed,
           'steps': stepCount,
-          'temperature': temperature,
         };
         _collectedData.add(dataPoint);
         _updateStatus('Zbranih točk: ${_collectedData.length}');

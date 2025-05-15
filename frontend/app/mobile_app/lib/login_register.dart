@@ -17,7 +17,7 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
   final TextEditingController emailCtrl = TextEditingController();
   final TextEditingController passwordCtrl = TextEditingController();
 
-  final String baseUrl = 'http://192.168.0.40:3001/api/users';
+  final String baseUrl = 'http://192.168.0.11:3001/api/users';
 
   // Funkcija za prijavo ali registracijo
   Future<void> _submit() async {
