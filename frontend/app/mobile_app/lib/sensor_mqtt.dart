@@ -127,7 +127,6 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
           'longitude': position.longitude,
           'speed': position.speed,
           'steps': stepCount,
-          'userId': _userId,  
         };
         _collectedData.add(dataPoint);
         _updateStatus('Zbranih točk: ${_collectedData.length}');
@@ -144,6 +143,7 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
     if (client.connectionStatus?.state == MqttConnectionState.connected && _collectedData.isNotEmpty) {
       final payload = jsonEncode({
         'session': _collectedData,
+        'userId': _userId,
       });
 
       final builder = MqttClientPayloadBuilder();
