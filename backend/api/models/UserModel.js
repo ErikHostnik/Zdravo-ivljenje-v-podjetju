@@ -10,6 +10,14 @@ const UserSchema = new Schema({
   distance: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now },
   activities: [{ type: Schema.Types.ObjectId, ref: 'SensorData' }],
+
+  dailyStats: [
+    {
+      date: { type: Date, required: true },
+      stepCount: { type: Number, default: 0 },
+      distance: { type: Number, default: 0 },
+    }
+  ]
 });
 
 // Hashiranje gesla pred shranjevanjem
