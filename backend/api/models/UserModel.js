@@ -8,7 +8,8 @@ const UserSchema = new Schema({
   password: { type: String, required: true },
   stepCount: { type: Number, default: 0 },
   distance: { type: Number, default: 0 },
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now },
+  activities: [{ type: Schema.Types.ObjectId, ref: 'SensorData' }],
 });
 
 // Hashiranje gesla pred shranjevanjem
