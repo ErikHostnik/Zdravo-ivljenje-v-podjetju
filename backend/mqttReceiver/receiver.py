@@ -56,33 +56,29 @@ def update_daily_stats(user_id, steps, distance, avg_altitude=None):
     user_collection.update_one(
         {"_id": user_id},
         {
-            "$inc": {
-                "stepCount": steps,
-                "distance": distance
-            }
+            "$inc": {"stepCount": steps, "distance": distance},
+            "$set": {"lastAltitude": round(avg_altitude, 2)} if avg_altitude else {}
         }
     )
 
-    if avg_altitude is not None:
-        user_collection.update_one(
-            {"_id": user_id},
-            {"$set": {"lastAltitude": round(avg_altitude, 2)}}
-        )
-
-    update_data = {
+    daily_data = {
         "date": today,
         "stepCount": steps,
         "distance": distance
     }
-
     if avg_altitude is not None:
-        update_data["avgAltitude"] = round(avg_altitude, 2)
+        daily_data["avgAltitude"] = round(avg_altitude, 2)
 
-    user_collection.update_one(
+    result = user_collection.update_one(
         {"_id": user_id, "dailyStats.date": today},
-        {"$set": {"dailyStats.$": update_data}},
-        upsert=True
+        {"$set": {"dailyStats.$": daily_data}}
     )
+
+    if result.modified_count == 0:
+        user_collection.update_one(
+            {"_id": user_id},
+            {"$push": {"dailyStats": daily_data}}
+        )
 
 def call_scraper(lat, lon):
     try:
