@@ -10,7 +10,8 @@ const SensorDataSchema = new Schema({
       speed: Number,
       temperature: Number,
       latitude: Number,
-      longitude: Number
+      longitude: Number,
+      latitude: {Number, default: None}
     }
   ],
   weather: {

@@ -17,7 +17,8 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
   final TextEditingController emailCtrl = TextEditingController();
   final TextEditingController passwordCtrl = TextEditingController();
 
-  final String baseUrl = 'http://192.168.0.11:3001/api/users';
+// SPREMENI IP NASLOV!!! GLEDE NA SVOJO NAPRAVO!!!
+  final String baseUrl = 'http://192.168.0.29:3001/api/users';
 
   Future<void> _submit() async {
     final username = usernameCtrl.text.trim();
