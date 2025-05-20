@@ -124,51 +124,67 @@ def on_message(client, userdata, msg):
         print("📨 Received:", payload)
 
         if "session" in payload:
+            # Pripravi osnovne podatke seje
             session_data = {
                 "user": payload.get("userId"),
-                "session": payload["session"]
+                "session": payload["session"],
+                "altitude_data": [],
+                "avg_altitude": None
             }
 
+            # Obdelava višin
+            valid_altitudes = [
+            point.get("altitude", 0.0)  # Privzeto 0.0, če ni podatka
+            for point in payload["session"]]
+
+            session_data["altitude_data"] = valid_altitudes
+            session_data["avg_altitude"] = sum(valid_altitudes) / len(valid_altitudes) if valid_altitudes else None
+
+            # Dodajanje vremenskih podatkov (če je možno)
             if isinstance(payload["session"], list) and payload["session"]:
-                last = payload["session"][-1]
-                lat = last.get("latitude")
-                lon = last.get("longitude")
+                last_point = payload["session"][-1]
+                lat = last_point.get("latitude")
+                lon = last_point.get("longitude")
 
                 if lat is not None and lon is not None:
                     weather = call_scraper(lat, lon)
                     if weather:
                         session_data["weather"] = weather
 
-            # Shrani SensorData v MongoDB
+            # Shranjevanje v bazo
             result = sensor_collection.insert_one(session_data)
             sensor_data_id = result.inserted_id
-            print("Session data with weather saved to MongoDB")
+            print("✅ Podatki shranjeni" + (" (z višino)" if valid_altitudes else " (brez višine)"))
 
-            # Posodobi uporabnika (dodaj aktivnost v seznam)
+            # Posodobitev uporabnika
             user_id = payload.get("userId")
             if user_id:
+                # Dodajanje aktivnosti
                 update_result = user_collection.update_one(
                     {"_id": ObjectId(user_id)},
                     {"$push": {"activities": sensor_data_id}}
                 )
-                if update_result.modified_count > 0:
-                    print(f"Aktivnost {sensor_data_id} dodana uporabniku {user_id}")
-                else:
-                    print(f"Uporabnik {user_id} ni posodobljen (morda ne obstaja?)")
-
-                # Izračunaj in posodobi dnevne statistike
+                
+                # Statistike
                 steps, distance = calculate_total_steps_and_distance(payload["session"])
                 update_daily_stats(ObjectId(user_id), steps, distance)
-                print(f"✅ Posodobljen dailyStats za uporabnika {user_id}: koraki {steps}, razdalja {distance:.2f} km")
+                
+                status_msg = (
+                    f"Aktivnost {sensor_data_id} dodana uporabniku {user_id}\n"
+                    f"✅ Posodobljen dailyStats: koraki {steps}, razdalja {distance:.2f} km"
+                )
+                if valid_altitudes:
+                    status_msg += f", povprečna višina {session_data['avg_altitude']:.1f} m"
+                print(status_msg)
 
             else:
-                print("Ni userId podanega v sporočilu.")
+                print("⚠️ Ni userId v podatkih")
 
         else:
-            print("Ni session podatkov v MQTT sporočilu.")
+            print("⚠️ Ni session podatkov")
     except Exception as e:
-        print("Error:", e)
-
+        print(f"❌ Napaka: {str(e)}")
+        
 def main():
     client = mqtt.Client()
     client.on_connect = on_connect
