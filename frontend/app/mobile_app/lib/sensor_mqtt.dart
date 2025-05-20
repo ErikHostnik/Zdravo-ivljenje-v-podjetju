@@ -126,6 +126,7 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
           'timestamp': DateTime.now().toIso8601String(),
           'latitude': position.latitude,
           'longitude': position.longitude,
+          'altitude': position.altitude,
           'speed': position.speed,
           'steps': stepCount,
         };
