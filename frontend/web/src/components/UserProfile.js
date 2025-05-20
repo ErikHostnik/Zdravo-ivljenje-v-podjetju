@@ -1,17 +1,28 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { useParams } from 'react-router-dom';
 
 export default function UserProfile() {
+  const { userId } = useParams();
   const [user, setUser] = useState(null);
-  const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
-        const response = await axios.get('/api/user/:id'); // ← popravi po potrebi
-        setUser(response.data.user);
-        setStats(response.data.stats);
+        const token = localStorage.getItem('token');
+
+        const response = await axios.get(`http://localhost:3001/api/users/${userId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+
+        console.log("Odgovor strežnika:", response.data);
+
+        // Ker imaš vse podatke v response.data (user object), shrani ga direktno
+        setUser(response.data);
+
       } catch (error) {
         console.error('Napaka pri pridobivanju podatkov:', error);
         setUser({
@@ -24,7 +35,7 @@ export default function UserProfile() {
     };
 
     fetchUserProfile();
-  }, []);
+  }, [userId]);
 
   if (loading) return <div>Nalaganje podatkov...</div>;
 
@@ -33,15 +44,18 @@ export default function UserProfile() {
       <h2>Profil uporabnika</h2>
       <p><strong>Uporabniško ime:</strong> {user?.username}</p>
       <p><strong>Email:</strong> {user?.email}</p>
+
       <hr />
       <h3>Statistika gibanja</h3>
-      {stats ? (
-        <>
-          <p><strong>Število korakov:</strong> {stats.steps}</p>
-          <p><strong>Povprečna hitrost:</strong> {stats.avgSpeed} km/h</p>
-          <p><strong>Najvišja hitrost:</strong> {stats.maxSpeed} km/h</p>
-          <p><strong>Najnižja hitrost:</strong> {stats.minSpeed} km/h</p>
-        </>
+      {/* Prikaz statistike, če obstaja */}
+      {user?.dailyStats && user.dailyStats.length > 0 ? (
+        <ul>
+          {user.dailyStats.map((stat, idx) => (
+            <li key={idx}>
+              Datum: {new Date(stat.date).toLocaleDateString()}, Koraki: {stat.stepCount}, Razdalja: {stat.distance.toFixed(2)} km
+            </li>
+          ))}
+        </ul>
       ) : (
         <p>Ni statistike na voljo.</p>
       )}
