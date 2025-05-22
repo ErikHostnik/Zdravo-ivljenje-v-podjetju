@@ -71,7 +71,7 @@ class _HomePageState extends State<HomePage> {
                   if (loggedIn) ...[
                     ElevatedButton(
                       onPressed: () => Navigator.pushNamed(context, '/sensor'),
-                      child: const Text('Spremljaj senzorje'),
+                      child: const Text('Začni aktivnost'),
                     ),
                     const SizedBox(height: 16),
                     ElevatedButton(
