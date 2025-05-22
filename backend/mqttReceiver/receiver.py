@@ -4,15 +4,14 @@ import subprocess
 from pymongo import MongoClient
 from bson import ObjectId
 import paho.mqtt.client as mqtt
-from datetime import datetime, timedelta, timezone
-from pymongo import UpdateOne
+from datetime import datetime, timezone
 from math import radians, cos, sin, asin, sqrt
 
 MONGO_URI = "mongodb+srv://root:hojladrijadrom@zdravozivpodjetja.1hunr7p.mongodb.net/?retryWrites=true&w=majority&appName=ZdravoZivPodjetja"
 mongo_client = MongoClient(MONGO_URI)
 db = mongo_client.zdravozivpodjetja
 sensor_collection = db.sensordatas
-user_collection = db.users 
+user_collection = db.users
 
 BROKER_HOST = "127.0.0.1"
 BROKER_PORT = 1883
@@ -37,7 +36,7 @@ def calculate_total_steps_and_distance(session):
             lon1, lat1, lon2, lat2 = map(radians, [prev_point["lon"], prev_point["lat"], lon, lat])
             dlon = lon2 - lon1
             dlat = lat2 - lat1
-            a = sin(dlat / 2)**2 + cos(lat1) * cos(lat2) * sin(dlon / 2)**2
+            a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
             c = 2 * asin(sqrt(a))
             km = 6371 * c
             total_distance += km
@@ -45,10 +44,8 @@ def calculate_total_steps_and_distance(session):
         if lat is not None and lon is not None:
             prev_point = {"lat": lat, "lon": lon}
 
-    avg_altitude = sum(altitudes)/len(altitudes) if altitudes else None
-
+    avg_altitude = sum(altitudes) / len(altitudes) if altitudes else None
     return total_steps, total_distance, avg_altitude
-
 
 def update_daily_stats(user_id, steps, distance, avg_altitude=None):
     today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
@@ -119,33 +116,33 @@ def on_message(client, userdata, msg):
         payload = json.loads(msg.payload.decode())
         print("📨 Received:", payload)
 
-        if "session" in payload:
+        session = payload.get("session")
+        if isinstance(session, list) and session:
             session_data = {
                 "user": payload.get("userId"),
-                "session": payload["session"],
+                "session": session,
                 "altitude_data": [],
                 "avg_altitude": None
             }
 
             valid_altitudes = [
-                point.get("altitude") 
-                for point in payload["session"] 
+                point.get("altitude")
+                for point in session
                 if point.get("altitude", 0.0) not in (0.0, None)
             ]
-            
+
             if valid_altitudes:
                 session_data["altitude_data"] = valid_altitudes
-                session_data["avg_altitude"] = sum(valid_altitudes)/len(valid_altitudes)
+                session_data["avg_altitude"] = sum(valid_altitudes) / len(valid_altitudes)
 
-            if isinstance(payload["session"], list) and payload["session"]:
-                last_point = payload["session"][-1]
-                lat = last_point.get("latitude")
-                lon = last_point.get("longitude")
-                
-                if lat and lon:
-                    weather = call_scraper(lat, lon)
-                    if weather:
-                        session_data["weather"] = weather
+            last_point = session[-1]
+            lat = last_point.get("latitude")
+            lon = last_point.get("longitude")
+
+            if lat and lon:
+                weather = call_scraper(lat, lon)
+                if weather:
+                    session_data["weather"] = weather
 
             result = sensor_collection.insert_one(session_data)
             sensor_data_id = result.inserted_id
@@ -158,9 +155,9 @@ def on_message(client, userdata, msg):
                     {"$push": {"activities": sensor_data_id}}
                 )
 
-                steps, distance, avg_altitude = calculate_total_steps_and_distance(payload["session"])
+                steps, distance, avg_altitude = calculate_total_steps_and_distance(session)
                 update_daily_stats(ObjectId(user_id), steps, distance, avg_altitude)
-                
+
                 status_msg = f"✅ Koraki: {steps}, Razdalja: {distance:.2f} km"
                 if avg_altitude:
                     status_msg += f", Povprečna višina: {avg_altitude:.1f} m"
@@ -168,9 +165,8 @@ def on_message(client, userdata, msg):
 
             else:
                 print("⚠️ Manjka userId")
-
         else:
-            print("⚠️ Manjka session podatkov")
+            print("⚠️ Manjka session podatkov ali je prazen seznam")
     except Exception as e:
         print(f"❌ Napaka: {str(e)}")
 
