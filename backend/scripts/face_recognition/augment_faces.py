@@ -42,3 +42,33 @@ def add_salt_pepper_noise(image, amount=0.01):
         noisy[y, x] = 0
 
     return noisy
+
+def augment_image(image, filename_base, counter):
+    """Shrani 4 augmentirane različice slike."""
+    a1 = rotate_image(image, angle=15)
+    a2 = flip_horizontal(image)
+    a3 = change_contrast(image, factor=1.5)
+    a4 = add_salt_pepper_noise(image, amount=0.02)
+
+    cv.imwrite(os.path.join(output_folder, f'{filename_base}_aug_rot_{counter}.png'), a1)
+    cv.imwrite(os.path.join(output_folder, f'{filename_base}_aug_flip_{counter}.png'), a2)
+    cv.imwrite(os.path.join(output_folder, f'{filename_base}_aug_contrast_{counter}.png'), a3)
+    cv.imwrite(os.path.join(output_folder, f'{filename_base}_aug_noise_{counter}.png'), a4)
+
+# Glavna zanka
+counter = 0
+for file in os.listdir(input_folder):
+    if file.endswith('.png'):
+        path = os.path.join(input_folder, file)
+        image = cv.imread(path, cv.IMREAD_GRAYSCALE)
+
+        if image is None:
+            print(f"Napaka pri branju slike: {file}")
+            continue
+
+        filename_base = os.path.splitext(file)[0]
+        augment_image(image, filename_base, counter)
+        counter += 1
+        print(f"Augmentirane slike za: {file}")
+
+print("Augmentacija uspesna.")
