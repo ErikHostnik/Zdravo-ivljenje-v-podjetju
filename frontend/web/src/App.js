@@ -1,4 +1,3 @@
-// App.js
 import { useState } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { UserContext } from "./userContext";
@@ -8,8 +7,8 @@ import Header from "./components/Header";
 import Login from "./components/Login";
 import Logout from "./components/Logout";
 import Register from './components/Register';
-import Map from './components/Map';
 import UserProfile from './components/UserProfile';
+import PathMap from './components/PathMap';
 
 function App() {
   const [user, setUser] = useState(() => {
@@ -38,8 +37,8 @@ function App() {
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            <Route path="/map" element={<Map />} />
             <Route path="/userProfile/:userId" element={<UserProfile />} />
+            <Route path="/path/:userId" element={<PathMap />} />
             <Route path="/logout" element={<Logout />} />
           </Routes>
         </div>
