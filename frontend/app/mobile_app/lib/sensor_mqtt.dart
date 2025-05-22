@@ -126,19 +126,16 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
     _timer = Timer.periodic(const Duration(seconds: 3), (_) async {
       try {
         final position = await Geolocator.getCurrentPosition();
-        final dataPoint = {
-          'timestamp': DateTime.now().toIso8601String(),
-          'latitude': position.latitude,
-          'longitude': position.longitude,
-          'altitude': position.altitude,
-          'speed': position.speed,
-          'steps': stepCount,
-        };
-        _collectedData.add(dataPoint);
+      
+        if (position.latitude.isNaN || position.longitude.isNaN ||
+            position.latitude > 90 || position.latitude < -90 ||
+            position.longitude > 180 || position.longitude < -180) {
+          throw Exception('Neveljavne koordinate');
+        }
+
         setState(() {
           _path.add(LatLng(position.latitude, position.longitude));
         });
-        _updateStatus('Zbranih točk: ${_collectedData.length}');
       } catch (e) {
         _updateStatus('Napaka pri lokaciji: $e');
       }
