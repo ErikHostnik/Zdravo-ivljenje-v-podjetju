@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart';
 
 class SensorMapPage extends StatefulWidget {
   final List<LatLng> pathPoints;
+
   const SensorMapPage({Key? key, required this.pathPoints}) : super(key: key);
 
   @override
@@ -11,16 +12,31 @@ class SensorMapPage extends StatefulWidget {
 }
 
 class _SensorMapPageState extends State<SensorMapPage> {
+  final mapController = MapController();
+
+  @override
+  void didUpdateWidget(covariant SensorMapPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.pathPoints.length >= 2) {
+      final bounds = LatLngBounds.fromPoints(widget.pathPoints);
+      mapController.fitCamera(
+        CameraFit.bounds(
+          bounds: bounds,
+          padding: const EdgeInsets.all(32),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final center = widget.pathPoints.isNotEmpty
-        ? widget.pathPoints.first
-        : LatLng(0.0, 0.0);
-
     return FlutterMap(
+      mapController: mapController,
       options: MapOptions(
-        initialCenter: center,
-        initialZoom: 16.0,
+        initialCenter: widget.pathPoints.isNotEmpty
+            ? widget.pathPoints.first
+            : LatLng(0, 0),
+        initialZoom: 15,
       ),
       children: [
         TileLayer(
