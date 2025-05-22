@@ -1,3 +1,4 @@
+// App.js
 import { useState } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { UserContext } from "./userContext";
@@ -12,33 +13,33 @@ import UserProfile from './components/UserProfile';
 
 function App() {
   const [user, setUser] = useState(() => {
-    // Ob začetnem nalaganju preverimo, če so podatki v localStorage
-    const storedUser = localStorage.getItem('User');
-    return storedUser ? JSON.parse(storedUser) : null;
+    const stored = localStorage.getItem('user');
+    return stored ? JSON.parse(stored) : null;
   });
 
   const updateUserData = (userInfo) => {
     if (userInfo) {
-      localStorage.setItem('User', JSON.stringify(userInfo));  // Shrani v localStorage
+      localStorage.setItem('user', JSON.stringify(userInfo));
     } else {
-      localStorage.removeItem('User');  // Odstrani iz localStorage, če se uporabnik odjavi
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
     }
-    setUser(userInfo);  // Posodobi stanje uporabnika
+    setUser(userInfo);
   };
 
   return (
     <BrowserRouter>
       <UserContext.Provider value={{
-        user: user,
+        user,
         setUserContext: updateUserData
       }}>
         <div className="App">
-        <Header title="Zdravo življenje v podjetju"></Header>
+          <Header title="Zdravo življenje v podjetju" />
           <Routes>
-            <Route path="/login" exact element={<Login />} />
-            <Route path="/register" exact element={<Register />} />
-            <Route path="/map" exact element={<Map />} />
-            <Route path="/userProfile" exact element={<UserProfile />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/map" element={<Map />} />
+            <Route path="/userProfile/:userId" element={<UserProfile />} />
             <Route path="/logout" element={<Logout />} />
           </Routes>
         </div>

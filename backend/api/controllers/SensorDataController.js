@@ -41,14 +41,10 @@ module.exports = {
   create: async function (req, res) {
     try {
       const newSensorData = new SensordataModel({
-        user: req.session.userId,
-        timestamp:req.body.timestamp,
-        steps: req.body.steps,
-        speed: req.body.speed,
-        temperature: req.body.temperature,
-        location: req.body.location,
-        weather:  req.body.weather
+        activity: req.body.activity,  
+        weather: req.body.weather
       });
+
       const saved = await newSensorData.save();
       return res.status(201).json(saved);
     } catch (err) {
@@ -70,7 +66,6 @@ module.exports = {
         return res.status(404).json({ message: 'No such SensorData' });
       }
 
-      sensorData.user = req.body.user ?? sensorData.user;
       sensorData.timestamp = req.body.timestamp ?? sensorData.timestamp;
       sensorData.steps = req.body.steps ?? sensorData.steps;
       sensorData.speed = req.body.speed ?? sensorData.speed;

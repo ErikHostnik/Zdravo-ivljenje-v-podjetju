@@ -3,7 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "node ./bin/www"
+    "start": "node ./bin/www",
+    "test": "jest --verbose --detectOpenHandles",
+    "dev": "nodemon index.js"
   },
   "dependencies": {
     "axios": "^1.9.0",
@@ -16,6 +18,7 @@
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
     "express-session": "^1.18.1",
+    "jsonwebtoken": "^9.0.2",
     "logger": "^0.0.1",
     "mongodb": "^6.16.0",
     "mongoose": "^8.14.1",
@@ -24,5 +27,14 @@
     "react-router-dom": "^7.5.3",
     "sparse-bitfield": "^3.0.3",
     "start": "^5.1.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^7.1.0"
+  },
+  "jest": {
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ]
   }
 }

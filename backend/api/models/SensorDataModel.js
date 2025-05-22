@@ -2,7 +2,6 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 const SensorDataSchema = new Schema({
-  user: { type: Schema.Types.ObjectId, ref: 'User' },
   timestamp: { type: Date, default: Date.now },
   activity: [
     {
@@ -11,7 +10,8 @@ const SensorDataSchema = new Schema({
       speed: Number,
       temperature: Number,
       latitude: Number,
-      longitude: Number
+      longitude: Number,
+      latitude: {Number, default: None}
     }
   ],
   weather: {

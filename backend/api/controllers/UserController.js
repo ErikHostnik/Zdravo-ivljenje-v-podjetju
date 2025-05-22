@@ -1,4 +1,6 @@
 var UserModel = require('../models/UserModel.js');
+const jwt = require('jsonwebtoken');
+const secret = 'moja-skrivnost';
 
 /**
  * UserController.js
@@ -56,7 +58,6 @@ module.exports = {
             password: req.body.password,
             stepCount: req.body.stepCount,
             distance: req.body.distance,
-            routes: req.body.routes,
             createdAt: req.body.createdAt
         });
 
@@ -127,7 +128,7 @@ module.exports = {
         }
     },
 
-    login: async function (req, res) {
+   login: async function (req, res) {
         const { username, password } = req.body;
 
         try {
@@ -135,15 +136,20 @@ module.exports = {
 
             if (!User) {
                 return res.status(401).json({
-                    message: 'Invalid email or password.'
+                    message: 'Invalid username or password.'
                 });
             }
-            req.session.userId = User._id;
-            return res.json(User);
+
+            const token = jwt.sign({ id: User._id }, secret, { expiresIn: '1h' });
+
+            return res.json({
+                user: User,
+                token: token
+            });
         } catch (err) {
             return res.status(500).json({
                 message: 'Error when logging in.',
-                error: err
+                error: err.message
             });
         }
     },

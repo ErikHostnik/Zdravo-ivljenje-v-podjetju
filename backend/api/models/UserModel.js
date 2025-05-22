@@ -2,21 +2,28 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 const bcrypt = require('bcrypt');
 
-// Shema
 const UserSchema = new Schema({
   username: { type: String, required: true },
   email:    { type: String, required: true, unique: true },
   password: { type: String, required: true },
   stepCount: { type: Number, default: 0 },
   distance: { type: Number, default: 0 },
-  routes: [{ type: Schema.Types.ObjectId, ref: 'Route' }],
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now },
+  activities: [{ type: Schema.Types.ObjectId, ref: 'SensorData' }],
+
+  dailyStats: [
+    {
+      date: { type: Date, required: true },
+      stepCount: { type: Number, default: 0 },
+      distance: { type: Number, default: 0 },
+    }
+  ]
 });
 
 // Hashiranje gesla pred shranjevanjem
 UserSchema.pre('save', async function (next) {
   try {
-    if (!this.isModified('password')) return next(); // samo če je geslo novo ali spremenjeno
+    if (!this.isModified('password')) return next();
     const hash = await bcrypt.hash(this.password, 10);
     this.password = hash;
     next();
@@ -25,20 +32,25 @@ UserSchema.pre('save', async function (next) {
   }
 });
 
-// Statika za prijavo
+// Posodobljena metoda za prijavo
 UserSchema.statics.authenticate = async function (username, password) {
-  const user = await this.findOne({ username: username }).exec();
+  try {
+    const cleanUsername = username.trim().toLowerCase();
+    const user = await this.findOne({ username: cleanUsername }).exec();
 
-  if (!user) {
-    throw new Error("User not found");
+    if (!user) {
+      return null; 
+    }
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    if (!isMatch) {
+      return null; 
+    }
+
+    return user;
+  } catch (err) {
+    throw err;
   }
-
-  const isMatch = await bcrypt.compare(password, user.password);
-  if (!isMatch) {
-    throw new Error("Invalid password");
-  }
-
-  return user;
 };
 
 const User = mongoose.model('User', UserSchema);
