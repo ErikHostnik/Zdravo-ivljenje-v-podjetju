@@ -7,6 +7,8 @@ import 'package:mqtt_client/mqtt_server_client.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:pedometer/pedometer.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:latlong2/latlong.dart';
+import 'map.dart';
 
 class SensorMQTTPage extends StatefulWidget {
   const SensorMQTTPage({super.key});
@@ -24,13 +26,14 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
   Timer? _timer;
   StreamSubscription<StepCount>? _stepSubscription;
 
-// SPREMENI IP NASLOV!!! GLEDE NA SVOJO NAPRAVO!!!
+  // SPREMENI IP NASLOV!!! GLEDE NA SVOJO NAPRAVO!!!
   static const broker = '192.168.0.29';
   static const port = 1883;
   static const topic = 'sensors/test';
 
   bool _isPublishing = false;
   List<Map<String, dynamic>> _collectedData = [];
+  List<LatLng> _path = [];
 
   String? _userId; // Shranimo user_id
 
@@ -116,6 +119,7 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
 
   void _startCollecting() {
     _collectedData.clear(); // Reset
+    _path.clear();
     _isPublishing = true;
     _updateStatus("Zajemanje podatkov ...");
 
@@ -131,6 +135,9 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
           'steps': stepCount,
         };
         _collectedData.add(dataPoint);
+        setState(() {
+          _path.add(LatLng(position.latitude, position.longitude));
+        });
         _updateStatus('Zbranih točk: ${_collectedData.length}');
       } catch (e) {
         _updateStatus('Napaka pri lokaciji: $e');
@@ -155,6 +162,7 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
       _updateStatus("Podatki poslani: ${_collectedData.length} točk");
 
       _collectedData.clear();
+      _path.clear();
     } else {
       _updateStatus("Ni podatkov za pošiljanje ali ni povezave.");
     }
@@ -189,37 +197,51 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Senzorji')),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                status,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 18),
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton.icon(
-                onPressed: _isPublishing || _userId == null ? null : _startCollecting,
-                icon: const Icon(Icons.play_arrow),
-                label: const Text("Začni zajemanje"),
-              ),
-              const SizedBox(height: 12),
-              ElevatedButton.icon(
-                onPressed: _isPublishing ? _stopAndSendData : null,
-                icon: const Icon(Icons.stop),
-                label: const Text("Ustavi in pošlji"),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
+      appBar: AppBar(title: const Text('Senzorji'), centerTitle: true),
+      body: Column(
+        children: [
+          Expanded(
+            flex: 2,
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  status,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 18),
                 ),
               ),
-            ],
+            ),
           ),
-        ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: _isPublishing || _userId == null ? null : _startCollecting,
+                  icon: const Icon(Icons.play_arrow),
+                  label: const Text("Začni zajemanje"),
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton.icon(
+                  onPressed: _isPublishing ? _stopAndSendData : null,
+                  icon: const Icon(Icons.stop),
+                  label: const Text("Ustavi in pošlji"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Expanded(
+            flex: 5,
+            child: SensorMapPage(pathPoints: _path),
+          ),
+        ],
       ),
     );
   }
