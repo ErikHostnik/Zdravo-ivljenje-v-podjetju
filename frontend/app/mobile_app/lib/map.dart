@@ -19,12 +19,14 @@ class _SensorMapPageState extends State<SensorMapPage> {
     super.didUpdateWidget(oldWidget);
     if (widget.pathPoints.length >= 2) {
       final bounds = LatLngBounds.fromPoints(widget.pathPoints);
-      mapController.fitCamera(
-        CameraFit.bounds(
-          bounds: bounds,
-          padding: const EdgeInsets.all(32),
-        ),
-      );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        mapController.fitCamera(
+          CameraFit.bounds(
+            bounds: bounds,
+            padding: const EdgeInsets.all(32),
+          ),
+        );
+      });
     }
   }
 

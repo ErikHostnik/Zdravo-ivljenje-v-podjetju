@@ -123,7 +123,7 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
     _isPublishing = true;
     _updateStatus("Zajemanje podatkov ...");
 
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) async {
+    _timer = Timer.periodic(const Duration(seconds: 3), (_) async {
       try {
         final position = await Geolocator.getCurrentPosition();
         final dataPoint = {
