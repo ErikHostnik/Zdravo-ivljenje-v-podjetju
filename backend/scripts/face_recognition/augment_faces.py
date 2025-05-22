@@ -20,3 +20,25 @@ def flip_horizontal(image):
     return cv.flip(image, 1)
 
 
+def change_contrast(image, factor):
+    """Spreminjanje kontrasta slike (množenje sivin z faktorjem)."""
+    contrasted = np.clip(image.astype(np.float32) * factor, 0, 255)
+    return contrasted.astype(np.uint8)
+
+def add_salt_pepper_noise(image, amount=0.01):
+    """Dodajanje naključnega šuma """
+    noisy = image.copy()
+    total_pixels = image.shape[0] * image.shape[1]
+    num_noisy = int(total_pixels * amount)
+
+    for _ in range(num_noisy // 2):
+        x = random.randint(0, image.shape[1] - 1)
+        y = random.randint(0, image.shape[0] - 1)
+        noisy[y, x] = 255
+
+    for _ in range(num_noisy // 2):
+        x = random.randint(0, image.shape[1] - 1)
+        y = random.randint(0, image.shape[0] - 1)
+        noisy[y, x] = 0
+
+    return noisy
