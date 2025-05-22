@@ -28,10 +28,11 @@ module.exports = {
      * UserController.show()
      */
     show: async function (req, res) {
-        const id = req.params.id;
+    const id = req.params.id;
 
         try {
-            const User = await UserModel.findOne({ _id: id });
+            const User = await UserModel.findById(id)
+                .populate('activities'); // <-- tukaj dodano
 
             if (!User) {
                 return res.status(404).json({

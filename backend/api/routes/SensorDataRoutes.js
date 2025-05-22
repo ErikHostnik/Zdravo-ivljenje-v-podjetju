@@ -1,11 +1,13 @@
 var express = require('express');
 var router = express.Router();
 var SensorDataController = require('../controllers/SensorDataController.js');
+var authJWT = require('../../middlewares/auth.js')
 
 /*
  * GET
  */
 router.get('/', SensorDataController.list);
+router.get('/user/:userId',SensorDataController.listByUser);
 
 /*
  * GET
