@@ -12,43 +12,9 @@ class SensorMapPage extends StatefulWidget {
 }
 
 class _SensorMapPageState extends State<SensorMapPage> {
-  final MapController _mapController = MapController();
-  LatLng? _lastValidCenter;
-  double _lastValidZoom = 15.0;
-
-  bool _arePointsValid(List<LatLng> points) {
-    return points.every((pt) =>
-        pt.latitude >= -90 &&
-        pt.latitude <= 90 &&
-        pt.longitude >= -180 &&
-        pt.longitude <= 180);
-  }
-
-  void _updateCamera() {
-    if (widget.pathPoints.isEmpty || !_arePointsValid(widget.pathPoints)) return;
-
-    try {
-      if (widget.pathPoints.length == 1) {
-        _mapController.move(widget.pathPoints.last, _lastValidZoom);
-        _lastValidCenter = widget.pathPoints.last;
-      } else {
-        final bounds = LatLngBounds.fromPoints(widget.pathPoints);
-        _mapController.fitBounds(
-          bounds,
-          options: const FitBoundsOptions(
-            padding: EdgeInsets.all(32),
-          ),
-        );
-        _lastValidCenter = _mapController.center;
-        _lastValidZoom = _mapController.zoom;
-      }
-    } catch (e) {
-      print("Camera update error: $e");
-      if (_lastValidCenter != null) {
-        _mapController.move(_lastValidCenter!, _lastValidZoom);
-      }
-    }
-  }
+  final mapController = MapController();
+  LatLng _fallbackCenter = const LatLng(46.5547, 15.6466);
+  double _fallbackZoom = 15.0;
 
   @override
   void didUpdateWidget(covariant SensorMapPage oldWidget) {
@@ -58,54 +24,50 @@ class _SensorMapPageState extends State<SensorMapPage> {
     }
   }
 
+  void _updateCamera() {
+    final points = widget.pathPoints;
+    if (points.isEmpty) return;
+
+    try {
+      if (points.length == 1) {
+        mapController.move(points.first, _fallbackZoom);
+      } else {
+        final bounds = LatLngBounds.fromPoints(points);
+        mapController.fitCamera(
+          CameraFit.bounds(
+            bounds: bounds,
+            padding: const EdgeInsets.all(32),
+          ),
+        );
+      }
+    } catch (e) {
+      print("Camera update error: $e");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final validPoints = widget.pathPoints.where((pt) =>
-      pt.latitude >= -90 &&
-      pt.latitude <= 90 &&
-      pt.longitude >= -180 &&
-      pt.longitude <= 180,
-    ).toList();
-
     return FlutterMap(
-      mapController: _mapController,
+      mapController: mapController,
       options: MapOptions(
-        initialCenter: _lastValidCenter ?? const LatLng(46.5547, 15.6466),
-        initialZoom: _lastValidZoom,
+        initialCenter: _fallbackCenter,
+        initialZoom: _fallbackZoom,
       ),
       children: [
         TileLayer(
           urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-          userAgentPackageName: 'com.example.mobile_app',
-          maxZoom: 19,
-          minZoom: 1,
+          userAgentPackageName: 'com.example.app',
         ),
-        PolylineLayer(
-          polylines: [
-            Polyline(
-              points: validPoints,
-              strokeWidth: 4,
-              color: Colors.blue,
-            ),
-          ],
-        ),
-        MarkerLayer(
-          markers: validPoints
-              .sublist(validPoints.length - (validPoints.length > 100 ? 100 : 0))
-              .map((pt) => Marker(
-                    width: 40,
-                    height: 40,
-                    point: pt,
-                    child: Icon(
-                      validPoints.first == pt 
-                          ? Icons.radio_button_checked 
-                          : Icons.location_on,
-                      color: validPoints.first == pt ? Colors.green : Colors.red,
-                      size: 24,
-                    ),
-                  ))
-              .toList(),
-        ),
+        if (widget.pathPoints.isNotEmpty)
+          PolylineLayer(
+            polylines: [
+              Polyline(
+                points: widget.pathPoints,
+                strokeWidth: 4.0,
+                color: Colors.blue,
+              ),
+            ],
+          ),
       ],
     );
   }

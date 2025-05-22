@@ -20,22 +20,18 @@ class SensorMQTTPage extends StatefulWidget {
 class _SensorMQTTPageState extends State<SensorMQTTPage> {
   late MqttServerClient client;
   String status = 'Povezovanje...';
-
   int stepCount = 0;
-
   Timer? _timer;
   StreamSubscription<StepCount>? _stepSubscription;
 
-  // SPREMENI IP NASLOV!!! GLEDE NA SVOJO NAPRAVO!!!
   static const broker = '192.168.0.29';
   static const port = 1883;
   static const topic = 'sensors/test';
+  final _maxPathPoints = 1000;
 
   bool _isPublishing = false;
-  List<Map<String, dynamic>> _collectedData = [];
   List<LatLng> _path = [];
-
-  String? _userId; // Shranimo user_id
+  String? _userId;
 
   @override
   void initState() {
@@ -118,23 +114,28 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
   }
 
   void _startCollecting() {
-    _collectedData.clear(); // Reset
-    _path.clear();
+    _path = [];
     _isPublishing = true;
     _updateStatus("Zajemanje podatkov ...");
 
     _timer = Timer.periodic(const Duration(seconds: 3), (_) async {
       try {
-        final position = await Geolocator.getCurrentPosition();
-      
-        if (position.latitude.isNaN || position.longitude.isNaN ||
-            position.latitude > 90 || position.latitude < -90 ||
-            position.longitude > 180 || position.longitude < -180) {
+        final position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.bestForNavigation,
+        );
+
+        if (position.latitude.isNaN || 
+            position.longitude.isNaN ||
+            position.latitude.abs() > 90 || 
+            position.longitude.abs() > 180) {
           throw Exception('Neveljavne koordinate');
         }
 
         setState(() {
           _path.add(LatLng(position.latitude, position.longitude));
+          if (_path.length > _maxPathPoints) {
+            _path.removeRange(0, _path.length - _maxPathPoints);
+          }
         });
       } catch (e) {
         _updateStatus('Napaka pri lokaciji: $e');
@@ -146,20 +147,19 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
     _isPublishing = false;
     _timer?.cancel();
 
-    if (client.connectionStatus?.state == MqttConnectionState.connected && _collectedData.isNotEmpty) {
+    if (client.connectionStatus?.state == MqttConnectionState.connected && _path.isNotEmpty) {
       final payload = jsonEncode({
-        'session': _collectedData,
         'userId': _userId,
+        'path': _path.map((pt) => {'lat': pt.latitude, 'lng': pt.longitude}).toList(),
+        'steps': stepCount,
       });
 
       final builder = MqttClientPayloadBuilder();
       builder.addString(payload);
 
       client.publishMessage(topic, MqttQos.atLeastOnce, builder.payload!);
-      _updateStatus("Podatki poslani: ${_collectedData.length} točk");
-
-      _collectedData.clear();
-      _path.clear();
+      _updateStatus("Podatki poslani: ${_path.length} točk");
+      setState(() => _path = []);
     } else {
       _updateStatus("Ni podatkov za pošiljanje ali ni povezave.");
     }
@@ -202,10 +202,20 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
             child: Center(
               child: Padding(
                 padding: const EdgeInsets.all(16),
-                child: Text(
-                  status,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 18),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      status,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 18),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Število korakov: $stepCount',
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                  ],
                 ),
               ),
             ),
