@@ -59,7 +59,6 @@ class _HomePageState extends State<HomePage> {
                 children: [
                   ElevatedButton(
                     onPressed: () async {
-                      // Po vrnitvi s /login ponovno preveri
                       await Navigator.pushNamed(context, '/login');
                       setState(() {
                         _isLoggedIn = _checkLoginStatus();
