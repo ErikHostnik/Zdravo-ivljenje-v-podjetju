@@ -13,7 +13,7 @@ const app = express();
 // Routers
 const userRoutes = require('./routes/UserRoutes');
 const sensorDataRoutes = require('./routes/SensorDataRoutes');
-const processDataRoutes = require('./routes/ProccessedDataRoutes');
+const twoFactorRoutes = require('./routes/TwoFactorRoutes');
 
 
 // MongoDB connection URI
@@ -68,7 +68,7 @@ app.use(cors({
 // Use routers
 app.use('/api/users', userRoutes);
 app.use('/api/sensordata', sensorDataRoutes);
-app.use('/api/processdata', processDataRoutes);
+app.use('/api/2fa', twoFactorRoutes);
 
 // Catch 404 and forward to error handler
 app.use(function (req, res, next) {

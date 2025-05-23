@@ -16,25 +16,25 @@ user_collection = db.users
 BROKER_HOST = "127.0.0.1"
 BROKER_PORT = 1883
 TOPIC = "sensors/test"
+TWO_FA_TOPIC_PREFIX = "2fa/confirm/"  # 2FA tema
 
 def calculate_total_steps_and_distance(session):
     total_steps = 0
     total_distance = 0.0
-
     prev_point = None
+
     for entry in session:
         total_steps += entry.get("steps", 0)
 
         lat = entry.get("latitude")
         lon = entry.get("longitude")
         if prev_point and lat is not None and lon is not None:
-            # Haversine formula za računanje razdalje
             lon1, lat1, lon2, lat2 = map(radians, [prev_point["lon"], prev_point["lat"], lon, lat])
             dlon = lon2 - lon1
             dlat = lat2 - lat1
             a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
             c = 2 * asin(sqrt(a))
-            km = 6371 * c  # Zemeljski polmer v km
+            km = 6371 * c
             total_distance += km
 
         if lat is not None and lon is not None:
@@ -45,26 +45,22 @@ def calculate_total_steps_and_distance(session):
 def update_daily_stats(user_id, steps, distance):
     today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
 
-    # Posodobi skupne statistike
     user_collection.update_one(
         {"_id": user_id},
         {"$inc": {"stepCount": steps, "distance": distance}}
     )
 
-    # Pripravi dnevne podatke
     daily_data = {
         "date": today,
         "stepCount": steps,
         "distance": distance
     }
 
-    # Poskusi posodobiti obstoječ dnevni vnos
     result = user_collection.update_one(
         {"_id": user_id, "dailyStats.date": today},
         {"$set": {"dailyStats.$": daily_data}}
     )
 
-    # Če dnevnika še ni, dodaj novega
     if result.modified_count == 0:
         user_collection.update_one(
             {"_id": user_id},
@@ -89,61 +85,70 @@ def call_scraper(lat, lon):
 
 def on_connect(client, userdata, flags, rc):
     if rc == 0:
-        print("✅ Povezan na MQTT broker")
+        print("Povezan na MQTT broker")
         client.subscribe(TOPIC)
+        client.subscribe(f"{TWO_FA_TOPIC_PREFIX}#")  # Poslušaj vsa 2FA sporočila
     else:
-        print(f"❌ Napaka pri povezavi: Koda {rc}")
+        print(f" Napaka pri povezavi: Koda {rc}")
 
 def on_message(client, userdata, msg):
     try:
+        topic = msg.topic
         payload = json.loads(msg.payload.decode())
-        print("📩 Prejeto:", payload)
+        print(f" Prejeto ({topic}): {payload}")
+
+        if topic.startswith(TWO_FA_TOPIC_PREFIX):
+            user_id = topic[len(TWO_FA_TOPIC_PREFIX):]
+            confirmed = payload.get("confirmed")
+
+            if confirmed is True:
+                print(f"2FA potrjena za uporabnika: {user_id}")
+            elif confirmed is False:
+                print(f"2FA zavrnjena za uporabnika: {user_id}")
+            else:
+                print(" Neveljavno 2FA sporočilo (manjka 'confirmed')")
+            return  
 
         if "session" not in payload or not isinstance(payload["session"], list):
-            print("⚠️ Neveljavna oblika podatkov")
+            print("Neveljavna oblika podatkov")
             return
 
         session = payload["session"]
         user_id = payload.get("userId")
 
-        # Shrani osnovne podatke
         session_data = {
             "user": user_id,
             "session": session,
         }
 
-        # Dodaj vreme iz zadnje točke
         if session:
             last_point = session[-1]
             weather = call_scraper(last_point.get("latitude"), last_point.get("longitude"))
             if weather:
                 session_data["weather"] = weather
 
-        # Shrani v bazo
         result = sensor_collection.insert_one(session_data)
-        print(f"✅ Podatki shranjeni pod ID: {result.inserted_id}")
+        print(f"Podatki shranjeni pod ID: {result.inserted_id}")
 
-        # Posodobi uporabniške statistike
         if user_id:
             steps, distance = calculate_total_steps_and_distance(session)
             update_daily_stats(ObjectId(user_id), steps, distance)
-            print(f"📊 Statistika posodobljena - Koraki: {steps}, Razdalja: {distance:.2f} km")
+            print(f"Statistika posodobljena - Koraki: {steps}, Razdalja: {distance:.2f} km")
 
-            # Poveži aktivnost z uporabnikom
             user_collection.update_one(
                 {"_id": ObjectId(user_id)},
                 {"$push": {"activities": result.inserted_id}}
             )
 
     except Exception as e:
-        print(f"❌ Kritična napaka: {str(e)}")
+        print(f"Kritična napaka: {str(e)}")
 
 def main():
     client = mqtt.Client()
     client.on_connect = on_connect
     client.on_message = on_message
 
-    print("🔌 Povezujem se na MQTT broker...")
+    print(" Povezujem se na MQTT broker...")
     client.connect(BROKER_HOST, BROKER_PORT, keepalive=60)
     client.loop_forever()
 
