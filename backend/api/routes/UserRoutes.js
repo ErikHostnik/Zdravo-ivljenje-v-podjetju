@@ -9,6 +9,7 @@ var authJWT = require('../../middlewares/auth.js')
 router.get('/', UserController.list);
 router.get('/logout', UserController.logout);
 
+
 /*
  * GET
  */
@@ -19,6 +20,8 @@ router.get('/:id',authJWT, UserController.show);
  */
 router.post('/', UserController.create);
 router.post('/login', UserController.login);
+router.post('/verify2fa', UserController.verify2fa);
+
 
 
 /*

@@ -17,8 +17,8 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
   final TextEditingController emailCtrl = TextEditingController();
   final TextEditingController passwordCtrl = TextEditingController();
 
-// SPREMENI IP NASLOV!!! GLEDE NA SVOJO NAPRAVO!!!
-  final String baseUrl = 'http://192.168.0.29:3001/api/users';
+  // SPREMENI IP NASLOV!!! GLEDE NA SVOJO NAPRAVO!!!
+  final String baseUrl = 'http://192.168.0.11:3001/api/users';
 
   Future<void> _submit() async {
     final username = usernameCtrl.text.trim();
@@ -29,43 +29,58 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
       final url = isLogin ? '$baseUrl/login' : '$baseUrl';
       final response = await http.post(
         Uri.parse(url),
-        headers: {'Content-Type': 'application/json'},
+        headers: {'Content-Type': 'application/json', 'x-mobile-client': 'true'},
         body: jsonEncode(isLogin
-            ? {'username': username, 'password': password}
+            ? {'username': username, 'password': password, 'isMobile': true}  
             : {
                 'username': username,
                 'email': email,
                 'password': password,
+                'isMobile': true,
               }),
       );
+
+      print('DEBUG: status code = ${response.statusCode}');
+      print('DEBUG: response body = ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = jsonDecode(response.body);
 
-        // Shrani token in user ID v SharedPreferences
+        if (data['pending2FA'] == true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Dvojna avtentikacija je potrebna.')),
+          );
+          return;
+        }
+
         final prefs = await SharedPreferences.getInstance();
+
         if (data['token'] != null) {
           await prefs.setString('jwt_token', data['token']);
+          print('DEBUG: token shranjen: ${data['token']}');
+        } else {
+          print('DEBUG: token manjka!');
         }
+
         if (data['user'] != null && data['user']['_id'] != null) {
           await prefs.setString('user_id', data['user']['_id']);
+          print('DEBUG: user_id shranjen: ${data['user']['_id']}');
+        } else {
+          print('DEBUG: user_id manjka!');
         }
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('${isLogin ? 'Prijava' : 'Registracija'} uspešna!')),
         );
 
-        print(data);
-
-        // Opcijsko: Po uspešni prijavi preusmeri na drugo stran
-        // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => SensorMQTTPage()));
-
+        Navigator.pop(context, true);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Napaka: ${response.body}')),
         );
       }
     } catch (e) {
+      print('DEBUG: Exception: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Napaka pri povezavi: $e')),
       );

@@ -1,5 +1,10 @@
-var UserModel = require('../models/UserModel.js');
+const UserModel = require('../models/UserModel.js');
 const jwt = require('jsonwebtoken');
+const TwoFactorRequest = require('../models/TwoFactorRequestModel.js');
+// MQTT klient
+const mqtt = require('mqtt');
+const mqttClient = mqtt.connect('mqtt://192.168.0.11:1883');
+
 const secret = 'moja-skrivnost';
 
 /**
@@ -130,28 +135,49 @@ module.exports = {
     },
 
    login: async function (req, res) {
-        const { username, password } = req.body;
+        const { username, password, isMobile } = req.body;
 
         try {
-            const User = await UserModel.authenticate(username, password);
+            const user = await UserModel.authenticate(username, password);
+            if (!user) {
+                return res.status(401).json({ message: 'Invalid credentials.' });
+            }
 
-            if (!User) {
-                return res.status(401).json({
-                    message: 'Invalid username or password.'
+            // Mobilna aplikacija - običajna prijava, brez 2FA
+            if (isMobile) {
+                const token = jwt.sign({ id: user._id }, secret, { expiresIn: '1h' });
+                return res.json({ user, token });
+            }
+
+            // Spletna aplikacija - 2FA postopki
+            const existing = await TwoFactorRequest.findOne({
+                user: user._id,
+                approved: false,
+                rejected: false
+            });
+
+            if (existing) {
+                return res.json({
+                    pending2FA: true,
+                    twoFactorRequestId: existing._id
                 });
             }
 
-            const token = jwt.sign({ id: User._id }, secret, { expiresIn: '1h' });
+            const twoFa = new TwoFactorRequest({ user: user._id });
+            await twoFa.save();
+
+            mqttClient.publish(
+                `2fa/request/${user._id}`,
+                JSON.stringify({ requestId: twoFa._id })
+            );
 
             return res.json({
-                user: User,
-                token: token
+                pending2FA: true,
+                twoFactorRequestId: twoFa._id
             });
         } catch (err) {
-            return res.status(500).json({
-                message: 'Error when logging in.',
-                error: err.message
-            });
+            console.error("Login Error:", err);
+            return res.status(500).json({ message: 'Login error.', error: err.message });
         }
     },
 
@@ -166,6 +192,23 @@ module.exports = {
                 message: 'Error when logging out.',
                 error: err
             });
+        }
+    },
+
+    verify2fa: async (req, res) => {
+    const { requestId } = req.body;
+        try {
+            const req2FA = await TwoFactorRequest.findById(requestId).populate('user');
+            if (!req2FA) return res.status(404).json({ message: '2FA request not found.' });
+
+            if (req2FA.rejected) return res.status(403).json({ message: 'Access denied.' });
+            if (!req2FA.approved)  return res.json({ pending: true });
+
+            const token = jwt.sign({ id: req2FA.user._id }, secret, { expiresIn: '1h' });
+            return res.json({ user: req2FA.user, token });
+        } catch (err) {
+            console.error("verify2fa Error:", err);
+            return res.status(500).json({ message: 'verify2fa error.', error: err.message });
         }
     },
 };

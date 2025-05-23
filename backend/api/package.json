@@ -23,6 +23,7 @@
     "mongodb": "^6.16.0",
     "mongoose": "^8.14.1",
     "morgan": "~1.9.1",
+    "mqtt": "^5.13.0",
     "npm": "^11.3.0",
     "react-router-dom": "^7.5.3",
     "sparse-bitfield": "^3.0.3",
