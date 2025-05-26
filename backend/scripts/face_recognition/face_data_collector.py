@@ -26,7 +26,7 @@ def find_face(image, size=(224, 224)):
     return face
 
 def main():
-    folder = r'C:\Users\erikh\OneDrive\Namizje\Projetk_ZDRAV\Zdravo-ivljenje-v-podjetju\backend\scripts\face_recognition\data'
+    folder = r'./data'
     os.makedirs(folder, exist_ok=True)
 
     cap = cv.VideoCapture(0)
@@ -35,7 +35,7 @@ def main():
         exit()
 
     count = 0
-    max_images = 10
+    max_images = 100
 
     print("Pritisni q za prekinitev .")
 
