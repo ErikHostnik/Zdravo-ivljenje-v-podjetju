@@ -81,7 +81,7 @@ class TwoFAMQTT {
   Future<void> _sendVerification(String id, bool allow) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('jwt_token');
-    final uri = Uri.parse('http://192.168.0.11:3001/api/2fa/$id/${allow ? 'approve' : 'reject'}'); //10.0.2.2 - GLEDE NA SVOJO NAPRAVO - fizicno napravo DRUGACE localhost oziroma 10.0.2.2
+    final uri = Uri.parse('http://192.168.0.11:3001/api/2fa/$id/${allow ? 'approve' : 'reject'}'); //10.0.2.2
 
     try {
       final response = await http.post(

@@ -92,29 +92,13 @@ export default function Login() {
   return (
     <form onSubmit={handleSubmit} className="max-w-sm mx-auto p-4 border rounded">
       <h2 className="text-lg mb-4">Prijava</h2>
-      <input
-        className="w-full mb-2 p-2 border rounded"
-        placeholder="Uporabniško ime"
-        value={username}
-        disabled={pending2FA}
-        required
-        onChange={e => setUsername(e.target.value)}
-      />
-      <input
-        className="w-full mb-2 p-2 border rounded"
-        type="password"
-        placeholder="Geslo"
-        value={password}
-        disabled={pending2FA}
-        required
-        onChange={e => setPassword(e.target.value)}
-      />
-      <button
-        className="w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-        disabled={pending2FA}
-      >
+      <input className="w-full mb-2 p-2 border rounded" placeholder="Uporabniško ime" value={username} disabled={pending2FA} required onChange={e => setUsername(e.target.value)}/>
+      <input className="w-full mb-2 p-2 border rounded" type="password"placeholder="Geslo" value={password} disabled={pending2FA}  required onChange={e => setPassword(e.target.value)}/>
+
+      <button className="w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700"disabled={pending2FA}>
         {pending2FA ? "Čakam na 2FA potrditev..." : "Prijava"}
       </button>
+      
       {error && <p className="mt-2 text-red-600">{error}</p>}
     </form>
   );
