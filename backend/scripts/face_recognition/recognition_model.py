@@ -4,7 +4,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 
 # Nastavitve
-DATA_DIRS = ["data_preprocessed", "data_augmented"]  # Prilagodite
+DATA_DIRS = ["data_preprocessed", "data_augmented"]
 TEST_SIZE = 0.2  # 20% za testiranje
 
 # Priprava podatkov
