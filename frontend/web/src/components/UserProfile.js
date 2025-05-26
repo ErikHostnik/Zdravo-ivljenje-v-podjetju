@@ -8,7 +8,10 @@ export default function UserProfile() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const DAILY_STEP_GOAL = 10000;
+  // Default je samo za primer, ker zdaj vzamemo iz baze
+  const [stepGoal, setStepGoal] = useState(10000);
+  const [newGoalInput, setNewGoalInput] = useState('');
+  const [savingGoal, setSavingGoal] = useState(false);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -19,6 +22,12 @@ export default function UserProfile() {
         });
 
         setUser(response.data);
+
+        // Nastavimo stepGoal iz baze, če obstaja
+        if (response.data.stepGoal) {
+          setStepGoal(response.data.stepGoal);
+        }
+
       } catch (error) {
         console.error('Napaka pri pridobivanju podatkov:', error);
         setUser({
@@ -42,44 +51,79 @@ export default function UserProfile() {
   const steps = latestStat ? latestStat.stepCount : 0;
   const distance = latestStat ? latestStat.distance.toFixed(2) : '0.00';
   const calories = (steps * 0.04).toFixed(2);
-  const progressPercentage = Math.min((steps / DAILY_STEP_GOAL) * 100, 100).toFixed(1);
+  const progressPercentage = Math.min((steps / stepGoal) * 100, 100).toFixed(1);
+
+  // Funkcija za posodabljanje cilja na backendu
+  const handleGoalSave = async () => {
+    const parsedGoal = parseInt(newGoalInput);
+    if (!isNaN(parsedGoal) && parsedGoal > 0) {
+      setSavingGoal(true);
+      try {
+        const token = localStorage.getItem('token');
+        await axios.patch(`http://localhost:3001/api/users/${userId}`, 
+          { stepGoal: parsedGoal }, 
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        setStepGoal(parsedGoal);
+        setNewGoalInput('');
+      } catch (error) {
+        alert('Napaka pri shranjevanju cilja. Poskusi ponovno.');
+        console.error(error);
+      } finally {
+        setSavingGoal(false);
+      }
+    } else {
+      alert('Prosim vnesite veljavno pozitivno število.');
+    }
+  };
 
   return (
-    <div className="user-profile">
-      <h2>Profil uporabnika</h2>
-      <p><strong>Uporabniško ime:</strong> {user?.username}</p>
-      <p><strong>Email:</strong> {user?.email}</p>
+  <div className="user-profile">
+    <h2>Profil uporabnika</h2>
+    <p><strong>Uporabniško ime:</strong> {user?.username}</p>
+    <p><strong>Email:</strong> {user?.email}</p>
 
-      <hr />
+    <hr />
 
-      <div className="stat-section">
-        <h3>Statistika današnjega dne</h3>
+    <div className="stat-section">
+      <h3>Statistika današnjega dne</h3>
 
-        {latestStat ? (
-          <div>
-            <div className="progress-bar-container">
-              <div className="progress-bar" style={{ width: `${progressPercentage}%` }}>
-                {progressPercentage}%
-              </div>
-            </div>
-
-            <div className="stat-box">
-              <strong>Koraki:</strong> {steps} / {DAILY_STEP_GOAL}
-            </div>
-            <div className="stat-box">
-              <strong>Razdalja:</strong> {distance} km
-            </div>
-            <div className="stat-box">
-              <strong>Porabljene kalorije:</strong> {calories} kcal
-            </div>
-            <div className="stat-box">
-              <strong>Datum:</strong> {new Date(latestStat.date).toLocaleDateString()}
+      {latestStat ? (
+        <div>
+          <div className="progress-bar-container">
+            <div className="progress-bar" style={{ width: `${progressPercentage}%` }}>
+              {progressPercentage}%
             </div>
           </div>
-        ) : (
-          <p>Statistika za danes ni na voljo.</p>
-        )}
-      </div>
+
+          <div className="stat-box"><strong>Koraki:</strong> {steps} / {stepGoal}</div>
+          <div className="stat-box"><strong>Razdalja:</strong> {distance} km</div>
+          <div className="stat-box"><strong>Porabljene kalorije:</strong> {calories} kcal</div>
+          <div className="stat-box"><strong>Datum:</strong> {new Date(latestStat.date).toLocaleDateString()}</div>
+
+          <hr />
+
+          <div>
+            <label htmlFor="stepGoalInput"><strong>Nastavi svoj cilj korakov:</strong></label><br />
+            <input
+              id="stepGoalInput"
+              type="number"
+              min="1"
+              value={newGoalInput}
+              onChange={e => setNewGoalInput(e.target.value)}
+              placeholder="Vnesite nov cilj"
+              disabled={savingGoal}
+            />
+            <button onClick={handleGoalSave} disabled={savingGoal} style={{ marginLeft: '8px' }}>
+              {savingGoal ? 'Shranjujem...' : 'Shrani cilj'}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <p>Statistika za danes ni na voljo.</p>
+      )}
     </div>
+  </div>
   );
 }
