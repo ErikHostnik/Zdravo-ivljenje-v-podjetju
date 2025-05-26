@@ -1,6 +1,6 @@
 import { UserContext } from "../userContext";
 import { Link } from "react-router-dom";
-import '../Header.css';
+import '../styles/global.css';
 
 function Header({ title }) {
     return (

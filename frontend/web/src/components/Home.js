@@ -1,43 +1,47 @@
 import React, { useContext } from 'react';
-import { Link } from 'react-router-dom';
 import { UserContext } from '../userContext';
-import './Home.css'; // Dodajmo tudi CSS
+import { Link } from 'react-router-dom';
+import '../styles/global.css'; // Assuming you have a CSS file for styling
 
 export default function Home() {
   const { user } = useContext(UserContext);
 
   return (
     <div className="home-container">
-      <div className="welcome-section">
-        <h1>Dobrodošel{user ? `, ${user.username}` : ''} v <span className="highlight">Fit Office</span>!</h1>
-        <p className="intro-text">
-          Naša aplikacija spodbuja zdrav način življenja v podjetju – sledenje aktivnostim, doseganje ciljev in motiviranje sodelavcev.
+      <h1 className="home-title">
+        Dobrodošel{user ? `, ${user.username}` : ''} v Fit Office!
+      </h1>
+
+      <p className="home-description">
+        Naša aplikacija Fit Office spodbuja zdravo življenje v podjetju. Spremljaj svoje aktivnosti, primerjaj rezultate s sodelavci in ostani motiviran na poti do boljšega počutja.
+      </p>
+
+      <div className="home-cards">
+        <div className="home-card">
+          <img src="https://source.unsplash.com/400x300/?running" alt="Running" />
+          <h3>Spremljaj Aktivnosti</h3>
+          <p>Beleži korake, razdalje in kalorije, ter spremljaj napredek na poti do boljšega zdravja.</p>
+        </div>
+
+        <div className="home-card">
+          <img src="https://source.unsplash.com/400x300/?teamwork,fitness" alt="Teamwork" />
+          <h3>Primerjaj z Ekipo</h3>
+          <p>Oglej si rezultate svojih sodelavcev in se poveži z njimi preko skupnih izzivov.</p>
+        </div>
+
+        <div className="home-card">
+          <img src="https://source.unsplash.com/400x300/?fitness,goals" alt="Goals" />
+          <h3>Postavljaj Cilje</h3>
+          <p>Postavi si cilje, sledi napredku in dosezi osebne mejnike v aplikaciji.</p>
+        </div>
+      </div>
+
+      {!user && (
+        <p style={{ marginTop: '2rem' }}>
+          <Link to="/login" style={{ color: 'var(--accent-color)', fontWeight: '600', textDecoration: 'underline' }}>
+            Prijavi se
+          </Link> za začetek!
         </p>
-        
-      </div>
-
-      <div className="features-section">
-        <div className="feature-card">
-          <img src="https://source.unsplash.com/featured/?walking" alt="Začni svojo aktivnost" />
-          <h3>Začni svojo aktivnost</h3>
-          <p>Izberi svojo pot – hoja, tek ali kolesarjenje – in aplikacija bo zabeležila tvoje rezultate.</p>
-        </div>
-        <div className="feature-card">
-          <img src="https://source.unsplash.com/featured/?statistics" alt="Spremljaj napredek" />
-          <h3>Spremljaj napredek</h3>
-          <p>Preglej svoje korake, prehojeno razdaljo, porabljene kalorije in še več!</p>
-        </div>
-        <div className="feature-card">
-          <img src="https://source.unsplash.com/featured/?teamwork" alt="Poveži se z ekipo" />
-          <h3>Poveži se z ekipo</h3>
-          <p>Oglej si dosežke svojih sodelavcev in skupaj dosezite cilje zdravega življenja.</p>
-        </div>
-      </div>
-
-      {user && (
-        <div className="start-button">
-          <Link to={`/path/${user._id}`} className="btn primary">Začni Aktivnost</Link>
-        </div>
       )}
     </div>
   );
