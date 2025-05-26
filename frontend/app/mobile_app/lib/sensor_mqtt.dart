@@ -7,6 +7,8 @@ import 'package:mqtt_client/mqtt_server_client.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:pedometer/pedometer.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:latlong2/latlong.dart';
+import 'map.dart';
 
 class SensorMQTTPage extends StatefulWidget {
   const SensorMQTTPage({super.key});
@@ -18,21 +20,19 @@ class SensorMQTTPage extends StatefulWidget {
 class _SensorMQTTPageState extends State<SensorMQTTPage> {
   late MqttServerClient client;
   String status = 'Povezovanje...';
-
   int stepCount = 0;
-
   Timer? _timer;
   StreamSubscription<StepCount>? _stepSubscription;
 
-// SPREMENI IP NASLOV!!! GLEDE NA SVOJO NAPRAVO!!!
-  static const broker = '192.168.0.29';
+  static const broker = '192.168.0.11';
   static const port = 1883;
   static const topic = 'sensors/test';
+  final _maxPathPoints = 1000;
 
   bool _isPublishing = false;
   List<Map<String, dynamic>> _collectedData = [];
-
-  String? _userId; // Shranimo user_id
+  List<LatLng> _path = [];
+  String? _userId;
 
   @override
   void initState() {
@@ -115,22 +115,39 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
   }
 
   void _startCollecting() {
-    _collectedData.clear(); // Reset
+    _collectedData.clear();
+    _path.clear();
     _isPublishing = true;
     _updateStatus("Zajemanje podatkov ...");
 
     _timer = Timer.periodic(const Duration(seconds: 1), (_) async {
       try {
-        final position = await Geolocator.getCurrentPosition();
+        final position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.bestForNavigation,
+        );
+
+        if (position.latitude.isNaN || position.longitude.isNaN ||
+            position.latitude.abs() > 90 || position.longitude.abs() > 180) {
+          throw Exception('Neveljavne koordinate');
+        }
+
         final dataPoint = {
-          'timestamp': DateTime.now().toIso8601String(),
+          'timestamp': DateTime.now().toUtc().toIso8601String(),
           'latitude': position.latitude,
           'longitude': position.longitude,
           'altitude': position.altitude,
           'speed': position.speed,
           'steps': stepCount,
         };
-        _collectedData.add(dataPoint);
+
+        setState(() {
+          _collectedData.add(dataPoint);
+          _path.add(LatLng(position.latitude, position.longitude));
+          if (_path.length > _maxPathPoints) {
+            _path.removeRange(0, _path.length - _maxPathPoints);
+          }
+        });
+
         _updateStatus('Zbranih točk: ${_collectedData.length}');
       } catch (e) {
         _updateStatus('Napaka pri lokaciji: $e');
@@ -142,10 +159,11 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
     _isPublishing = false;
     _timer?.cancel();
 
-    if (client.connectionStatus?.state == MqttConnectionState.connected && _collectedData.isNotEmpty) {
+    if (client.connectionStatus?.state == MqttConnectionState.connected && 
+        _collectedData.isNotEmpty) {
       final payload = jsonEncode({
-        'session': _collectedData,
         'userId': _userId,
+        'session': _collectedData,
       });
 
       final builder = MqttClientPayloadBuilder();
@@ -153,8 +171,11 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
 
       client.publishMessage(topic, MqttQos.atLeastOnce, builder.payload!);
       _updateStatus("Podatki poslani: ${_collectedData.length} točk");
-
-      _collectedData.clear();
+      setState(() {
+        _collectedData.clear();
+        _path.clear();
+        stepCount = 0;
+      });
     } else {
       _updateStatus("Ni podatkov za pošiljanje ali ni povezave.");
     }
@@ -169,7 +190,8 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
       permission = await Geolocator.requestPermission();
     }
 
-    return permission == LocationPermission.always || permission == LocationPermission.whileInUse;
+    return permission == LocationPermission.always || 
+           permission == LocationPermission.whileInUse;
   }
 
   void _updateStatus(String newStatus) {
@@ -189,37 +211,61 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Senzorji')),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                status,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 18),
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton.icon(
-                onPressed: _isPublishing || _userId == null ? null : _startCollecting,
-                icon: const Icon(Icons.play_arrow),
-                label: const Text("Začni zajemanje"),
-              ),
-              const SizedBox(height: 12),
-              ElevatedButton.icon(
-                onPressed: _isPublishing ? _stopAndSendData : null,
-                icon: const Icon(Icons.stop),
-                label: const Text("Ustavi in pošlji"),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
+      appBar: AppBar(title: const Text('Senzorji'), centerTitle: true),
+      body: Column(
+        children: [
+          Expanded(
+            flex: 2,
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      status,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 18),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Število korakov: $stepCount',
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                  ],
                 ),
               ),
-            ],
+            ),
           ),
-        ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: _isPublishing || _userId == null ? null : _startCollecting,
+                  icon: const Icon(Icons.play_arrow),
+                  label: const Text("Začni zajemanje"),
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton.icon(
+                  onPressed: _isPublishing ? _stopAndSendData : null,
+                  icon: const Icon(Icons.stop),
+                  label: const Text("Ustavi in pošlji"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Expanded(
+            flex: 5,
+            child: SensorMapPage(pathPoints: _path),
+          ),
+        ],
       ),
     );
   }
