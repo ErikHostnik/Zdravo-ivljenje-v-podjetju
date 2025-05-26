@@ -45,6 +45,11 @@ module.exports = {
                 });
             }
 
+            if (!User.stepGoal) {
+                User.stepGoal = 10000; // ali karkoli je privzeta vrednost
+                await User.save(); // shrani spremembo
+            }
+
             return res.json(User);
         } catch (err) {
             return res.status(500).json({
@@ -63,6 +68,8 @@ module.exports = {
             email: req.body.email,
             password: req.body.password,
             stepCount: req.body.stepCount,
+            stepGoal: req.body.stepGoal || 10000, // privzeta vrednost
+            activities: req.body.activities || [],
             distance: req.body.distance,
             createdAt: req.body.createdAt
         });
@@ -98,6 +105,8 @@ module.exports = {
             User.stepCount = req.body.stepCount || User.stepCount;
             User.distance = req.body.distance || User.distance;
             User.routes = req.body.routes || User.routes;
+            User.stepGoal = req.body.stepGoal || User.stepGoal;
+            User.activities = req.body.activities || User.activities;
             User.createdAt = req.body.createdAt || User.createdAt;
 
             const updatedUser = await User.save();
