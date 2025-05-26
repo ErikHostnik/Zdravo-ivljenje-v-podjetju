@@ -24,7 +24,7 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
   Timer? _timer;
   StreamSubscription<StepCount>? _stepSubscription;
 
-  static const broker = '192.168.0.11';
+  static const broker = '192.168.0.29';
   static const port = 1883;
   static const topic = 'sensors/test';
   final _maxPathPoints = 1000;
