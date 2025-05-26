@@ -33,3 +33,30 @@ for data_dir in DATA_DIRS:
             
             faces.append(img)
             labels.append(label_map[person_name])
+            
+# Pretvori v numpy array
+faces = np.array(faces)
+labels = np.array(labels)
+
+# Razdeli podatke na učne in testne
+X_train, X_test, y_train, y_test = train_test_split(
+    faces, labels, test_size=TEST_SIZE, random_state=42
+)
+
+# Ustvari in treniraj model
+model = cv2.face.LBPHFaceRecognizer_create()
+model.train(X_train.tolist(), y_train.tolist())
+
+# Shrani model
+model.write("lbph_model.yml")
+
+# Testiraj model na testnem setu
+correct = 0
+for i, test_img in enumerate(X_test):
+    true_label = y_test[i]
+    predicted_label, confidence = model.predict(test_img)
+    if predicted_label == true_label:
+        correct += 1
+
+accuracy = (correct / len(X_test)) * 100
+print(f"Natančnost na testnem setu: {accuracy:.2f}%")
