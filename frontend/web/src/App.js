@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { UserContext } from "./userContext";
 import 'leaflet/dist/leaflet.css';
 
+import Home from './components/Home';
 import Header from "./components/Header";
 import Login from "./components/Login";
 import Logout from "./components/Logout";
@@ -33,8 +34,9 @@ function App() {
         setUserContext: updateUserData
       }}>
         <div className="App">
-          <Header title="Zdravo življenje v podjetju" />
+          <Header title="Fit Office" />
           <Routes>
+            <Route path="/" element={<Home />} /> 
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/userProfile/:userId" element={<UserProfile />} />

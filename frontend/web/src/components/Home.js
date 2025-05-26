@@ -9,18 +9,7 @@ export default function Home() {
     <div>
       <h1>Dobrodošel{user ? `, ${user.username}` : ''}!</h1>
 
-      {user
-        ? (
-          <Link to="/logout">Logout</Link>
-        )
-        : (
-          <>
-            <Link to="/login">Login</Link> |{' '}
-            <Link to="/register">Register</Link> |{' '}
-            <Link to="/map">Map</Link>
-          </>
-        )
-      }
+      
     </div>
   );
 }
