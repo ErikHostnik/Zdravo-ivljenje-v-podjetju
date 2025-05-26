@@ -1,27 +1,22 @@
 import json
 import os
 import subprocess
-import time
 from pymongo import MongoClient
 from bson import ObjectId
 import paho.mqtt.client as mqtt
 from datetime import datetime, timezone
 from math import radians, cos, sin, asin, sqrt
 
-# --- MongoDB ---
 MONGO_URI = "mongodb+srv://root:hojladrijadrom@zdravozivpodjetja.1hunr7p.mongodb.net/?retryWrites=true&w=majority&appName=ZdravoZivPodjetja"
 mongo_client = MongoClient(MONGO_URI)
 db = mongo_client.zdravozivpodjetja
 sensor_collection = db.sensordatas
 user_collection = db.users
-twofa_collection = db.twofactorrequests  
 
-# --- MQTT ---
 BROKER_HOST = "127.0.0.1"
 BROKER_PORT = 1883
 TOPIC = "sensors/test"
-TWO_FA_REQUEST_TOPIC_PREFIX = "2fa/request/"   
-TWO_FA_CONFIRM_TOPIC_PREFIX = "2fa/confirm/"   
+TWO_FA_TOPIC_PREFIX = "2fa/confirm/"  # 2FA tema
 
 def calculate_total_steps_and_distance(session):
     total_steps = 0
@@ -88,75 +83,31 @@ def call_scraper(lat, lon):
         print(f"Weather scraper error: {str(e)}")
         return None
 
-
-def create_twofa_request(user_id):
-    request = {
-        "user": ObjectId(user_id),
-        "approved": False,
-        "rejected": False,
-        "createdAt": datetime.utcnow()
-    }
-    result = twofa_collection.insert_one(request)
-    return result.inserted_id
-
-def approve_twofa_request(user_id):
-    req = twofa_collection.find_one_and_update(
-        {
-            "user": ObjectId(user_id),
-            "approved": False,
-            "rejected": False
-        },
-        {"$set": {"approved": True}},
-        sort=[("createdAt", -1)]
-    )
-    return req is not None
-
-def reject_twofa_request(user_id):
-    req = twofa_collection.find_one_and_update(
-        {
-            "user": ObjectId(user_id),
-            "approved": False,
-            "rejected": False
-        },
-        {"$set": {"rejected": True}},
-        sort=[("createdAt", -1)]
-    )
-    return req is not None
-
-
 def on_connect(client, userdata, flags, rc):
     if rc == 0:
         print("Povezan na MQTT broker")
         client.subscribe(TOPIC)
-        client.subscribe(f"{TWO_FA_CONFIRM_TOPIC_PREFIX}#")  # Poslušaj vsa 2FA sporočila
+        client.subscribe(f"{TWO_FA_TOPIC_PREFIX}#")  # Poslušaj vsa 2FA sporočila
     else:
-        print(f"Napaka pri povezavi: Koda {rc}")
+        print(f" Napaka pri povezavi: Koda {rc}")
 
 def on_message(client, userdata, msg):
     try:
         topic = msg.topic
         payload = json.loads(msg.payload.decode())
-        print(f"Prejeto ({topic}): {payload}")
+        print(f" Prejeto ({topic}): {payload}")
 
-        if topic.startswith(TWO_FA_CONFIRM_TOPIC_PREFIX):
-            user_id = topic[len(TWO_FA_CONFIRM_TOPIC_PREFIX):]
+        if topic.startswith(TWO_FA_TOPIC_PREFIX):
+            user_id = topic[len(TWO_FA_TOPIC_PREFIX):]
             confirmed = payload.get("confirmed")
 
             if confirmed is True:
-                updated = approve_twofa_request(user_id)
-                if updated:
-                    print(f"2FA potrjena za uporabnika: {user_id}")
-                else:
-                    print(f"Ni aktivne 2FA zahteve za uporabnika {user_id} (morda je potekla)")
+                print(f"2FA potrjena za uporabnika: {user_id}")
             elif confirmed is False:
-                updated = reject_twofa_request(user_id)
-                if updated:
-                    print(f"2FA zavrnjena za uporabnika: {user_id}")
-                else:
-                    print(f"Ni aktivne 2FA zahteve za uporabnika {user_id} (morda je potekla)")
+                print(f"2FA zavrnjena za uporabnika: {user_id}")
             else:
-                print("Neveljavno 2FA sporočilo (manjka 'confirmed')")
-            return
+                print(" Neveljavno 2FA sporočilo (manjka 'confirmed')")
+            return  
 
         if "session" not in payload or not isinstance(payload["session"], list):
             print("Neveljavna oblika podatkov")
@@ -192,38 +143,14 @@ def on_message(client, userdata, msg):
     except Exception as e:
         print(f"Kritična napaka: {str(e)}")
 
-
-def send_twofa_request(client, user_id):
-    req_id = create_twofa_request(user_id)
-    print(f"Ustvarjena 2FA zahteva {req_id} za uporabnika {user_id}")
-
-    topic = f"{TWO_FA_REQUEST_TOPIC_PREFIX}{user_id}"
-    payload = {
-        "action": "login",
-        "requestId": str(req_id),
-        "timestamp": datetime.utcnow().isoformat()
-    }
-    client.publish(topic, json.dumps(payload))
-    print(f"2FA zahtevek poslan MQTT za uporabnika {user_id}")
-
-
 def main():
     client = mqtt.Client()
     client.on_connect = on_connect
     client.on_message = on_message
 
-    print("Povezujem na MQTT...")
-    client.connect(BROKER_HOST, BROKER_PORT)
-    client.loop_start()
-
-    try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        print("Prekinitev programa...")
-    finally:
-        client.loop_stop()
-        client.disconnect()
+    print(" Povezujem se na MQTT broker...")
+    client.connect(BROKER_HOST, BROKER_PORT, keepalive=60)
+    client.loop_forever()
 
 if __name__ == "__main__":
     main()

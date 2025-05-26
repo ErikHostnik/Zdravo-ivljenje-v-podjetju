@@ -8,12 +8,8 @@ output_folder = r'data_preprocessed'  # Izhodna mapa za predelane slike
 os.makedirs(output_folder, exist_ok=True)
 
 def preprocess_image(image):
-    """
-    Izvede 3-stopenjsko predobdelavo slike:
-    1. Odstranitev šuma (Gaussian blur)
-    2. Pretvorba v YCrCb barvni prostor
-    3. Linearizacija sivin (normalizacija Y-kanala)
-    """
+    
+  
     # 1. Odstranitev šuma
     denoised = cv.GaussianBlur(image, (5, 5), 0)
 
