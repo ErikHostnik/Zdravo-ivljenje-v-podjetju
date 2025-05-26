@@ -33,7 +33,7 @@ export default function UserProfile() {
     fetchUserProfile();
   }, [userId]);
 
-  if (loading) return <div className="profile-container">Nalaganje podatkov...</div>;
+  if (loading) return <div className="user-profile">Nalaganje podatkov...</div>;
 
   const latestStat = user?.dailyStats && user.dailyStats.length > 0
     ? user.dailyStats[user.dailyStats.length - 1]
@@ -46,38 +46,40 @@ export default function UserProfile() {
 
   return (
     <div className="user-profile">
-      <h2 className="profile-header">Profil uporabnika</h2>
+      <h2>Profil uporabnika</h2>
       <p><strong>Uporabniško ime:</strong> {user?.username}</p>
       <p><strong>Email:</strong> {user?.email}</p>
 
-      <hr className="profile-divider" />
+      <hr />
 
-      <h3>Statistika današnjega dne</h3>
+      <div className="stat-section">
+        <h3>Statistika današnjega dne</h3>
 
-      {latestStat ? (
-        <div>
-          <div className="progress-bar-container">
-            <div className="progress-bar" style={{ width: `${progressPercentage}%` }}>
-              {progressPercentage}%
+        {latestStat ? (
+          <div>
+            <div className="progress-bar-container">
+              <div className="progress-bar" style={{ width: `${progressPercentage}%` }}>
+                {progressPercentage}%
+              </div>
+            </div>
+
+            <div className="stat-box">
+              <strong>Koraki:</strong> {steps} / {DAILY_STEP_GOAL}
+            </div>
+            <div className="stat-box">
+              <strong>Razdalja:</strong> {distance} km
+            </div>
+            <div className="stat-box">
+              <strong>Porabljene kalorije:</strong> {calories} kcal
+            </div>
+            <div className="stat-box">
+              <strong>Datum:</strong> {new Date(latestStat.date).toLocaleDateString()}
             </div>
           </div>
-
-          <div className="stat-box">
-            <strong>Koraki:</strong> {steps} / {DAILY_STEP_GOAL}
-          </div>
-          <div className="stat-box">
-            <strong>Razdalja:</strong> {distance} km
-          </div>
-          <div className="stat-box">
-            <strong>Porabljene kalorije:</strong> {calories} kcal
-          </div>
-          <div className="stat-box">
-            <strong>Datum:</strong> {new Date(latestStat.date).toLocaleDateString()}
-          </div>
-        </div>
-      ) : (
-        <p>Statistika za danes ni na voljo.</p>
-      )}
+        ) : (
+          <p>Statistika za danes ni na voljo.</p>
+        )}
+      </div>
     </div>
   );
 }
