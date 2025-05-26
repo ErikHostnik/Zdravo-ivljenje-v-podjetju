@@ -10,6 +10,8 @@
     --hover-color: #38b2ac;
     --header-color: #222244; /* Temnejša barva za header */
     --header-hover-color: #4fd1c5; /* Akcentna barva za hover */
+    --card-bg-color: #2b2b3c;
+    --progress-bg: #4fd1c5;
 }
 
 body {
@@ -22,7 +24,7 @@ body {
 /* HEADER STYLES */
 
 .header {
-    width: 100%; /* Razširi navbar čez celo širino */
+    width: 100%;
     background-color: var(--header-color);
     padding: 1.5rem 2rem;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
@@ -32,7 +34,7 @@ body {
 }
 
 .header-container {
-    max-width: 1200px; /* Lepša poravnava vsebine v headerju */
+    max-width: 1200px;
     margin: 0 auto;
     display: flex;
     justify-content: space-between;
@@ -138,4 +140,60 @@ body {
 .home-card p {
     font-size: 1rem;
     color: var(--text-color);
+}
+
+/* USER PROFILE STYLES */
+
+.user-profile {
+    max-width: 600px;
+    margin: 2rem auto;
+    padding: 1.5rem;
+    background-color: var(--primary-color);
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+
+.user-profile h2 {
+    text-align: center;
+    color: var(--accent-color);
+    font-size: 2rem;
+    margin-bottom: 1rem;
+}
+
+.user-profile p {
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.user-profile .stat-section {
+    margin-top: 1.5rem;
+}
+
+.user-profile .progress-bar-container {
+    background-color: #555;
+    border-radius: 10px;
+    height: 20px;
+    overflow: hidden;
+    margin: 1rem 0;
+}
+
+.user-profile .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #00c6ff, #0072ff);
+    text-align: center;
+    color: white;
+    line-height: 20px;
+    font-size: 0.8rem;
+    transition: width 0.5s ease;
+}
+
+.user-profile .stat-box {
+    background-color: var(--card-bg-color);
+    padding: 0.8rem 1rem;
+    border-radius: 8px;
+    margin: 0.5rem 0;
+}
+
+.user-profile .stat-box strong {
+    color: var(--accent-color);
 }

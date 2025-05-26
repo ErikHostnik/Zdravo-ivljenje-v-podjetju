@@ -1,33 +1,29 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useParams } from 'react-router-dom';
+import '../styles/global.css'; 
 
 export default function UserProfile() {
   const { userId } = useParams();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const DAILY_STEP_GOAL = 10000;
+
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
         const token = localStorage.getItem('token');
-
         const response = await axios.get(`http://localhost:3001/api/users/${userId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
+          headers: { Authorization: `Bearer ${token}` }
         });
 
-        console.log("Odgovor strežnika:", response.data);
-
-        // Ker imaš vse podatke v response.data (user object), shrani ga direktno
         setUser(response.data);
-
       } catch (error) {
         console.error('Napaka pri pridobivanju podatkov:', error);
         setUser({
-          username: "Napaka pri nalaganju",
-          email: "ni podatkov"
+          username: 'Napaka pri nalaganju',
+          email: 'ni podatkov'
         });
       } finally {
         setLoading(false);
@@ -37,27 +33,50 @@ export default function UserProfile() {
     fetchUserProfile();
   }, [userId]);
 
-  if (loading) return <div>Nalaganje podatkov...</div>;
+  if (loading) return <div className="profile-container">Nalaganje podatkov...</div>;
+
+  const latestStat = user?.dailyStats && user.dailyStats.length > 0
+    ? user.dailyStats[user.dailyStats.length - 1]
+    : null;
+
+  const steps = latestStat ? latestStat.stepCount : 0;
+  const distance = latestStat ? latestStat.distance.toFixed(2) : '0.00';
+  const calories = (steps * 0.04).toFixed(2);
+  const progressPercentage = Math.min((steps / DAILY_STEP_GOAL) * 100, 100).toFixed(1);
 
   return (
-    <div style={{ padding: '2rem' }}>
-      <h2>Profil uporabnika</h2>
+    <div className="user-profile">
+      <h2 className="profile-header">Profil uporabnika</h2>
       <p><strong>Uporabniško ime:</strong> {user?.username}</p>
       <p><strong>Email:</strong> {user?.email}</p>
 
-      <hr />
-      <h3>Statistika gibanja</h3>
-      {/* Prikaz statistike, če obstaja */}
-      {user?.dailyStats && user.dailyStats.length > 0 ? (
-        <ul>
-          {user.dailyStats.map((stat, idx) => (
-            <li key={idx}>
-              Datum: {new Date(stat.date).toLocaleDateString()}, Koraki: {stat.stepCount}, Razdalja: {stat.distance.toFixed(2)} km
-            </li>
-          ))}
-        </ul>
+      <hr className="profile-divider" />
+
+      <h3>Statistika današnjega dne</h3>
+
+      {latestStat ? (
+        <div>
+          <div className="progress-bar-container">
+            <div className="progress-bar" style={{ width: `${progressPercentage}%` }}>
+              {progressPercentage}%
+            </div>
+          </div>
+
+          <div className="stat-box">
+            <strong>Koraki:</strong> {steps} / {DAILY_STEP_GOAL}
+          </div>
+          <div className="stat-box">
+            <strong>Razdalja:</strong> {distance} km
+          </div>
+          <div className="stat-box">
+            <strong>Porabljene kalorije:</strong> {calories} kcal
+          </div>
+          <div className="stat-box">
+            <strong>Datum:</strong> {new Date(latestStat.date).toLocaleDateString()}
+          </div>
+        </div>
       ) : (
-        <p>Ni statistike na voljo.</p>
+        <p>Statistika za danes ni na voljo.</p>
       )}
     </div>
   );
