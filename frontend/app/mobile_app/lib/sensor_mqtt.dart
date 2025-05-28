@@ -5,9 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:pedometer/pedometer.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:sensors_plus/sensors_plus.dart';
 import 'map.dart';
 
 class SensorMQTTPage extends StatefulWidget {
@@ -22,7 +22,7 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
   String status = 'Povezovanje...';
   int stepCount = 0;
   Timer? _timer;
-  StreamSubscription<StepCount>? _stepSubscription;
+  StreamSubscription<AccelerometerEvent>? _accelSubscription;
 
   static const broker = '192.168.0.11';
   static const port = 1883;
@@ -33,6 +33,11 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
   List<Map<String, dynamic>> _collectedData = [];
   List<LatLng> _path = [];
   String? _userId;
+
+  // Spremenljivke za izračun korakov iz pospeška
+  double _prevMagnitude = 0;
+  int _stepThreshold = 12; // Prag za zaznavanje "koraka"
+  bool _stepDetected = false;
 
   @override
   void initState() {
@@ -50,20 +55,30 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
 
     final granted = await _requestPermissions();
     if (granted) {
-      _initializeStepCounter();
+      _initializeAccelerometer();
       await _initializeMqttClient();
       await _connectToBroker();
     } else {
-      _updateStatus('Dovoljenja za lokacijo ali pedometer zavrnjena.');
+      _updateStatus('Dovoljenja za lokacijo ali senzorje zavrnjena.');
     }
   }
 
-  void _initializeStepCounter() {
-    _stepSubscription = Pedometer.stepCountStream.listen(
-      (event) => setState(() {
-        stepCount = event.steps;
-      }),
-      onError: (error) => _updateStatus('Napaka pri branju pedometra: $error'),
+  void _initializeAccelerometer() {
+    _accelSubscription = accelerometerEvents.listen(
+      (event) {
+        final double magnitude = sqrt(event.x * event.x + event.y * event.y + event.z * event.z);
+        if (!_stepDetected && magnitude > _stepThreshold && _prevMagnitude <= _stepThreshold) {
+          setState(() {
+            stepCount++;
+          });
+          _stepDetected = true;
+        }
+        if (magnitude < _stepThreshold) {
+          _stepDetected = false;
+        }
+        _prevMagnitude = magnitude;
+      },
+      onError: (error) => _updateStatus('Napaka pri branju akcelerometra: $error'),
       cancelOnError: true,
     );
   }
@@ -159,7 +174,7 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
     _isPublishing = false;
     _timer?.cancel();
 
-    if (client.connectionStatus?.state == MqttConnectionState.connected && 
+    if (client.connectionStatus?.state == MqttConnectionState.connected &&
         _collectedData.isNotEmpty) {
       final payload = jsonEncode({
         'userId': _userId,
@@ -190,8 +205,8 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
       permission = await Geolocator.requestPermission();
     }
 
-    return permission == LocationPermission.always || 
-           permission == LocationPermission.whileInUse;
+    return permission == LocationPermission.always ||
+        permission == LocationPermission.whileInUse;
   }
 
   void _updateStatus(String newStatus) {
@@ -203,7 +218,7 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
   @override
   void dispose() {
     _timer?.cancel();
-    _stepSubscription?.cancel();
+    _accelSubscription?.cancel();
     client.disconnect();
     super.dispose();
   }
