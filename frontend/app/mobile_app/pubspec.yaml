@@ -35,5 +35,6 @@ flutter:
 
   assets:
     - assets/ca.crt
+    - assets/FitOffice_logo_new.jpeg
 
   
