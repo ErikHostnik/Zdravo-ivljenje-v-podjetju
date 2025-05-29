@@ -29,16 +29,12 @@ class _SensorMapPageState extends State<SensorMapPage> {
     if (points.isEmpty) return;
 
     try {
-      if (points.length == 1) {
-        mapController.move(points.first, _fallbackZoom);
-      } else {
-        final bounds = LatLngBounds.fromPoints(points);
-        mapController.fitCamera(
-          CameraFit.bounds(
-            bounds: bounds,
-            padding: const EdgeInsets.all(32),
-          ),
-        );
+      final last = points.last;
+      mapController.move(last, mapController.zoom);
+
+      if (points.last > 1){
+        final.bounds = LatLngBounds.fromPoints(points);
+        mapController.fitCamera(CameraFit.bounds(bounds: bounds, padding: const EdgeInsets.all(32)));
       }
     } catch (e) {
       print("Camera update error: $e");
