@@ -1,65 +1,43 @@
-import cv2 as cv
 import os
+import cv2
+import sys
 from mtcnn import MTCNN
 
-#Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process
 
+def detect_faces(input_folder):
+    output_folder = os.path.join(input_folder, 'preprocessed')
+    os.makedirs(output_folder, exist_ok=True)  # Ustvari mapo, če ne obstaja
 
-def find_face(image, size=(224, 224)):
     detector = MTCNN()
-    image_rgb = cv.cvtColor(image, cv.COLOR_BGR2RGB)
-    results = detector.detect_faces(image_rgb)
-    
-    if len(results) == 0:
-        return None  # ni obraza
 
-    x1, y1, width, height = results[0]['box']
-    x2, y2 = x1 + width, y1 + height
+    for file_name in os.listdir(input_folder):
+        file_path = os.path.join(input_folder, file_name)
+        if not file_name.lower().endswith(('.jpg', '.jpeg', '.png')):
+            continue
+        
+        img = cv2.imread(file_path)
+        if img is None:
+            print(f"Ne morem prebrati slike {file_path}, preskakujem.")
+            continue
 
-    # Preveri meje slike
-    h, w, _ = image.shape
-    x1, y1 = max(0, x1), max(0, y1)
-    x2, y2 = min(w, x2), min(h, y2)
+        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-    face = image[y1:y2, x1:x2]
-    face = cv.resize(face, size)
-    return face
+        results = detector.detect_faces(img_rgb)
 
-def main():
-    folder = r'./data'
-    os.makedirs(folder, exist_ok=True)
+        if len(results) == 0:
+            print(f"Ni bilo zaznanih obrazov v {file_name}")
+            continue
 
-    cap = cv.VideoCapture(0)
-    if not cap.isOpened():
-        print("Cannot open camera")
-        exit()
+        for i, face in enumerate(results):
+            x, y, w, h = face['box']
+            # Preveri, da koordinati ne izven slike
+            x, y = max(0, x), max(0, y)
+            face_img = img[y:y+h, x:x+w]
 
-    count = 0
-    max_images = 100
-
-    print("Pritisni q za prekinitev .")
-
-    while count < max_images:
-        ret, frame = cap.read()
-        if not ret:
-            print("ne moremo odpret kameree")
-            break
-
-        face = find_face(frame)
-        if face is not None:
-            count += 1
-            cv.imshow('Zajeti obraz', face)
-            cv.imwrite(os.path.join(folder, f'{count}.jpeg'), face)
-            print(f"Zajeta slika {count}")
-        else:
-            cv.imshow('Zajeti obraz', frame)  # prikaže celoten frame, če ni obraza
-
-        if cv.waitKey(1) & 0xFF == ord('q'):
-            break
-
-    print(f"Končano zajemanje {count} slik.")
-    cap.release()
-    cv.destroyAllWindows()
+            out_path = os.path.join(output_folder, f'{os.path.splitext(file_name)[0]}_face{i}.jpg')
+            cv2.imwrite(out_path, face_img)
 
 if __name__ == '__main__':
-    main()
+
+    input_folder = sys.argv[1]
+    detect_faces(input_folder)

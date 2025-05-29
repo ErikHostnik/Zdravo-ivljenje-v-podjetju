@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'twofa_mqtt.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert'; 
+import 'camera_capture.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -58,6 +61,13 @@ class _HomePageState extends State<HomePage> {
 
     // Poizkusi vedno osvežiti stanje, ne glede na result
     await _checkLoginStatusAndInit();
+  }
+
+   Future<void> _setup2FA() async {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const CameraCaptureScreen()),
+    );
   }
 
   @override
@@ -134,6 +144,21 @@ class _HomePageState extends State<HomePage> {
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green[700],
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    minimumSize: const Size(double.infinity, 50),
+                  ),
+                ),
+
+                ElevatedButton.icon(
+                  onPressed: _setup2FA,
+                  icon: const Icon(Icons.verified_user),
+                  label: const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 14.0),
+                    child: Text('Nastavi 2FA', style: TextStyle(fontSize: 18)),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueGrey[700],
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     minimumSize: const Size(double.infinity, 50),
