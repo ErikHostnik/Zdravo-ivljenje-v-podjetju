@@ -1,36 +1,27 @@
 import cv2 as cv
 import os
-from mtcnn import MTCNN
+import sys
 
 def extract_and_save_face(image_path, output_folder, size=(224, 224)):
-    detector = MTCNN()
+    face_cascade = cv.CascadeClassifier(cv.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
-    # Preberi sliko
     image = cv.imread(image_path)
     if image is None:
         print(f"Napaka: ne morem odpreti {image_path}")
         return False
 
-    image_rgb = cv.cvtColor(image, cv.COLOR_BGR2RGB)
-    results = detector.detect_faces(image_rgb)
+    gray = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
+    faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5)
 
-    if len(results) == 0:
+    if len(faces) == 0:
         print(f"Obraz ni zaznan v {image_path}")
         return False
 
-    # Prvi zaznan obraz
-    x1, y1, width, height = results[0]['box']
-    x2, y2 = x1 + width, y1 + height
-
-    # Preveri meje slike
-    h, w, _ = image.shape
-    x1, y1 = max(0, x1), max(0, y1)
-    x2, y2 = min(w, x2), min(h, y2)
-
-    face = image[y1:y2, x1:x2]
+    # Uporabi prvo zaznano območje obraza
+    x, y, w, h = faces[0]
+    face = image[y:y+h, x:x+w]
     face = cv.resize(face, size)
 
-    # Shrani izrezan obraz
     filename = os.path.basename(image_path)
     output_path = os.path.join(output_folder, f"face_{filename}")
     cv.imwrite(output_path, face)
@@ -47,7 +38,10 @@ def process_folder(input_folder, output_folder):
         extract_and_save_face(img_path, output_folder)
 
 if __name__ == '__main__':
-    input_folder = './input_images'   # mapa s tvojimi slikami
-    output_folder = './faces'         # mapa za izrezane obraze
+    if len(sys.argv) < 2:
+        print("Uporaba: python face_data_collector.py <input_folder>")
+        sys.exit(1)
 
+    input_folder = sys.argv[1]
+    output_folder = os.path.join('data_preprocessed', os.path.basename(input_folder))
     process_folder(input_folder, output_folder)

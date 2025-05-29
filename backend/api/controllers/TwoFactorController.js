@@ -1,11 +1,31 @@
 const TwoFactorRequest = require('../models/TwoFactorRequestModel.js');
-const User = require('../models/UserModel.js'); // Preveri, da imaš User model
+const User = require('../models/UserModel.js');
 const path = require('path');
 const fs = require('fs');
 const { exec } = require('child_process');
+const multer = require('multer');
+
+// Konfiguracija Multerja za shranjevanje slik
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const userId = req.body.user || req.params.userId;
+    const dir = path.join(__dirname, '../data', userId);
+    fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.jpg`;
+    cb(null, uniqueName);
+  }
+});
+
+const upload = multer({
+  storage: storage,
+  limits: { files: 100, fileSize: 5 * 1024 * 1024 }, // max 100 files, 5MB each
+}).array('images', 100);
 
 module.exports = {
-  // Ustvari zahtevo (samo objava MQTT brez 2FA setupa)
+  // Ustvari 2FA zahtevo in pošlji MQTT sporočilo
   create: async function (req, res) {
     try {
       const existing = await TwoFactorRequest.findOne({ user: req.body.user, approved: false, rejected: false });
@@ -24,6 +44,52 @@ module.exports = {
     } catch (err) {
       res.status(500).json({ message: "Napaka pri ustvarjanju 2FA zahteve", error: err });
     }
+  },
+
+  // Prenos slik za 2FA
+  uploadImages: function (req, res) {
+    upload(req, res, async function (err) {
+      if (err) {
+        return res.status(500).json({ message: "Napaka pri nalaganju slik", error: err });
+      }
+
+      const userId = req.body.user || req.params.userId;
+      // Shrani slike v skriptno mapo /scripts/face_recognition/data/userid
+      const dataDir = path.join(__dirname, '../../scripts/face_recognition/data', userId);
+      fs.mkdirSync(dataDir, { recursive: true }); // Ustvari, če ne obstaja
+
+      console.log(`📂 Slike shranjene v: ${dataDir}`);
+      console.log(`📸 Naloženih slik: ${req.files.length}`);
+
+      // Zgradi funkcijo za zagon python skripte z await
+      function runScript(scriptName, dataPath) {
+        return new Promise((resolve, reject) => {
+          const scriptPath = path.join(__dirname, '../../scripts/face_recognition', scriptName);
+          const cmd = `py "${scriptPath}" "${dataPath}"`;
+          exec(cmd, (error, stdout, stderr) => {
+            if (error) {
+              console.error(` Napaka pri zagonu ${scriptName}:`, error);
+              reject(error);
+            } else {
+              console.log(` Skripta ${scriptName} zaključena.`);
+              console.log(stdout);
+              resolve();
+            }
+          });
+        });
+      }
+
+      try {
+        // Zaženi skripte ena za drugo sinhrono
+        await runScript('face_data_collector.py', dataDir);
+        await runScript('preprocess_faces.py', dataDir);
+        await runScript('augment_faces.py', dataDir);
+
+        res.json({ message: "Slike uspešno naložene in obdelava je zaključena." });
+      } catch (e) {
+        res.status(500).json({ message: "Napaka pri obdelavi slik", error: e.toString() });
+      }
+    });
   },
 
   // Potrdi zahtevo
@@ -65,51 +131,4 @@ module.exports = {
       res.status(500).json({ message: "Napaka pri preverjanju statusa", error: err });
     }
   },
-
-  // 2FA Setup: Zagon skript za zajem, poravnavo in augmentacijo obrazov
-  setup: async function (req, res) {
-    try {
-      // Uporabi prijavljenega uporabnika (JWT auth middleware)
-      const userId = req.user.id; // Če uporabljaš `req.user` iz JWT
-      const user = await User.findById(userId);
-      if (!user) return res.status(404).json({ message: "Uporabnik ne obstaja." });
-
-      // Pot za shranjevanje slik
-      const userDir = path.join(__dirname, '..', 'data', user.username);
-      if (!fs.existsSync(userDir)) fs.mkdirSync(userDir, { recursive: true });
-
-      // Definiraj skripte
-      const scripts = [
-        `python3 ./scripts/face_data_collector.py --output ${userDir}`,
-        `python3 ./scripts/preprocess_faces.py --input ${userDir}`,
-        `python3 ./scripts/augment_faces.py --input ${userDir}`
-      ];
-
-      // Zaženi skripte zaporedno
-      const executeScriptsSequentially = (index = 0) => {
-        if (index >= scripts.length) {
-          console.log("✅ Vse skripte uspešno izvedene.");
-          return res.status(201).json({ message: "Zajemanje slik sproženo." });
-        }
-
-        const cmd = scripts[index];
-        exec(cmd, (err, stdout, stderr) => {
-          if (err) {
-            console.error(`❌ Napaka pri izvajanju: ${cmd}`, err);
-            return res.status(500).json({ message: `Napaka pri izvajanju: ${cmd}`, error: err });
-          } else {
-            console.log(`✅ Skripta izvedena: ${cmd}`);
-            console.log(stdout);
-            executeScriptsSequentially(index + 1);
-          }
-        });
-      };
-
-      executeScriptsSequentially();
-
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ message: "Napaka pri 2FA setupu", error: err });
-    }
-  }
 };

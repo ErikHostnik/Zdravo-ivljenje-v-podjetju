@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'twofa_mqtt.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert'; 
+import 'camera_capture.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -62,32 +63,11 @@ class _HomePageState extends State<HomePage> {
     await _checkLoginStatusAndInit();
   }
 
-  Future<void> _setup2FA() async {
-    final prefs = await SharedPreferences.getInstance();
-    final userId = prefs.getString('user_id');
-
-    if (userId == null) {
-      print('Ni prijavljenega uporabnika');
-      return;
-    }
-
-    final response = await http.post(
-      Uri.parse('http://192.168.0.11:3001/api/2fa/setup'),
-      body: jsonEncode({'user': userId}),
-      headers: {
-        'Content-Type': 'application/json',
-        'x-mobile-client': 'true',
-        'Authorization': 'Bearer ${prefs.getString('jwt_token') ?? ''}',
-      },
+   Future<void> _setup2FA() async {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const CameraCaptureScreen()),
     );
-
-    if (response.statusCode == 201) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('2FA zahteva poslana')),
-      );
-    } else {
-      print('Napaka: ${response.body}');
-    }
   }
 
   @override

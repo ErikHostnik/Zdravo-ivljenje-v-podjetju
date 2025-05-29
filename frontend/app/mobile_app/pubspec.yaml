@@ -14,6 +14,8 @@ dependencies:
   sensors_plus: ^3.0.3
   pedometer: ^4.0.1
   shared_preferences: ^2.2.2
+  camera: ^0.10.5
+  path_provider: ^2.0.15
   
     
   http: ^1.0.0

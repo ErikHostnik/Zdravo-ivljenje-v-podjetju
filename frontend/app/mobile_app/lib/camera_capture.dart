@@ -16,6 +16,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
   CameraController? _cameraController;
   List<File> _capturedImages = [];
   bool _isLoading = false;
+  bool _isCapturing = false;
 
   @override
   void initState() {
@@ -41,52 +42,86 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
     setState(() {});
   }
 
-  Future<void> _captureImage() async {
-    if (_cameraController == null || !_cameraController!.value.isInitialized) return;
+  // Zajame eno sliko (kot prej)
+  Future<File?> _captureSingleImage() async {
+    if (_cameraController == null || !_cameraController!.value.isInitialized) return null;
 
     try {
       final tempDir = await getTemporaryDirectory();
       final path = '${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}.jpg';
       final file = await _cameraController!.takePicture();
       final savedImage = await File(file.path).copy(path);
-      setState(() {
-        _capturedImages.add(savedImage);
-      });
+      return savedImage;
     } catch (e) {
       print('Error capturing image: $e');
+      return null;
     }
+  }
+
+  // Funkcija za zajem 100 slik zaporedoma z intervalom
+  Future<void> _captureMultipleImages() async {
+    if (_isCapturing) return; // prepreči sočasno zajemanje
+    setState(() {
+      _isCapturing = true;
+      _capturedImages.clear(); // po želji počisti stare slike pred zajemom
+    });
+
+    for (int i = 0; i < 10; i++) {
+      final image = await _captureSingleImage();
+      if (image != null) {
+        setState(() {
+          _capturedImages.add(image);
+        });
+      }
+      await Future.delayed(const Duration(milliseconds: 50)); // časovni zamik med zajemi
+    }
+
+    setState(() {
+      _isCapturing = false;
+    });
   }
 
   Future<void> _uploadImages() async {
     setState(() => _isLoading = true);
+
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('jwt_token') ?? '';
     final userId = prefs.getString('user_id') ?? '';
 
-    final uri = Uri.parse('http://192.168.0.11:3001/api/2fa/upload'); // Tvoj backend endpoint
+    // Pravilni endpoint z userId v URL-ju
+    final uri = Uri.parse('http://192.168.0.11:3001/api/2fa/setup/$userId');
+
     final request = http.MultipartRequest('POST', uri)
-      ..headers['Authorization'] = 'Bearer $token';
+        ..headers['Authorization'] = 'Bearer $token';
 
-    request.fields['userId'] = userId;
-
+    // Dodaj vsako sliko posebej
     for (var i = 0; i < _capturedImages.length; i++) {
-      final imageFile = _capturedImages[i];
-      request.files.add(await http.MultipartFile.fromPath('images', imageFile.path));
+        final imageFile = _capturedImages[i];
+        request.files.add(await http.MultipartFile.fromPath('images', imageFile.path));
     }
 
-    final response = await request.send();
-    if (response.statusCode == 200) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Slike uspešno poslane za 2FA!')),
-      );
-      Navigator.pop(context); // Nazaj na HomePage
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Napaka pri pošiljanju: ${response.statusCode}')),
-      );
+    try {
+        final response = await request.send();
+        if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Slike uspešno poslane za 2FA!')),
+        );
+        setState(() {
+            _capturedImages.clear(); // Pošči seznam po uspešnem uploadu
+        });
+        Navigator.pop(context); // Nazaj na HomePage
+        } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Napaka pri pošiljanju: ${response.statusCode}')),
+        );
+        }
+    } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Napaka: $e')),
+        );
+    } finally {
+        setState(() => _isLoading = false);
     }
-
-    setState(() => _isLoading = false);
   }
 
   @override
@@ -115,36 +150,47 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
             child: CameraPreview(_cameraController!),
           ),
           const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: _capturedImages
-                .map((img) => Image.file(img, width: 80, height: 80, fit: BoxFit.cover))
-                .toList(),
+          Text('Zajetih slik: ${_capturedImages.length} / 100', style: const TextStyle(fontSize: 16)),
+          const SizedBox(height: 12),
+          Expanded(
+            child: GridView.builder(
+              padding: const EdgeInsets.all(8),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 5,
+                crossAxisSpacing: 8,
+                mainAxisSpacing: 8,
+              ),
+              itemCount: _capturedImages.length,
+              itemBuilder: (context, index) {
+                return Image.file(_capturedImages[index], fit: BoxFit.cover);
+              },
+            ),
           ),
-          const Spacer(),
           if (_isLoading) const CircularProgressIndicator(),
           if (!_isLoading)
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                ElevatedButton.icon(
-                  onPressed: _captureImage,
-                  icon: const Icon(Icons.camera),
-                  label: const Text('Zajemi sliko'),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
-                ),
-                ElevatedButton.icon(
-                  onPressed: _capturedImages.isNotEmpty ? _uploadImages : null,
-                  icon: const Icon(Icons.cloud_upload),
-                  label: const Text('Pošlji slike'),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.blueGrey),
-                ),
-              ],
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: _isCapturing ? null : _captureMultipleImages,
+                    icon: const Icon(Icons.camera),
+                    label: Text(_isCapturing ? 'Zajemanje ...' : 'Zajemi 100 slik'),
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: _capturedImages.isNotEmpty ? _uploadImages : null,
+                    icon: const Icon(Icons.cloud_upload),
+                    label: const Text('Pošlji slike'),
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.blueGrey),
+                  ),
+                ],
+              ),
             ),
-          const SizedBox(height: 24),
         ],
       ),
     );
   }
 }
+
