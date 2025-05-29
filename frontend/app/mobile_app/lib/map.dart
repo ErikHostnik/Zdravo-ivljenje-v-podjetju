@@ -21,7 +21,6 @@ class _SensorMapPageState extends State<SensorMapPage> with SingleTickerProvider
   late Animation<double> _lngAnim;
   late Animation<double> _zoomAnim;
 
-  // Track current center and zoom
   LatLng _currentCenter;
   double _currentZoom;
 
