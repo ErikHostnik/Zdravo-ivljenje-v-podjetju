@@ -30,15 +30,15 @@ class _SensorMapPageState extends State<SensorMapPage> {
       WidgetsBinding.instance.addPostFrameCallback((_) => _updateCamera());
     }
   }
-  
+
   void _updateCamera() {
     final points = widget.pathPoints;
     if (points.isEmpty) return;
 
     try {
-      // 1) Center camera on the latest point
+      // 1) Center camera on the latest point with current zoom
       final last = points.last;
-      mapController.move(last, mapController.zoom);
+      mapController.move(last, _currentZoom);
 
       // 2) If more than one point, fit bounds to show full path
       if (points.length > 1) {
@@ -51,11 +51,9 @@ class _SensorMapPageState extends State<SensorMapPage> {
         );
       }
     } catch (e) {
-      // For debugging
       print("Camera update error: $e");
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
