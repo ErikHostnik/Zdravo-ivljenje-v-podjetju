@@ -13,7 +13,7 @@ db = mongo_client.zdravozivpodjetja
 sensor_collection = db.sensordatas
 user_collection = db.users
 
-BROKER_HOST = "127.0.0.1"
+BROKER_HOST = "192.168.0.26"
 BROKER_PORT = 1883
 TOPIC = "sensors/test"
 TWO_FA_TOPIC_PREFIX = "2fa/confirm/"  # 2FA tema

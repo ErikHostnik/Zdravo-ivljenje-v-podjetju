@@ -24,7 +24,7 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
   Timer? _timer;
   StreamSubscription<AccelerometerEvent>? _accelSubscription;
 
-  static const broker = '192.168.0.11';
+  static const broker = '192.168.0.26';
   static const port = 1883;
   static const topic = 'sensors/test';
   final _maxPathPoints = 1000;
@@ -34,9 +34,8 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
   List<LatLng> _path = [];
   String? _userId;
 
-  // Spremenljivke za izračun korakov iz pospeška
   double _prevMagnitude = 0;
-  int _stepThreshold = 12; // Prag za zaznavanje "koraka"
+  int _stepThreshold = 12;
   bool _stepDetected = false;
 
   @override
@@ -276,9 +275,21 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
             ),
           ),
           const SizedBox(height: 16),
-          Expanded(
-            flex: 5,
-            child: SensorMapPage(pathPoints: _path),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 50),
+            child: Center(
+              child: ClipOval(
+                child: Container(
+                  width: 500,
+                  height: 500,
+                  color: Colors.grey.shade200,
+                  child: AspectRatio(
+                    aspectRatio: 1,
+                    child: SensorMapPage(pathPoints: _path),
+                  ),
+                ),
+              ),
+            ),
           ),
         ],
       ),
