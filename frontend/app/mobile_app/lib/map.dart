@@ -77,45 +77,51 @@ class _SensorMapPageState extends State<SensorMapPage> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
-    return FlutterMap(
-      mapController: mapController,
-      options: MapOptions(
-        initialCenter: _fallbackCenter,
-        initialZoom: _defaultZoom,
-      ),
-      children: [
-        TileLayer(
-          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-          userAgentPackageName: 'com.example.app',
-        ),
-
-        if (widget.pathPoints.isNotEmpty)
-          MarkerLayer(
-            markers: [
-              Marker(
-                point: widget.pathPoints.last,
-                width: 40,
-                height: 40,
-                child: const Icon(
-                  Icons.my_location,
-                  size: 30,
-                  color: Colors.red,
+    return SizedBox(
+      height: 300, // Določi višino karte
+      child: Stack(
+        children: [
+          FlutterMap(
+            mapController: mapController,
+            options: MapOptions(
+              // Če ni še nobene točke, gremo na rezervno lokacijo
+              center: widget.pathPoints.isNotEmpty
+                  ? widget.pathPoints.last
+                  : _fallbackCenter,
+              zoom: _defaultZoom,
+              interactiveFlags: InteractiveFlag.all & ~InteractiveFlag.rotate, 
+              // onemogočiš rotacijo, če želiš
+            ),
+            children: [
+              TileLayer(
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'com.example.app',
+              ),
+              // Če želiš narisati polilinijo tudi v ozadju
+              if (widget.pathPoints.length > 1)
+                PolylineLayer(
+                  polylines: [
+                    Polyline(
+                      points: widget.pathPoints,
+                      strokeWidth: 4.0,
+                      color: Colors.blue,
+                    ),
+                  ],
                 ),
-              ),
             ],
           ),
 
-        if (widget.pathPoints.isNotEmpty)
-          PolylineLayer(
-            polylines: [
-              Polyline(
-                points: widget.pathPoints,
-                strokeWidth: 4.0,
-                color: Colors.blue,
-              ),
-            ],
+          // Fiksni marker na sredini
+          const Align(
+            alignment: Alignment.center,
+            child: Icon(
+              Icons.my_location,
+              size: 36,
+              color: Colors.redAccent,
+            ),
           ),
-      ],
+        ],
+      ),
     );
   }
 }
