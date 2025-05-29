@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'twofa_mqtt.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert'; 
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -70,8 +72,13 @@ class _HomePageState extends State<HomePage> {
     }
 
     final response = await http.post(
-      Uri.parse('http://192.168.0.11:3001/api/2fa/setup'), // Dodaj svojo pot
-      body: {'user': userId},
+      Uri.parse('http://192.168.0.11:3001/api/2fa/setup'),
+      body: jsonEncode({'user': userId}),
+      headers: {
+        'Content-Type': 'application/json',
+        'x-mobile-client': 'true',
+        'Authorization': 'Bearer ${prefs.getString('jwt_token') ?? ''}',
+      },
     );
 
     if (response.statusCode == 201) {

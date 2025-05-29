@@ -2,17 +2,23 @@ import cv2 as cv
 import os
 from mtcnn import MTCNN
 
-#Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process
-
-
-def find_face(image, size=(224, 224)):
+def extract_and_save_face(image_path, output_folder, size=(224, 224)):
     detector = MTCNN()
+
+    # Preberi sliko
+    image = cv.imread(image_path)
+    if image is None:
+        print(f"Napaka: ne morem odpreti {image_path}")
+        return False
+
     image_rgb = cv.cvtColor(image, cv.COLOR_BGR2RGB)
     results = detector.detect_faces(image_rgb)
-    
-    if len(results) == 0:
-        return None  # ni obraza
 
+    if len(results) == 0:
+        print(f"Obraz ni zaznan v {image_path}")
+        return False
+
+    # Prvi zaznan obraz
     x1, y1, width, height = results[0]['box']
     x2, y2 = x1 + width, y1 + height
 
@@ -23,43 +29,25 @@ def find_face(image, size=(224, 224)):
 
     face = image[y1:y2, x1:x2]
     face = cv.resize(face, size)
-    return face
 
-def main():
-    folder = r'./data'
-    os.makedirs(folder, exist_ok=True)
+    # Shrani izrezan obraz
+    filename = os.path.basename(image_path)
+    output_path = os.path.join(output_folder, f"face_{filename}")
+    cv.imwrite(output_path, face)
+    print(f"Shranjeno: {output_path}")
 
-    cap = cv.VideoCapture(0)
-    if not cap.isOpened():
-        print("Cannot open camera")
-        exit()
+    return True
 
-    count = 0
-    max_images = 100
+def process_folder(input_folder, output_folder):
+    os.makedirs(output_folder, exist_ok=True)
+    images = [f for f in os.listdir(input_folder) if f.lower().endswith(('.jpg', '.jpeg', '.png'))]
 
-    print("Pritisni q za prekinitev .")
-
-    while count < max_images:
-        ret, frame = cap.read()
-        if not ret:
-            print("ne moremo odpret kameree")
-            break
-
-        face = find_face(frame)
-        if face is not None:
-            count += 1
-            cv.imshow('Zajeti obraz', face)
-            cv.imwrite(os.path.join(folder, f'{count}.jpeg'), face)
-            print(f"Zajeta slika {count}")
-        else:
-            cv.imshow('Zajeti obraz', frame)  # prikaže celoten frame, če ni obraza
-
-        if cv.waitKey(1) & 0xFF == ord('q'):
-            break
-
-    print(f"Končano zajemanje {count} slik.")
-    cap.release()
-    cv.destroyAllWindows()
+    for img_file in images:
+        img_path = os.path.join(input_folder, img_file)
+        extract_and_save_face(img_path, output_folder)
 
 if __name__ == '__main__':
-    main()
+    input_folder = './input_images'   # mapa s tvojimi slikami
+    output_folder = './faces'         # mapa za izrezane obraze
+
+    process_folder(input_folder, output_folder)

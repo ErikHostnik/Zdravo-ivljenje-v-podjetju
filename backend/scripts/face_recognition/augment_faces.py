@@ -3,12 +3,11 @@ import numpy as np
 import os
 import random
 
-input_folder = r'data_preprocessed'  # Izhod iz prejšnje skripte
-output_folder = r'data_augmented'
+input_folder = r'data_preprocessed'  # Vhodne slike
+output_folder = r'data_augmented'    # Shranjene slike
 os.makedirs(output_folder, exist_ok=True)
 
 def rotate_image(image, angle):
-    """Zasuk slike za dani kot."""
     (h, w) = image.shape[:2]
     center = (w // 2, h // 2)
     matrix = cv.getRotationMatrix2D(center, angle, 1.0)
@@ -16,17 +15,13 @@ def rotate_image(image, angle):
     return rotated
 
 def flip_horizontal(image):
-    """Ogledalo (horizontal flip)."""
     return cv.flip(image, 1)
 
-
 def change_contrast(image, factor):
-    """Spreminjanje kontrasta slike (množenje sivin z faktorjem)."""
     contrasted = np.clip(image.astype(np.float32) * factor, 0, 255)
     return contrasted.astype(np.uint8)
 
 def add_salt_pepper_noise(image, amount=0.01):
-    """Dodajanje naključnega šuma """
     noisy = image.copy()
     total_pixels = image.shape[0] * image.shape[1]
     num_noisy = int(total_pixels * amount)
@@ -43,32 +38,47 @@ def add_salt_pepper_noise(image, amount=0.01):
 
     return noisy
 
-def augment_image(image, filename_base, counter):
-    """Shrani 4 augmentirane različice slike."""
-    a1 = rotate_image(image, angle=15)
-    a2 = flip_horizontal(image)
-    a3 = change_contrast(image, factor=1.5)
-    a4 = add_salt_pepper_noise(image, amount=0.02)
+def augment_image(image, filename_base, user_output_path, counter):
+    # Generiraj 4 augmentacije + dodatne variacije
+    angles = [15, -15]
+    for angle in angles:
+        a = rotate_image(image, angle)
+        cv.imwrite(os.path.join(user_output_path, f'{filename_base}_aug_rot{angle}_{counter}.png'), a)
 
-    cv.imwrite(os.path.join(output_folder, f'{filename_base}_aug_rot_{counter}.png'), a1)
-    cv.imwrite(os.path.join(output_folder, f'{filename_base}_aug_flip_{counter}.png'), a2)
-    cv.imwrite(os.path.join(output_folder, f'{filename_base}_aug_contrast_{counter}.png'), a3)
-    cv.imwrite(os.path.join(output_folder, f'{filename_base}_aug_noise_{counter}.png'), a4)
+    f = flip_horizontal(image)
+    cv.imwrite(os.path.join(user_output_path, f'{filename_base}_aug_flip_{counter}.png'), f)
 
-# Glavna zanka
+    contrast_factor = random.uniform(0.8, 1.5)
+    c = change_contrast(image, contrast_factor)
+    cv.imwrite(os.path.join(user_output_path, f'{filename_base}_aug_contrast_{counter}.png'), c)
+
+    n = add_salt_pepper_noise(image, amount=0.02)
+    cv.imwrite(os.path.join(user_output_path, f'{filename_base}_aug_noise_{counter}.png'), n)
+
+# Glavna zanka: iteriraj po uporabniških mapah
 counter = 0
-for file in os.listdir(input_folder):
-    if file.endswith('.png'):
-        path = os.path.join(input_folder, file)
-        image = cv.imread(path, cv.IMREAD_GRAYSCALE)
+for user_folder in os.listdir(input_folder):
+    user_path = os.path.join(input_folder, user_folder)
+    if not os.path.isdir(user_path):
+        continue
 
-        if image is None:
-            print(f"Napaka pri branju slike: {file}")
-            continue
+    # Ustvari mapo v output_folder
+    user_output_path = os.path.join(output_folder, user_folder)
+    os.makedirs(user_output_path, exist_ok=True)
 
-        filename_base = os.path.splitext(file)[0]
-        augment_image(image, filename_base, counter)
-        counter += 1
-        print(f"Augmentirane slike za: {file}")
+    # Procesiraj slike
+    for file in os.listdir(user_path):
+        if file.endswith('.png'):
+            path = os.path.join(user_path, file)
+            image = cv.imread(path, cv.IMREAD_GRAYSCALE)
 
-print("Augmentacija uspesna.")
+            if image is None:
+                print(f"Napaka pri branju slike: {file}")
+                continue
+
+            filename_base = os.path.splitext(file)[0]
+            augment_image(image, filename_base, user_output_path, counter)
+            counter += 1
+            print(f"✅ Augmentirane slike za: {file}")
+
+print("✅ Vse slike uspešno augmentirane.")
