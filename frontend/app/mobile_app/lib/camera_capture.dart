@@ -66,7 +66,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
       _capturedImages.clear(); // po želji počisti stare slike pred zajemom
     });
 
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 5; i++) {
       final image = await _captureSingleImage();
       if (image != null) {
         setState(() {
