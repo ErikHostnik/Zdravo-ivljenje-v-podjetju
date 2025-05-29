@@ -14,14 +14,7 @@ class SensorMapPage extends StatefulWidget {
 class _SensorMapPageState extends State<SensorMapPage> {
   final mapController = MapController();
   final LatLng _fallbackCenter = const LatLng(46.5547, 15.6466);
-  final double _fallbackZoom = 15.0;
-  double _currentZoom = 15.0; // Track current zoom
-
-  @override
-  void initState() {
-    super.initState();
-    _currentZoom = _fallbackZoom;
-  }
+  final double _defaultZoom = 15.0;
 
   @override
   void didUpdateWidget(covariant SensorMapPage oldWidget) {
@@ -36,11 +29,11 @@ class _SensorMapPageState extends State<SensorMapPage> {
     if (points.isEmpty) return;
 
     try {
-      // 1) Center camera on the latest point with current zoom
+      // Center on the last point with default zoom
       final last = points.last;
-      mapController.move(last, _currentZoom);
+      mapController.move(last, _defaultZoom);
 
-      // 2) If more than one point, fit bounds to show full path
+      // If more than one point, fit bounds to show full path
       if (points.length > 1) {
         final bounds = LatLngBounds.fromPoints(points);
         mapController.fitCamera(
@@ -61,10 +54,7 @@ class _SensorMapPageState extends State<SensorMapPage> {
       mapController: mapController,
       options: MapOptions(
         initialCenter: _fallbackCenter,
-        initialZoom: _fallbackZoom,
-        onPositionChanged: (MapPosition pos, bool hasGesture) {
-          _currentZoom = pos.zoom;
-        },
+        initialZoom: _defaultZoom,
       ),
       children: [
         // Base map layer
@@ -90,7 +80,7 @@ class _SensorMapPageState extends State<SensorMapPage> {
             ],
           ),
 
-        // Polyline layer showing the path
+        // Polyline layer for the path
         if (widget.pathPoints.isNotEmpty)
           PolylineLayer(
             polylines: [
