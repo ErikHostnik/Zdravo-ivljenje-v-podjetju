@@ -3,6 +3,7 @@ const router = express.Router();
 const TwoFactorController = require('../controllers/TwoFactorController');
 
 router.post('/', TwoFactorController.create);
+router.post('/2fa/setup', TwoFactorController.setup);
 
 router.post('/:id/approve', TwoFactorController.approve);
 

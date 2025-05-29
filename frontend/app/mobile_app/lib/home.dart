@@ -60,6 +60,29 @@ class _HomePageState extends State<HomePage> {
     await _checkLoginStatusAndInit();
   }
 
+  Future<void> _setup2FA() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('user_id');
+
+    if (userId == null) {
+      print('Ni prijavljenega uporabnika');
+      return;
+    }
+
+    final response = await http.post(
+      Uri.parse('http://192.168.0.11:3001/api/2fa/setup'), // Dodaj svojo pot
+      body: {'user': userId},
+    );
+
+    if (response.statusCode == 201) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('2FA zahteva poslana')),
+      );
+    } else {
+      print('Napaka: ${response.body}');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -134,6 +157,21 @@ class _HomePageState extends State<HomePage> {
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green[700],
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    minimumSize: const Size(double.infinity, 50),
+                  ),
+                ),
+
+                ElevatedButton.icon(
+                  onPressed: _setup2FA,
+                  icon: const Icon(Icons.verified_user),
+                  label: const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 14.0),
+                    child: Text('Nastavi 2FA', style: TextStyle(fontSize: 18)),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueGrey[700],
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     minimumSize: const Size(double.infinity, 50),
