@@ -62,6 +62,9 @@ class _SensorMapPageState extends State<SensorMapPage> {
       options: MapOptions(
         initialCenter: _fallbackCenter,
         initialZoom: _fallbackZoom,
+        onPositionChanged: (MapPosition pos, bool hasGesture) {
+          _currentZoom = pos.zoom;
+        },
       ),
       children: [
         // Base map layer
@@ -78,7 +81,7 @@ class _SensorMapPageState extends State<SensorMapPage> {
                 point: widget.pathPoints.last,
                 width: 40,
                 height: 40,
-                builder: (_) => const Icon(
+                child: const Icon(
                   Icons.my_location,
                   size: 30,
                   color: Colors.red,
