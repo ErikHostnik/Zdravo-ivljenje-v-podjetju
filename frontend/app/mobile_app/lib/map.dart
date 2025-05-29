@@ -13,8 +13,8 @@ class SensorMapPage extends StatefulWidget {
 
 class _SensorMapPageState extends State<SensorMapPage> {
   final mapController = MapController();
-  LatLng _fallbackCenter = const LatLng(46.5547, 15.6466);
-  double _fallbackZoom = 15.0;
+  final LatLng _fallbackCenter = const LatLng(46.5547, 15.6466);
+  final double _fallbackZoom = 15.0;
 
   @override
   void didUpdateWidget(covariant SensorMapPage oldWidget) {
