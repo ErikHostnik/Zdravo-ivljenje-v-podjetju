@@ -45,3 +45,46 @@ def train_and_save_model_for_user(user_id, image_paths):
     print(f"[{user_id}] Model saved: {model_path}, Accuracy: {accuracy:.2f}%")
 
     return model_path
+
+def update_model_path_in_backend(user_id, model_path):
+    url = BACKEND_URL + UPDATE_FACE_MODEL_ENDPOINT
+    payload = {
+        "userId": user_id,
+        "faceModelPath": model_path
+    }
+
+    try:
+        resp = requests.post(url, json=payload)
+        if resp.status_code == 200:
+            print(f"[{user_id}] faceModel updated in DB.")
+        else:
+            print(f"[{user_id}] Update error: {resp.status_code} → {resp.text}")
+    except Exception as ex:
+        print(f"[{user_id}] HTTP error: {ex}")
+
+def main():
+    if not os.path.exists(BASE_DATA_DIR):
+        raise RuntimeError(f"Directory '{BASE_DATA_DIR}' does not exist.")
+
+    for user_id in os.listdir(BASE_DATA_DIR):
+        user_folder = os.path.join(BASE_DATA_DIR, user_id)
+        if not os.path.isdir(user_folder):
+            continue
+
+        image_paths = [
+            os.path.join(user_folder, f)
+            for f in os.listdir(user_folder)
+            if f.lower().endswith(('.png', '.jpg', '.jpeg'))
+        ]
+
+        if not image_paths:
+            continue
+
+        model_path = train_and_save_model_for_user(user_id, image_paths)
+        if model_path:
+            update_model_path_in_backend(user_id, model_path)
+
+    print("✅ All models processed.")
+
+if __name__ == "__main__":
+    main()

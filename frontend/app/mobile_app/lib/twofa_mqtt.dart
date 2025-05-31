@@ -27,7 +27,6 @@ class TwoFAMQTT {
         .withClientIdentifier('flutter_2fa_$userId')
         .startClean()
         .withWillQos(MqttQos.atLeastOnce);
-
     client.connectionMessage = connMessage;
   }
 
@@ -39,49 +38,60 @@ class TwoFAMQTT {
         client.subscribe(topic, MqttQos.atLeastOnce);
         client.updates!.listen(_onMessageReceived);
       } else {
-        debugPrint(' MQTT connection failed: ${client.connectionStatus!.returnCode}');
+        debugPrint(
+            'MQTT connection failed: ${client.connectionStatus!.returnCode}');
       }
     } catch (e) {
-      debugPrint(' MQTT connection error: $e');
+      debugPrint('MQTT connection error: $e');
       client.disconnect();
     }
   }
 
   void _onDisconnected() {
-    debugPrint(' MQTT disconnected');
+    debugPrint('MQTT disconnected');
   }
 
-  Future<void> _onMessageReceived(List<MqttReceivedMessage<MqttMessage>> messages) async {
+  Future<void> _onMessageReceived(
+      List<MqttReceivedMessage<MqttMessage>> messages) async {
     final recMess = messages[0].payload as MqttPublishMessage;
-    final payloadStr = MqttPublishPayload.bytesToStringAsString(recMess.payload.message);
-    debugPrint(' 2FA Message Received: $payloadStr');
+    final payloadStr =
+        MqttPublishPayload.bytesToStringAsString(recMess.payload.message);
+    debugPrint('2FA Message Received: $payloadStr');
 
     try {
       final payload = jsonDecode(payloadStr) as Map<String, dynamic>;
       final twoFaId = payload['requestId'] as String;
 
-      final bool? decision = await showDialog<bool>(
+      // Prikaži dialog z enim gumbom "Avtenticiraj"
+      await showDialog<void>(
         context: context,
         builder: (_) => AlertDialog(
-          title: const Text('2FA Potrditev'),
-          content: const Text('Ali želite potrditi prijavo?'),
+          title: const Text('2FA Preverjanje obraza'),
+          content: const Text('Ali želite izvesti preverjanje obraza?'),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Zavrni')),
-            ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Potrdi')),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Prekliči'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                await _triggerFacialVerification(twoFaId);
+              },
+              child: const Text('Avtenticiraj'),
+            ),
           ],
         ),
       );
-
-      if (decision != null) await _sendVerification(twoFaId, decision);
     } catch (e) {
-      debugPrint(' Error processing 2FA message: $e');
+      debugPrint('Error processing 2FA message: $e');
     }
   }
 
-  Future<void> _sendVerification(String id, bool allow) async {
+  Future<void> _triggerFacialVerification(String twoFaId) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('jwt_token');
-    final uri = Uri.parse('http://192.168.0.26:3001/api/2fa/$id/${allow ? 'approve' : 'reject'}'); //10.0.2.2 - GLEDE NA SVOJO NAPRAVO - fizicno napravo DRUGACE localhost oziroma 10.0.2.2
+    final uri = Uri.parse('http://192.168.0.26:3001/api/face/verify');
 
     try {
       final response = await http.post(
@@ -90,10 +100,20 @@ class TwoFAMQTT {
           'Content-Type': 'application/json',
           if (token != null) 'Authorization': 'Bearer $token',
         },
+        body: jsonEncode({
+          'userId': userId,
+          'twoFaId': twoFaId,
+        }),
       );
-      debugPrint(' 2FA Verification response: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        debugPrint("✅ Preverjanje obraza uspešno. 2FA odobreno.");
+      } else {
+        debugPrint(
+            "❌ Preverjanje obraza ni uspelo. Status: ${response.statusCode}");
+      }
     } catch (e) {
-      debugPrint(' HTTP error sending 2FA verification: $e');
+      debugPrint("❌ Napaka pri preverjanju obraza: $e");
     }
   }
 
