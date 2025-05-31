@@ -21,7 +21,7 @@ router.get('/:id',authJWT, UserController.show);
 router.post('/', UserController.create);
 router.post('/login', UserController.login);
 router.post('/verify2fa', UserController.verify2fa);
-
+router.post('/update_model', UserController.updateFaceModel)
 
 
 /*
