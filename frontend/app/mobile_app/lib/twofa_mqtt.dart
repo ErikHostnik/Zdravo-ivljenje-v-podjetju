@@ -2,11 +2,14 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:camera/camera.dart';       // za `FaceCaptureScreen`
+import 'package:camera/camera.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
+import 'package:path/path.dart' as path;
+import 'package:mqtt_client/mqtt_client.dart';
+import 'package:mqtt_client/mqtt_server_client.dart';
 
-import 'face_capture_screen.dart';         // POT do prej ustvarjenega widgeta
+import 'face_capture_screen.dart';
 
 class TwoFAMQTT {
   final BuildContext context;
@@ -37,21 +40,21 @@ class TwoFAMQTT {
     try {
       await client.connect();
       if (client.connectionStatus!.state == MqttConnectionState.connected) {
-        debugPrint('Connected to MQTT broker for 2FA');
+        debugPrint('Povezan na MQTT broker za 2FA');
         client.subscribe(topic, MqttQos.atLeastOnce);
         client.updates!.listen(_onMessageReceived);
       } else {
         debugPrint(
-            'MQTT connection failed: ${client.connectionStatus!.returnCode}');
+            'MQTT povezava ni uspela: ${client.connectionStatus!.returnCode}');
       }
     } catch (e) {
-      debugPrint('MQTT connection error: $e');
+      debugPrint('Napaka pri MQTT povezavi: $e');
       client.disconnect();
     }
   }
 
   void _onDisconnected() {
-    debugPrint('MQTT disconnected');
+    debugPrint('MQTT povezava prekinjena');
   }
 
   Future<void> _onMessageReceived(
@@ -59,7 +62,7 @@ class TwoFAMQTT {
     final recMess = messages[0].payload as MqttPublishMessage;
     final payloadStr =
         MqttPublishPayload.bytesToStringAsString(recMess.payload.message);
-    debugPrint('2FA Message Received: $payloadStr');
+    debugPrint('Prejeto 2FA sporočilo: $payloadStr');
 
     try {
       final payload = jsonDecode(payloadStr) as Map<String, dynamic>;
@@ -68,8 +71,8 @@ class TwoFAMQTT {
       await showDialog<void>(
         context: context,
         builder: (_) => AlertDialog(
-          title: const Text('2FA Preverjanje obraza'),
-          content: const Text('Ali želite izvesti preverjanje obraza?'),
+          title: const Text('Preverjanje obraza'),
+          content: const Text('Ali želite izvesti preverjanje z obrazom?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -86,62 +89,83 @@ class TwoFAMQTT {
         ),
       );
     } catch (e) {
-      debugPrint('Error processing 2FA message: $e');
+      debugPrint('Napaka pri obdelavi sporočila: $e');
     }
   }
 
-Future<void> _openFaceCapture(String twoFaId) async {
-  final cameras = await availableCameras();
+  Future<void> _openFaceCapture(String twoFaId) async {
+    try {
+      final cameras = await availableCameras();
+      if (cameras.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Ni na voljo kamere')),
+        );
+        return;
+      }
 
-  final imagePath = await Navigator.push<String>(
-    context,
-    MaterialPageRoute(
-      builder: (context) => FaceCaptureScreen(
-        onImageCaptured: (String path) {
-          Navigator.pop(context, path);
-        },
-      ),
-    ),
-  );
+      final imagePath = await Navigator.of(context).push<String>(
+        MaterialPageRoute(
+          builder: (context) => FaceCaptureScreen(
+            onImageCaptured: (path) => Navigator.of(context).pop(path),
+          ),
+        ),
+      );
 
-  if (imagePath == null) {
-    debugPrint("❌ Uporabnik ni posnel slike.");
-    return;
+      if (imagePath == null || imagePath.isEmpty) {
+        debugPrint("Uporabnik ni posnel slike");
+        return;
+      }
+
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('jwt_token');
+      
+      final uri = Uri.parse('http://192.168.0.26:3001/api/2fa/verify');
+      final request = http.MultipartRequest('POST', uri);
+
+      // Dodaj sliko
+      request.files.add(await http.MultipartFile.fromPath(
+        'image',
+        imagePath,
+        filename: path.basename(imagePath),
+      ));
+
+      // Dodaj podatke
+      request.fields['userId'] = userId;
+      request.fields['twoFaId'] = twoFaId;
+
+      // Dodaj avtorizacijo
+      if (token != null) {
+        request.headers['Authorization'] = 'Bearer $token';
+      }
+
+      final response = await request.send();
+      final responseBody = await response.stream.bytesToString();
+
+      if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(responseBody);
+        if (jsonResponse['success'] == true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Avtentikacija uspešna!')),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Avtentikacija ni uspela: ${jsonResponse['message']}')),
+          );
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Napaka strežnika: ${response.statusCode}')),
+        );
+      }
+    } catch (e) {
+      debugPrint("Napaka pri preverjanju obraza: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Napaka: ${e.toString()}')),
+      );
+    }
   }
 
-  final prefs = await SharedPreferences.getInstance();
-  final token = prefs.getString('jwt_token');
-  debugPrint('🔑 JWT token: $token');
-
-  final uri = Uri.parse('http://192.168.0.26:3001/api/face/verify');
-
-  try {
-    final request = http.MultipartRequest('POST', uri);
-
-    // Dodamo sliko kot datoteko
-    request.files.add(await http.MultipartFile.fromPath('image', imagePath));
-
-    // Dodamo dodatna polja
-    request.fields['userId'] = userId;
-    request.fields['twoFaId'] = twoFaId;
-
-    // Dodamo avtorizacijo če obstaja
-    if (token != null) {
-      request.headers['Authorization'] = 'Bearer $token';
-    }
-
-    final streamedResponse = await request.send();
-    final response = await http.Response.fromStream(streamedResponse);
-
-    if (response.statusCode == 200) {
-      debugPrint("✅ Preverjanje obraza uspešno. 2FA odobreno.");
-    } else {
-      debugPrint("❌ Preverjanje obraza ni uspelo. Status: ${response.statusCode}");
-    }
-  } catch (e) {
-    debugPrint("❌ Napaka pri preverjanju obraza: $e");
+  void disconnect() {
+    client.disconnect();
   }
-}
-
-  void disconnect() => client.disconnect();
 }

@@ -1,32 +1,53 @@
 import argparse
 import cv2
-import face_recognition
-import pickle
+import os
 import json
+import numpy as np
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--model', type=str, required=True)
-parser.add_argument('--image', type=str, required=True)
+# Nastavimo argumente
+parser = argparse.ArgumentParser(description='Preveri ujemanje obraza')
+parser.add_argument('--model', type=str, required=True, help='Pot do modela (.yml)')
+parser.add_argument('--image', type=str, required=True, help='Pot do testne slike')
 args = parser.parse_args()
 
-# Naloži LBPH‐model (ali pa “face_encodings” shranjen v pickle‐ju)
-with open(args.model, 'rb') as f:
-    known_encoding = pickle.load(f)
+# Preverimo, če datoteke obstajajo
+if not os.path.exists(args.model):
+    print(json.dumps({"error": "Model ne obstaja"}))
+    exit(1)
 
-# Preberi prejeto sliko
-image = cv2.imread(args.image)
-rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+if not os.path.exists(args.image):
+    print(json.dumps({"error": "Slika ne obstaja"}))
+    exit(1)
 
-# Poišči obrazne lokacije in enkodiraj
-face_locations = face_recognition.face_locations(rgb_image)
-face_encodings = face_recognition.face_encodings(rgb_image, face_locations)
-
-match_found = False
-for face_encoding in face_encodings:
-    match = face_recognition.compare_faces([known_encoding], face_encoding)[0]
-    if match:
-        match_found = True
-        break
-
-# Izhod kot JSON
-print(json.dumps({ "match": match_found }))
+try:
+    # Naložimo LBPH model
+    model = cv2.face.LBPHFaceRecognizer_create()
+    model.read(args.model)
+    
+    # Naložimo in pripravimo sliko
+    image = cv2.imread(args.image)
+    if image is None:
+        print(json.dumps({"error": "Napaka pri branju slike"}))
+        exit(1)
+        
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    resized = cv2.resize(gray, (100, 100))  # Enaka velikost kot pri treningu
+    
+    # Napovedujemo
+    label, confidence = model.predict(resized)
+    
+    # Če je zaupanje pod 50, se šteje za uspešno ujemanje
+    result = confidence < 50
+    
+    # Vrnemo rezultat
+    print(json.dumps({
+        "match": bool(result),
+        "confidence": float(confidence),
+        "label": int(label)
+    }))
+    
+except Exception as e:
+    print(json.dumps({
+        "error": "Napaka pri obdelavi",
+        "details": str(e)
+    }))
