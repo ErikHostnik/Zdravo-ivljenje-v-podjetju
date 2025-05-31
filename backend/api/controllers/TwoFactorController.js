@@ -5,8 +5,8 @@ const fs = require('fs');
 const { exec } = require('child_process');
 const multer = require('multer');
 
-// Multer za trening (shranjevanje več slik)
-const trainingStorage = multer.diskStorage({
+// Multer za začasno shranjevanje slik v uploads/tmp/
+const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     const userId = req.body.user || req.params.userId;
     const tmpDir = path.join(__dirname, '../../uploads/tmp', userId);
@@ -19,283 +19,210 @@ const trainingStorage = multer.diskStorage({
   }
 });
 
-const uploadTraining = multer({
-  storage: trainingStorage,
-  limits: { files: 100, fileSize: 5 * 1024 * 1024 },
+const upload = multer({
+  storage: storage,
+  limits: { files: 100, fileSize: 5 * 1024 * 1024 }, // max 100 files, 5MB each
 }).array('images', 100);
 
-// Multer za preverjanje (shranjevanje ene slike)
-const verifyStorage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const dir = path.join(__dirname, '../../uploads/verify_tmp');
-    fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: function (req, file, cb) {
-    cb(null, `${Date.now()}-${file.originalname}`);
-  }
-});
-
-const uploadVerify = multer({ storage: verifyStorage }).single('image');
-
 module.exports = {
-  uploadTraining,
-  uploadVerify,
-
+  // Ustvari 2FA zahtevo in pošlji MQTT sporočilo
   create: async function (req, res) {
     try {
-      const existing = await TwoFactorRequest.findOne({
-        user: req.body.user,
-        approved: false,
-        rejected: false
-      });
-      
-      if (existing) {
-        return res.status(400).json({ message: "Zahteva že obstaja." });
-      }
+      const existing = await TwoFactorRequest.findOne({ user: req.body.user, approved: false, rejected: false });
+      if (existing) return res.status(400).json({ message: "Zahteva že obstaja." });
 
       const newRequest = new TwoFactorRequest({ user: req.body.user });
       await newRequest.save();
 
-      // Pošlji MQTT sporočilo
       const topic = `2fa/request/${req.body.user}`;
       const message = JSON.stringify({ requestId: newRequest._id.toString() });
-      
-      // Predpostavka: MQTT client je definiran globalno
-      global.mqttClient.publish(topic, message, () => {
+      client.publish(topic, message, () => {
         console.log(`📡 Poslana 2FA zahteva na MQTT temo: ${topic}`);
       });
 
       res.status(201).json(newRequest);
     } catch (err) {
-      res.status(500).json({ 
-        message: "Napaka pri ustvarjanju 2FA zahteve", 
-        error: err.message 
-      });
+      res.status(500).json({ message: "Napaka pri ustvarjanju 2FA zahteve", error: err });
     }
   },
 
+  // Prenos slik za 2FA in obdelava preko Python pipeline
   uploadImages: function (req, res) {
-    this.uploadTraining(req, res, async (err) => {
+    upload(req, res, async function (err) {
       if (err) {
-        return res.status(500).json({ 
-          message: "Napaka pri nalaganju slik", 
-          error: err.message 
-        });
+        return res.status(500).json({ message: "Napaka pri nalaganju slik", error: err });
       }
 
       const userId = req.body.user || req.params.userId;
       const tmpDir = path.join(__dirname, '../../uploads/tmp', userId);
       const dataDir = path.join(__dirname, '../../scripts/face_recognition/data', userId);
 
-      // Počisti in pripravi direktorij
+      // Ustvari direktorij za dataDir, če obstaja ga pobriši najprej
       if (fs.existsSync(dataDir)) {
         fs.rmSync(dataDir, { recursive: true, force: true });
       }
       fs.mkdirSync(dataDir, { recursive: true });
 
       try {
-        // Kopiraj slike iz tmp v data
         const files = fs.readdirSync(tmpDir);
+
+        // Kopira originalne slike iz tmpDir v dataDir
         for (const file of files) {
           const sourcePath = path.join(tmpDir, file);
           const destPath = path.join(dataDir, file);
           fs.copyFileSync(sourcePath, destPath);
         }
       } catch (copyError) {
-        return res.status(500).json({ 
-          message: "Napaka pri kopiranju slik", 
-          error: copyError.message 
-        });
+        return res.status(500).json({ message: "Napaka pri kopiranju slik", error: copyError.message });
       }
 
-      // Zagon Python skripte za obdelavo
+      // Klic Python pipeline skripte za obdelavo slik
       const scriptPath = path.join(__dirname, '../../scripts/face_recognition/process_pipeline.py');
       const cmd = `python "${scriptPath}" "${dataDir}"`;
 
       exec(cmd, (error, stdout, stderr) => {
         if (error) {
-          console.error(`Napaka pri zagonu process_pipeline.py:`, error);
-          return res.status(500).json({ 
-            message: "Napaka pri obdelavi slik", 
-            error: error.message 
-          });
+          console.error(` Napaka pri zagonu process_pipeline.py:`, error);
+          return res.status(500).json({ message: "Napaka pri obdelavi slik", error: error.message });
         }
 
-        console.log(`process_pipeline.py zaključena:\n${stdout}`);
-        if (stderr) console.error(`Napake:\n${stderr}`);
+        console.log(` process_pipeline.py zaključena.`);
+        console.log(stdout);
+        if (stderr) console.error(stderr);
 
-        // Počisti začasne datoteke
+        const preprocessedDir = path.join(dataDir, 'preprocessed');
+
+        try {
+          // Premaknemo vse slike iz preprocessed nazaj v dataDir
+          if (fs.existsSync(preprocessedDir)) {
+            const preprocessedFiles = fs.readdirSync(preprocessedDir);
+            for (const file of preprocessedFiles) {
+              const srcPath = path.join(preprocessedDir, file);
+              const destPath = path.join(dataDir, file);
+              fs.renameSync(srcPath, destPath);
+            }
+            // Izbriši zdaj prazno preprocessed mapo
+            fs.rmdirSync(preprocessedDir);
+          }
+        } catch (moveError) {
+          console.warn(` Napaka pri premiku končnih slik iz preprocessed:`, moveError.message);
+        }
+
+        try {
+          // Izbriši vse datoteke in mape, ki niso augmentirane slike (ne vsebujejo '_aug')
+          const processedFiles = fs.readdirSync(dataDir);
+
+          for (const file of processedFiles) {
+            if (!file.includes('_aug')) {
+              const fullPath = path.join(dataDir, file);
+              const stats = fs.statSync(fullPath);
+              if (stats.isDirectory()) {
+                fs.rmSync(fullPath, { recursive: true, force: true });
+              } else {
+                fs.unlinkSync(fullPath);
+              }
+            }
+          }
+        } catch (cleanupError) {
+          console.warn(` Napaka pri čiščenju končnih slik:`, cleanupError.message);
+        }
+
+        // Počisti začasne slike v tmpDir
         try {
           fs.rmSync(tmpDir, { recursive: true, force: true });
-          console.log(`Začasna mapa ${tmpDir} odstranjena.`);
+          console.log(` Začasna mapa ${tmpDir} odstranjena.`);
         } catch (cleanupError) {
-          console.warn(`Napaka pri čiščenju tmp: ${cleanupError.message}`);
+          console.warn(` Napaka pri čiščenju začasnih slik:`, cleanupError.message);
         }
 
-        res.json({ message: "Slike uspešno obdelane in model ustvarjen." });
+        res.json({ message: "Slike uspešno naložene in obdelava je zaključena." });
       });
     });
   },
 
-  verifyFace: async function (req, res) {
-    try {
-      console.log('Received body:', req.body); // Dodaj za diagnostiko
-      console.log('Received file:', req.file);
-      // POPRAVEK: Preveri če req.body obstaja in sicer uporabi prazen objekt
-      const body = req.body || {};
-      const userId = body.userId;
-      const twoFaId = body.twoFaId;
-      
-      if (!userId || !twoFaId) {
-        return res.status(400).json({ 
-          message: "Manjkajo userId ali twoFaId." 
-        });
-      }
-
-      if (!req.file) {
-        return res.status(400).json({ 
-          message: "Slika ni bila naložena." 
-        });
-      }
-
-      const imagePath = req.file.path;
-      const request = await TwoFactorRequest.findById(twoFaId).populate('user');
-      
-      if (!request) {
-        fs.unlinkSync(imagePath);
-        return res.status(404).json({ 
-          message: "2FA zahteva ne obstaja." 
-        });
-      }
-
-      if (request.approved || request.rejected) {
-        fs.unlinkSync(imagePath);
-        return res.status(400).json({ 
-          message: "Zahteva je že obdelana." 
-        });
-      }
-
-      const user = request.user;
-      if (!user || !user.faceModel) {
-        fs.unlinkSync(imagePath);
-        return res.status(404).json({ 
-          message: "Uporabnik nima modela obraza." 
-        });
-      }
-
-      const modelPath = user.faceModel;
-      const scriptPath = path.join(__dirname, '../../scripts/face_recognition/verify_face.py');
-      const cmd = `python "${scriptPath}" --model "${modelPath}" --image "${imagePath}"`;
-
-      exec(cmd, async (error, stdout, stderr) => {
-        // Vedno izbriši začasno sliko
-        try {
-          fs.unlinkSync(imagePath);
-        } catch (cleanError) {
-          console.warn(`Napaka pri brisanju slike: ${cleanError.message}`);
-        }
-
-        if (error) {
-          console.error(`Napaka pri zagonu verify_face.py:`, error);
-          request.rejected = true;
-          await request.save();
-          return res.status(500).json({ 
-            message: "Napaka pri preverjanju obraza.", 
-            error: error.message 
-          });
-        }
-
-        let result;
-        try {
-          result = JSON.parse(stdout.trim());
-        } catch (parseError) {
-          console.error('Napaka pri parsanju JSON:', parseError);
-          request.rejected = true;
-          await request.save();
-          return res.status(500).json({ 
-            message: "Neveljaven odgovor od sistema.", 
-            error: parseError.message 
-          });
-        }
-
-        if (result.match) {
-          request.approved = true;
-          await request.save();
-          return res.json({ 
-            success: true, 
-            message: "Obraz prepoznan! Dostop odobren." 
-          });
-        } else {
-          request.rejected = true;
-          await request.save();
-          return res.status(401).json({ 
-            success: false, 
-            message: "Obraz ni bil prepoznan." 
-          });
-        }
-      });
-    } catch (err) {
-      console.error("Napaka v verifyFace:", err);
-      return res.status(500).json({ 
-        message: "Notranja napaka.", 
-        error: err.message 
-      });
-    }
-  },
-
+  // Potrdi zahtevo
   approve: async function (req, res) {
     try {
       const request = await TwoFactorRequest.findById(req.params.id);
-      if (!request) {
-        return res.status(404).json({ message: "Zahteva ne obstaja." });
-      }
+      if (!request) return res.status(404).json({ message: "Zahteva ne obstaja." });
 
       request.approved = true;
       await request.save();
       res.json({ message: "Dostop odobren." });
     } catch (err) {
-      res.status(500).json({ 
-        message: "Napaka pri potrditvi", 
-        error: err.message 
-      });
+      res.status(500).json({ message: "Napaka pri potrditvi zahteve", error: err });
     }
   },
 
+  // Zavrni zahtevo
   reject: async function (req, res) {
     try {
       const request = await TwoFactorRequest.findById(req.params.id);
-      if (!request) {
-        return res.status(404).json({ message: "Zahteva ne obstaja." });
-      }
+      if (!request) return res.status(404).json({ message: "Zahteva ne obstaja." });
 
       request.rejected = true;
       await request.save();
       res.json({ message: "Dostop zavrnjen." });
     } catch (err) {
-      res.status(500).json({ 
-        message: "Napaka pri zavrnitvi", 
-        error: err.message 
-      });
+      res.status(500).json({ message: "Napaka pri zavrnitvi zahteve", error: err });
     }
   },
 
+  // Preveri status zahteve
   status: async function (req, res) {
     try {
       const request = await TwoFactorRequest.findById(req.params.id);
-      if (!request) {
-        return res.status(404).json({ message: "Zahteva ne obstaja." });
+      if (!request) return res.status(404).json({ message: "Zahteva ne obstaja." });
+
+      res.json({ approved: request.approved, rejected: request.rejected });
+    } catch (err) {
+      res.status(500).json({ message: "Napaka pri preverjanju statusa", error: err });
+    }
+  },
+
+  /**
+ * POST /api/2fa/recognize/:userId
+ * Metoda sproži Python skripto, ki naredi face-recognition na podatkih v data/userId.
+ */
+  recognize: async function (req, res) {
+    try {
+      const userId = req.params.userId;
+
+      // (Neobvezno) Preverba JWT/auth—primer, če uporabljate auth-middleware, je lahko req.user.id:
+      // if (req.user.id !== userId) {
+      //   return res.status(403).json({ message: 'Niste pooblaščeni za prepoznavanje za tega uporabnika.' });
+      // }
+
+      // Sestavite pot do mape, kjer so že obdelane (augmentirane) slike:
+      const dataDir = path.join(__dirname, '../../scripts/face_recognition/data', userId);
+      // Pot do Python skripte:
+      const scriptPath = path.join(__dirname, '../../scripts/face_recognition/recognition_model.py');
+
+      // Prepričajte se, da mapa dataDir obstaja:
+      if (!fs.existsSync(dataDir)) {
+        return res.status(400).json({ message: `Podatki za uporabnika ${userId} ne obstajajo.` });
       }
 
-      res.json({ 
-        approved: request.approved, 
-        rejected: request.rejected 
+      // Zaženemo Python skripto s parametrom dataDir
+      exec(`python "${scriptPath}" "${dataDir}"`, (error, stdout, stderr) => {
+        if (error) {
+          console.error(`[recognition] Napaka pri zagonu:`, error);
+          return res.status(500).json({
+            message: 'Napaka pri prepoznavanju obrazov',
+            error: error.message
+          });
+        }
+
+        console.log('[recognition] Rezultat stdout:', stdout);
+        if (stderr) console.warn('[recognition] STDERR:', stderr);
+
+        return res.json({ message: 'Prepoznavanje obrazov je zaključeno.' });
       });
+
     } catch (err) {
-      res.status(500).json({ 
-        message: "Napaka pri preverjanju", 
-        error: err.message 
-      });
+      console.error('[recognize controller] Uncaught error:', err);
+      res.status(500).json({ message: 'Napaka pri sprožitvi prepoznave', error: err });
     }
-  }
+  },
+
 };

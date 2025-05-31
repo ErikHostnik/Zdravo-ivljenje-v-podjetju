@@ -42,7 +42,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
     setState(() {});
   }
 
-  // Zajame eno sliko (kot prej)
+  // Zajame eno sliko
   Future<File?> _captureSingleImage() async {
     if (_cameraController == null || !_cameraController!.value.isInitialized) return null;
 
@@ -53,20 +53,20 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
       final savedImage = await File(file.path).copy(path);
       return savedImage;
     } catch (e) {
-      print('Error capturing image: $e');
+      debugPrint('Error capturing image: $e');
       return null;
     }
   }
 
-  // Funkcija za zajem 100 slik zaporedoma z intervalom
+  // Funkcija za zajem 100 slik zaporedoma z intervalom (v tej verziji: 5 slik kot primer)
   Future<void> _captureMultipleImages() async {
     if (_isCapturing) return; // prepreči sočasno zajemanje
     setState(() {
       _isCapturing = true;
-      _capturedImages.clear(); // po želji počisti stare slike pred zajemom
+      _capturedImages.clear(); // počisti stare slike pred zajemom
     });
 
-    for (int i = 0; i < 20; i++) {
+    for (int i = 0; i < 5; i++) {
       final image = await _captureSingleImage();
       if (image != null) {
         setState(() {
@@ -81,6 +81,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
     });
   }
 
+  // Pošlje slike na backend
   Future<void> _uploadImages() async {
     setState(() => _isLoading = true);
 
@@ -88,39 +89,73 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
     final token = prefs.getString('jwt_token') ?? '';
     final userId = prefs.getString('user_id') ?? '';
 
-    // Pravilni endpoint z userId v URL-ju
-    final uri = Uri.parse('http://192.168.0.26:3001/api/2fa/setup/$userId');
+    // Endpoint za nalaganje slik
+    final uploadUri = Uri.parse('http://192.168.0.26:3001/api/2fa/setup/$userId');
 
-    final request = http.MultipartRequest('POST', uri)
-        ..headers['Authorization'] = 'Bearer $token';
+    final request = http.MultipartRequest('POST', uploadUri)
+      ..headers['Authorization'] = 'Bearer $token';
 
     // Dodaj vsako sliko posebej
     for (var i = 0; i < _capturedImages.length; i++) {
-        final imageFile = _capturedImages[i];
-        request.files.add(await http.MultipartFile.fromPath('images', imageFile.path));
+      final imageFile = _capturedImages[i];
+      request.files.add(
+        await http.MultipartFile.fromPath('images', imageFile.path),
+      );
     }
 
     try {
-        final response = await request.send();
-        if (response.statusCode == 200) {
+      final response = await request.send();
+      if (response.statusCode == 200) {
+        // Če upload uspe:
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Slike uspešno poslane za 2FA!')),
+          const SnackBar(content: Text('Slike uspešno poslane za 2FA!')),
         );
         setState(() {
-            _capturedImages.clear(); // Pošči seznam po uspešnem uploadu
+          _capturedImages.clear();
         });
-        Navigator.pop(context); // Nazaj na HomePage
-        } else {
+
+        // PO USPEŠNEM UPLOADU: kliči funkcijo, ki sproži recognition_model.py
+        _runRecognition(userId, token);
+      } else {
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Napaka pri pošiljanju: ${response.statusCode}')),
+          SnackBar(content: Text('Napaka pri pošiljanju: ${response.statusCode}')),
         );
-        }
+      }
     } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Napaka: $e')),
-        );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Napaka pri pošiljanju: $e')),
+      );
     } finally {
-        setState(() => _isLoading = false);
+      setState(() => _isLoading = false);
+    }
+  }
+
+  // Nova funkcija: pošljemo zahtevo na backend, da zažene recognition_model.py
+  Future<void> _runRecognition(String userId, String token) async {
+    final recogUri = Uri.parse('http://192.168.0.26:3001/api/2fa/recognize/$userId');
+    try {
+      final response = await http.post(
+        recogUri,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Prepoznavanje obrazov sproženo uspešno.')),
+        );
+        // Lahko tu tudi navigirate nazaj ali storite kaj drugega
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Napaka pri sprožitvi prepoznave: ${response.statusCode}')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('HTTP napaka pri sprožitvi prepoznave: $e')),
+      );
     }
   }
 
@@ -150,7 +185,10 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
             child: CameraPreview(_cameraController!),
           ),
           const SizedBox(height: 12),
-          Text('Zajetih slik: ${_capturedImages.length} / 100', style: const TextStyle(fontSize: 16)),
+          Text(
+            'Zajetih slik: ${_capturedImages.length} / 100',
+            style: const TextStyle(fontSize: 16),
+          ),
           const SizedBox(height: 12),
           Expanded(
             child: GridView.builder(
@@ -193,4 +231,3 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
     );
   }
 }
-

@@ -6,8 +6,7 @@ const authJWT = require('../../middlewares/auth.js');
 router.post('/', TwoFactorController.create);
 
 router.post('/setup/:userId', authJWT, TwoFactorController.uploadImages);
-
-router.post('/verify', TwoFactorController.uploadVerify, TwoFactorController.verifyFace);
+router.post('/recognize/:userId', authJWT, TwoFactorController.recognize);
 
 router.post('/:id/approve', TwoFactorController.approve);
 
