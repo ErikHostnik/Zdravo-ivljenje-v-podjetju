@@ -2,6 +2,7 @@ version: '3.9'
 
 services:
 
+  # Mosquitto MQTT broker
   mosquitto:
     build:
       context: ./mosquitto
@@ -12,6 +13,7 @@ services:
       - "1883:1883"
     restart: unless-stopped
 
+  # MQTT Receiver
   mqttReceiver:
     build:
       context: ./mqttReceiver
@@ -24,3 +26,32 @@ services:
       - MQTT_HOST=mosquitto
       - MQTT_PORT=1883
     restart: unless-stopped
+
+  # MongoDB
+  mongo:
+    image: mongo:6
+    container_name: zdrv_mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    restart: unless-stopped
+
+  # Node.js Backend
+  backend:
+    build:
+      context: ./backend/api
+      dockerfile: Dockerfile
+    image: zdravoziv-backend:latest
+    container_name: zdrv_backend
+    ports:
+      - "3001:3001"
+    depends_on:
+      - mongo
+      - mosquitto
+    env_file:
+      - .env
+    restart: unless-stopped
+
+volumes:
+  mongo-data:

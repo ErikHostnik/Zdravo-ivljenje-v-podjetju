@@ -1,16 +1,12 @@
-FROM node:20-alpine
+FROM node:18-alpine
 
 WORKDIR /usr/src/app
 
-COPY package.json package-lock.json ./
-RUN npm ci --only=production
+COPY package*.json ./
+RUN npm install
 
 COPY . .
 
-ARG PORT=3001
-ENV PORT=${PORT}
-EXPOSE ${PORT}
+EXPOSE 3001
 
-CMD [ "npm", "start" ]
-
-#nestestirano in ne dodano k compose yml
+CMD ["npm", "start"]
