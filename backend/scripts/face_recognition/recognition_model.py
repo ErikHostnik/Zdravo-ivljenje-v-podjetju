@@ -8,7 +8,7 @@ BASE_DATA_DIR = "data"
 MODEL_DIR = "models"
 TEST_SIZE = 0.2
 IMAGE_SIZE = (100, 100)
-BACKEND_URL = "http://localhost:3000"
+BACKEND_URL = "http://localhost:3001"
 UPDATE_FACE_MODEL_ENDPOINT = "/api/users/update_model"
 
 def train_and_save_model_for_user(user_id, image_paths):
