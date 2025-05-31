@@ -12,3 +12,5 @@ ENV PORT=${PORT}
 EXPOSE ${PORT}
 
 CMD [ "npm", "start" ]
+
+#nestestirano in ne dodano k compose yml

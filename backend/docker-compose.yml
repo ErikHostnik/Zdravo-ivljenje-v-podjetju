@@ -1,0 +1,26 @@
+version: '3.9'
+
+services:
+
+  mosquitto:
+    build:
+      context: ./mosquitto
+      dockerfile: Dockerfile
+    image: custom-mosquitto:2.0.21
+    container_name: zdrv_mosquitto
+    ports:
+      - "1883:1883"
+    restart: unless-stopped
+
+  mqttReceiver:
+    build:
+      context: ./mqttReceiver
+      dockerfile: Dockerfile
+    image: custom-mqtt-receiver:latest
+    container_name: zdrv_receiver
+    depends_on:
+      - mosquitto
+    environment:
+      - MQTT_HOST=mosquitto
+      - MQTT_PORT=1883
+    restart: unless-stopped
