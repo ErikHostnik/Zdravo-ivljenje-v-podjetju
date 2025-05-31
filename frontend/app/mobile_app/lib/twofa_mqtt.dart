@@ -93,6 +93,9 @@ class TwoFAMQTT {
     final token = prefs.getString('jwt_token');
     final uri = Uri.parse('http://192.168.0.26:3001/api/face/verify');
 
+  debugPrint('🔑 JWT token: $token');
+
+
     try {
       final response = await http.post(
         uri,

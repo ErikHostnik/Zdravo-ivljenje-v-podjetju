@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const TwoFactorRequest = require('../models/TwoFactorRequestModel.js');
 // MQTT klient
 const mqtt = require('mqtt');
-const mqttClient = mqtt.connect('mqtt://192.168.0.11:1883');
+const mqttClient = mqtt.connect('mqtt://192.168.0.26:1883');
 
 const secret = 'moja-skrivnost';
 
