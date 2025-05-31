@@ -1,18 +1,14 @@
-# Use official Node image
-FROM node:16
+FROM node:20-alpine
 
-# Create app directory
-WORKDIR /app
+WORKDIR /usr/src/app
 
-# Only copy package files first (to leverage Docker layer caching)
-COPY package*.json ./
+COPY package.json package-lock.json ./
+RUN npm ci --only=production
 
-# Install dependencies inside container
-RUN npm install
-
-# Now copy the rest of the app's source code
 COPY . .
 
-# Expose port and define start command
-EXPOSE 3001
-CMD ["npm", "start"]
+ARG PORT=3000
+ENV PORT=${PORT}
+EXPOSE ${PORT}
+
+CMD [ "npm", "start" ]
