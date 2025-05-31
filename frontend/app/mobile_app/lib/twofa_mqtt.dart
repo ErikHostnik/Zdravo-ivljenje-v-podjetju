@@ -1,9 +1,12 @@
 import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
-import 'package:mqtt_client/mqtt_client.dart';
-import 'package:mqtt_client/mqtt_server_client.dart';
+import 'package:camera/camera.dart';       // za `FaceCaptureScreen`
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
+
+import 'face_capture_screen.dart';         // POT do prej ustvarjenega widgeta
 
 class TwoFAMQTT {
   final BuildContext context;
@@ -92,9 +95,6 @@ class TwoFAMQTT {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('jwt_token');
     final uri = Uri.parse('http://192.168.0.26:3001/api/face/verify');
-
-  debugPrint('🔑 JWT token: $token');
-
 
     try {
       final response = await http.post(
