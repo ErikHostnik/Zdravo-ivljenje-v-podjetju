@@ -1,11 +1,11 @@
+require('dotenv').config();
 const UserModel = require('../models/UserModel.js');
 const jwt = require('jsonwebtoken');
 const TwoFactorRequest = require('../models/TwoFactorRequestModel.js');
-// MQTT klient
 const mqtt = require('mqtt');
-const mqttClient = mqtt.connect('mqtt://192.168.0.11:1883');
+const mqttClient = mqtt.connect(process.env.MQTT_URI);
 
-const secret = 'moja-skrivnost';
+const secret = process.env.JWT_SECRET;
 
 /**
  * UserController.js
@@ -37,7 +37,7 @@ module.exports = {
 
         try {
             const User = await UserModel.findById(id)
-                .populate('activities'); // <-- tukaj dodano
+                .populate('activities'); 
 
             if (!User) {
                 return res.status(404).json({
@@ -46,8 +46,8 @@ module.exports = {
             }
 
             if (!User.stepGoal) {
-                User.stepGoal = 10000; // ali karkoli je privzeta vrednost
-                await User.save(); // shrani spremembo
+                User.stepGoal = 10000; 
+                await User.save();
             }
 
             return res.json(User);

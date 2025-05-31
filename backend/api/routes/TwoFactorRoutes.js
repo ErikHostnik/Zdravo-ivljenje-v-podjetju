@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const TwoFactorController = require('../controllers/TwoFactorController');
-const authJWT = require('../../middlewares/auth.js');
+const authJWT = require('../middlewares/auth.js');
 
 router.post('/', TwoFactorController.create);
 

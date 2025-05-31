@@ -6,17 +6,22 @@ from bson import ObjectId
 import paho.mqtt.client as mqtt
 from datetime import datetime, timezone
 from math import radians, cos, sin, asin, sqrt
+from dotenv import load_dotenv
 
-MONGO_URI = "mongodb+srv://root:hojladrijadrom@zdravozivpodjetja.1hunr7p.mongodb.net/?retryWrites=true&w=majority&appName=ZdravoZivPodjetja"
+load_dotenv()
+
+MONGO_URI = os.getenv("MONGODB_URI")
+BROKER_HOST = os.getenv("BROKER_HOST")
+BROKER_PORT = int(os.getenv("BROKER_PORT"))
+TOPIC = os.getenv("TOPIC")
+TWO_FA_TOPIC_PREFIX = os.getenv("TWO_FA_TOPIC_PREFIX")
+
 mongo_client = MongoClient(MONGO_URI)
 db = mongo_client.zdravozivpodjetja
 sensor_collection = db.sensordatas
 user_collection = db.users
 
-BROKER_HOST = "192.168.0.26"
-BROKER_PORT = 1883
-TOPIC = "sensors/test"
-TWO_FA_TOPIC_PREFIX = "2fa/confirm/"  # 2FA tema
+
 
 def calculate_total_steps_and_distance(session):
     total_steps = 0
@@ -83,13 +88,13 @@ def call_scraper(lat, lon):
         print(f"Weather scraper error: {str(e)}")
         return None
 
-def on_connect(client, userdata, flags, rc):
-    if rc == 0:
+def on_connect(client, userdata, flags, reasonCode, properties=None):
+    if reasonCode == 0:
         print("Povezan na MQTT broker")
         client.subscribe(TOPIC)
-        client.subscribe(f"{TWO_FA_TOPIC_PREFIX}#")  # Poslušaj vsa 2FA sporočila
+        client.subscribe(f"{TWO_FA_TOPIC_PREFIX}#")
     else:
-        print(f" Napaka pri povezavi: Koda {rc}")
+        print(f" Napaka pri povezavi: Koda {reasonCode}")
 
 def on_message(client, userdata, msg):
     try:
@@ -144,7 +149,10 @@ def on_message(client, userdata, msg):
         print(f"Kritična napaka: {str(e)}")
 
 def main():
-    client = mqtt.Client()
+    if not MONGO_URI:
+        print("Error: MONGO_URI ni nastavljen.")
+        exit(1)
+    client = mqtt.Client(callback_api_version=mqtt.CallbackAPIVersion.VERSION2)
     client.on_connect = on_connect
     client.on_message = on_message
 
