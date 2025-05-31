@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const TwoFactorController = require('../controllers/TwoFactorController');
 const authJWT = require('../../middlewares/auth.js');
+const multer = require('multer');
+const verifyUpload = multer({ dest: 'uploads/verify_temp/' });
 
 router.post('/', TwoFactorController.create);
 

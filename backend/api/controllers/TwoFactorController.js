@@ -225,4 +225,61 @@ module.exports = {
     }
   },
 
+  // Dodaj novo metodo za preverjanje obraza
+  verifyFace: async function (req, res) {
+    try {
+      const userId = req.params.userId;
+      const imageFile = req.file; // Ena slika iz Flutter
+
+      if (!imageFile) {
+        return res.status(400).json({ message: "Slika ni bila poslana." });
+      }
+
+      // Pot do modela uporabnika
+      const modelPath = path.join(__dirname, '../../scripts/face_recognition/models', `${userId}.yml`);
+      
+      // Če model ne obstaja
+      if (!fs.existsSync(modelPath)) {
+        return res.status(400).json({ message: "Model za to osebo ne obstaja." });
+      }
+
+      // Shrani začasno sliko za preverjanje
+      const verifyDir = path.join(__dirname, '../../uploads/verify');
+      fs.mkdirSync(verifyDir, { recursive: true });
+      const verifyPath = path.join(verifyDir, `${userId}_verify.jpg`);
+      fs.copyFileSync(imageFile.path, verifyPath);
+
+      // Klic Python skripte za preverjanje
+      const scriptPath = path.join(__dirname, '../../scripts/face_recognition/verify_face.py');
+      const cmd = `python "${scriptPath}" --model "${modelPath}" --image "${verifyPath}"`;
+      
+      exec(cmd, (error, stdout, stderr) => {
+        // Počisti začasne datoteke
+        fs.unlinkSync(imageFile.path);
+        fs.unlinkSync(verifyPath);
+        
+        if (error) {
+          console.error(`Napaka pri preverjanju obraza: ${error.message}`);
+          return res.status(500).json({ message: "Napaka pri preverjanju obraza" });
+        }
+        
+        try {
+          const result = JSON.parse(stdout);
+          if (result.error) {
+            return res.status(400).json({ message: result.error });
+          }
+          
+          // Če je ujemanje uspešno (confidence < 50)
+          res.json({ 
+            match: result.match,
+            confidence: result.confidence
+          });
+        } catch (parseError) {
+          res.status(500).json({ message: "Napaka pri obdelavi rezultatov" });
+        }
+      });
+    } catch (err) {
+      res.status(500).json({ message: "Napaka pri preverjanju obraza", error: err });
+    }
+  }
 };
