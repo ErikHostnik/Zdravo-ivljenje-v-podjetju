@@ -140,6 +140,8 @@ module.exports = {
 
   verifyFace: async function (req, res) {
     try {
+      console.log('Received body:', req.body); // Dodaj za diagnostiko
+      console.log('Received file:', req.file);
       // POPRAVEK: Preveri če req.body obstaja in sicer uporabi prazen objekt
       const body = req.body || {};
       const userId = body.userId;

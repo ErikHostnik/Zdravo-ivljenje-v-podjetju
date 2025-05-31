@@ -7,7 +7,7 @@ router.post('/', TwoFactorController.create);
 
 router.post('/setup/:userId', authJWT, TwoFactorController.uploadImages);
 
-router.post('/verify', TwoFactorController.verifyFace);
+router.post('/verify', TwoFactorController.uploadVerify, TwoFactorController.verifyFace);
 
 router.post('/:id/approve', TwoFactorController.approve);
 
