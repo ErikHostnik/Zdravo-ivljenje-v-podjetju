@@ -110,8 +110,8 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
           Align(
             alignment: Alignment.center,
             child: Container(
-              width: 250,
-              height: 250,
+              width: 500,
+              height: 500,
               decoration: BoxDecoration(
                 border: Border.all(color: Colors.white, width: 3),
                 color: Colors.white.withOpacity(0.12),

@@ -66,7 +66,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
       _capturedImages.clear(); // po želji počisti stare slike pred zajemom
     });
 
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 20; i++) {
       final image = await _captureSingleImage();
       if (image != null) {
         setState(() {
@@ -89,7 +89,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
     final userId = prefs.getString('user_id') ?? '';
 
     // Pravilni endpoint z userId v URL-ju
-    final uri = Uri.parse('http://192.168.0.11:3001/api/2fa/setup/$userId');
+    final uri = Uri.parse('http://192.168.0.26:3001/api/2fa/setup/$userId');
 
     final request = http.MultipartRequest('POST', uri)
         ..headers['Authorization'] = 'Bearer $token';
