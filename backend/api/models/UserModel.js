@@ -6,6 +6,7 @@ const UserSchema = new Schema({
   username: { type: String, required: true },
   email:    { type: String, required: true, unique: true },
   password: { type: String, required: true },
+  faceModel: { type: String, default: ""},
   stepCount: { type: Number, default: 0 },
   distance: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now },

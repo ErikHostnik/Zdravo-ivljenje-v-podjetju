@@ -13,6 +13,28 @@ const secret = 'moja-skrivnost';
  * @description :: Server-side logic for managing Users.
  */
 module.exports = {
+      updateFaceModel: async function (req, res) {
+    const { userId, faceModelPath } = req.body;
+    try {
+      // Najdi userja in posodobi polje faceModelPath
+      const updatedUser = await UserModel.findByIdAndUpdate(
+        userId,
+        { faceModelPath: faceModelPath },
+        { new: true }
+      );
+      if (!updatedUser) {
+        return res.status(404).json({
+          message: 'No such User to update faceModelPath.'
+        });
+      }
+      return res.json({ success: true, user: updatedUser });
+    } catch (err) {
+      return res.status(500).json({
+        message: 'Error when updating faceModelPath.',
+        error: err
+      });
+    }
+  },
 
     /**
      * UserController.list()
