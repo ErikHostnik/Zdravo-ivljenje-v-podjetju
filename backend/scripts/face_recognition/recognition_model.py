@@ -2,65 +2,46 @@ import cv2
 import os
 import numpy as np
 from sklearn.model_selection import train_test_split
+import requests
 
-# Nastavitve
-DATA_DIRS = ["data_preprocessed", "data_augmented"]
-TEST_SIZE = 0.2  # 20% za testiranje
-IMAGE_SIZE = (100, 100)  # vse slike resize-amo na isto velikost
+BASE_DATA_DIR = "data"
+MODEL_DIR = "models"
+TEST_SIZE = 0.2
+IMAGE_SIZE = (100, 100)
+BACKEND_URL = "http://localhost:3000"
+UPDATE_FACE_MODEL_ENDPOINT = "/api/users/update_model"
 
-# Priprava podatkov
-faces, labels = [], []
+def train_and_save_model_for_user(user_id, image_paths):
+    faces, labels = [], []
 
-for data_dir in DATA_DIRS:
-    if not os.path.exists(data_dir):
-        raise RuntimeError(f"Mapa ne obstaja: {data_dir}")
-
-    for img_name in os.listdir(data_dir):
-        if not img_name.lower().endswith(('.png', '.jpg', '.jpeg')):
-            continue
-
-        img_path = os.path.join(data_dir, img_name)
+    for img_path in image_paths:
         img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
-
         if img is None:
-            print(f"Napaka pri nalaganju: {img_path}")
             continue
+        img_resized = cv2.resize(img, IMAGE_SIZE)
+        faces.append(img_resized)
+        labels.append(0)
 
-        # Resize, če slike niso enake velikosti
-        img = cv2.resize(img, IMAGE_SIZE)
+    if len(faces) < 2:
+        return None
 
-        faces.append(img)
-        labels.append(0)  # ena oseba → en label
+    faces = np.array(faces)
+    labels = np.array(labels)
 
-# Preveri, da smo naložili slike
-if len(faces) == 0:
-    raise RuntimeError("Ni bilo najdenih slik v DATA_DIRS!")
+    X_train, X_test, y_train, y_test = train_test_split(
+        faces, labels, test_size=TEST_SIZE, random_state=42
+    )
 
-print(f"Skupno naloženih slik: {len(faces)}")
+    model = cv2.face.LBPHFaceRecognizer_create()
+    model.train(X_train, y_train)
 
-# Pretvori v numpy array
-faces = np.array(faces)
-labels = np.array(labels)
+    if not os.path.exists(MODEL_DIR):
+        os.makedirs(MODEL_DIR)
+    model_path = os.path.join(MODEL_DIR, f"{user_id}.yml")
+    model.write(model_path)
 
-# Razdeli podatke na učne in testne
-X_train, X_test, y_train, y_test = train_test_split(
-    faces, labels, test_size=TEST_SIZE, random_state=42
-)
+    correct = sum(1 for i, img in enumerate(X_test) if model.predict(img)[0] == y_test[i])
+    accuracy = (correct / len(X_test)) * 100
+    print(f"[{user_id}] Model saved: {model_path}, Accuracy: {accuracy:.2f}%")
 
-# Ustvari in treniraj LBPH model
-model = cv2.face.LBPHFaceRecognizer_create()
-model.train(X_train, y_train)
-
-# Shrani model
-model.write("lbph_model.yml")
-print("Model shranjen kot lbph_model.yml")
-
-# Testiraj model na testnem setu
-correct = 0
-for i, test_img in enumerate(X_test):
-    predicted_label, confidence = model.predict(test_img)
-    if predicted_label == y_test[i]:
-        correct += 1
-
-accuracy = (correct / len(X_test)) * 100
-print(f"Natančnost na testnem setu: {accuracy:.2f}%")
+    return model_path
