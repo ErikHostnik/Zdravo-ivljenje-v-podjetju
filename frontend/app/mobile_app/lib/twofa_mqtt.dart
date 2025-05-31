@@ -9,7 +9,7 @@ import 'package:path/path.dart' as path;
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
 
-import 'face_capture_screen.dart';
+import 'face_authentication.dart';
 
 class TwoFAMQTT {
   final BuildContext context;

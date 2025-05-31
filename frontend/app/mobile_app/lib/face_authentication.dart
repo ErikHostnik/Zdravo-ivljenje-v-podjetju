@@ -80,13 +80,15 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
       return Scaffold(
         body: Center(
           child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          CircularProgressIndicator(),
-          SizedBox(height: 20),
-          Text('Inicializacija kamere...'),
-        ],
-      ));
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 20),
+              Text('Inicializacija kamere...'),
+            ],
+          ),
+        ),
+      );
     }
 
     return Scaffold(
