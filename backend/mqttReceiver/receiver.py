@@ -13,7 +13,7 @@ db = mongo_client.zdravozivpodjetja
 sensor_collection = db.sensordatas
 user_collection = db.users
 
-BROKER_HOST = "192.168.0.26"
+BROKER_HOST = "192.168.0.11"
 BROKER_PORT = 1883
 TOPIC = "sensors/test"
 TWO_FA_TOPIC_PREFIX = "2fa/confirm/"  # 2FA tema
@@ -83,7 +83,7 @@ def call_scraper(lat, lon):
         print(f"Weather scraper error: {str(e)}")
         return None
 
-def on_connect(client, userdata, flags, rc):
+def on_connect(client, userdata, flags, rc, properties=None):
     if rc == 0:
         print("Povezan na MQTT broker")
         client.subscribe(TOPIC)
@@ -144,7 +144,7 @@ def on_message(client, userdata, msg):
         print(f"Kritična napaka: {str(e)}")
 
 def main():
-    client = mqtt.Client()
+    client = mqtt.Client(callback_api_version=mqtt.CallbackAPIVersion.VERSION2)
     client.on_connect = on_connect
     client.on_message = on_message
 

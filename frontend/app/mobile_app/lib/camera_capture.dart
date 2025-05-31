@@ -66,14 +66,14 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
       _capturedImages.clear(); // počisti stare slike pred zajemom
     });
 
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 100; i++) {
       final image = await _captureSingleImage();
       if (image != null) {
         setState(() {
           _capturedImages.add(image);
         });
       }
-      await Future.delayed(const Duration(milliseconds: 50)); // časovni zamik med zajemi
+      await Future.delayed(const Duration(milliseconds: 10)); // časovni zamik med zajemi
     }
 
     setState(() {
@@ -90,7 +90,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
     final userId = prefs.getString('user_id') ?? '';
 
     // Endpoint za nalaganje slik
-    final uploadUri = Uri.parse('http://192.168.0.26:3001/api/2fa/setup/$userId');
+    final uploadUri = Uri.parse('http://192.168.0.11:3001/api/2fa/setup/$userId');
 
     final request = http.MultipartRequest('POST', uploadUri)
       ..headers['Authorization'] = 'Bearer $token';
@@ -132,7 +132,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
 
   // Nova funkcija: pošljemo zahtevo na backend, da zažene recognition_model.py
   Future<void> _runRecognition(String userId, String token) async {
-    final recogUri = Uri.parse('http://192.168.0.26:3001/api/2fa/recognize/$userId');
+    final recogUri = Uri.parse('http://192.168.0.11:3001/api/2fa/recognize/$userId');
     try {
       final response = await http.post(
         recogUri,

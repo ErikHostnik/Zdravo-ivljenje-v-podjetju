@@ -8,13 +8,14 @@ import 'package:http/http.dart' as http;
 import 'package:camera/camera.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:http_parser/http_parser.dart';
 
 class TwoFAMQTT {
   final BuildContext context;
   final String userId;
 
   late final MqttServerClient client;
-  static const String broker = '192.168.0.26';
+  static const String broker = '192.168.0.11';
   static const int port = 1883;
   late final String topic;
 
@@ -117,8 +118,8 @@ class TwoFAMQTT {
 
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('jwt_token');
-      
-      final uri = Uri.parse('http://$broker:3001/api/2fa/verify');
+
+      final uri = Uri.parse('http://$broker:3001/api/2fa/verify/$userId');
       final request = http.MultipartRequest('POST', uri);
 
       request.files.add(await http.MultipartFile.fromPath(
@@ -126,7 +127,6 @@ class TwoFAMQTT {
         imagePath,
       ));
 
-      request.fields['userId'] = userId;
       request.fields['twoFaId'] = twoFaId;
 
       if (token != null) {

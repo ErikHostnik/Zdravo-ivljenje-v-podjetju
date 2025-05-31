@@ -5,6 +5,8 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 import requests
 
+sys.stdout.reconfigure(encoding='utf-8')
+
 # -------------------------------------------------------------------
 # Debug različica recognition_model.py
 # Prebere argument iz ukazne vrstice kot pot do uporabniške mape.
@@ -113,7 +115,7 @@ def update_model_path_in_backend(user_id, model_path):
         print(f"[DEBUG][update_model_path_in_backend] HTTP napaka: {ex}")
 
 def main():
-    print("[DEBUG][main] Začenjam recognition_model.py ...")
+    print("[DEBUG][main] Zacenjam recognition_model.py ...")
     print(f"[DEBUG][main] Trenutni delovni direktorij: {os.getcwd()}")
     print(f"[DEBUG][main] BASE_DIR: {BASE_DIR}")
     print(f"[DEBUG][main] MODEL_DIR: {MODEL_DIR}")

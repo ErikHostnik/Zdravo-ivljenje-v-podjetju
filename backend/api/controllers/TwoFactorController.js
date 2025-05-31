@@ -231,55 +231,77 @@ module.exports = {
       const userId = req.params.userId;
       const imageFile = req.file; // Ena slika iz Flutter
 
+      console.log('✅ Začetek verifyFace');
+      console.log('📸 userId:', userId);
+      console.log('📸 imageFile:', imageFile);
+
       if (!imageFile) {
+        console.log('❌ Slika ni bila poslana.');
         return res.status(400).json({ message: "Slika ni bila poslana." });
       }
 
-      // Pot do modela uporabnika
       const modelPath = path.join(__dirname, '../../scripts/face_recognition/models', `${userId}.yml`);
-      
-      // Če model ne obstaja
+      console.log('📂 Model Path:', modelPath);
+
       if (!fs.existsSync(modelPath)) {
+        console.log('❌ Model ne obstaja.');
         return res.status(400).json({ message: "Model za to osebo ne obstaja." });
       }
 
-      // Shrani začasno sliko za preverjanje
       const verifyDir = path.join(__dirname, '../../uploads/verify');
       fs.mkdirSync(verifyDir, { recursive: true });
       const verifyPath = path.join(verifyDir, `${userId}_verify.jpg`);
       fs.copyFileSync(imageFile.path, verifyPath);
 
-      // Klic Python skripte za preverjanje
+      console.log('🖼️ Shranjena začasna slika na:', verifyPath);
+
       const scriptPath = path.join(__dirname, '../../scripts/face_recognition/verify_face.py');
       const cmd = `python "${scriptPath}" --model "${modelPath}" --image "${verifyPath}"`;
-      
+      console.log('🚀 Klic Python skripte:', cmd);
+
       exec(cmd, (error, stdout, stderr) => {
+        console.log('🔍 Rezultat exec klica:');
+        console.log('STDOUT:', stdout);
+        console.log('STDERR:', stderr);
+        console.log('ERROR:', error);
+
         // Počisti začasne datoteke
-        fs.unlinkSync(imageFile.path);
-        fs.unlinkSync(verifyPath);
-        
-        if (error) {
-          console.error(`Napaka pri preverjanju obraza: ${error.message}`);
-          return res.status(500).json({ message: "Napaka pri preverjanju obraza" });
+        try {
+          fs.unlinkSync(imageFile.path);
+          fs.unlinkSync(verifyPath);
+          console.log('🧹 Začasne datoteke pobrisane');
+        } catch (err) {
+          console.log('⚠️ Napaka pri brisanju datotek:', err.message);
         }
-        
+
+        if (error) {
+          console.error(`❌ Napaka pri preverjanju obraza: ${error.message}`);
+          return res.status(500).json({ message: "Napaka pri preverjanju obraza", error: error.message });
+        }
+
         try {
           const result = JSON.parse(stdout);
+          console.log('✅ JSON rezultat iz Python:', result);
+
           if (result.error) {
+            console.log('❌ Python error:', result.error);
             return res.status(400).json({ message: result.error });
           }
-          
-          // Če je ujemanje uspešno (confidence < 50)
-          res.json({ 
+
+          res.json({
             match: result.match,
-            confidence: result.confidence
+            confidence: result.confidence,
+            label: result.label,
+            raw: result // za debug dodatno
           });
         } catch (parseError) {
-          res.status(500).json({ message: "Napaka pri obdelavi rezultatov" });
+          console.log('❌ Napaka pri JSON.parse:', parseError.message);
+          return res.status(500).json({ message: "Napaka pri obdelavi rezultatov", error: parseError.message, raw: stdout });
         }
       });
     } catch (err) {
-      res.status(500).json({ message: "Napaka pri preverjanju obraza", error: err });
+      console.log('❌ Napaka v try-catch:', err.message);
+      return res.status(500).json({ message: "Napaka pri preverjanju obraza", error: err.message });
     }
-  },
+  }
 };
