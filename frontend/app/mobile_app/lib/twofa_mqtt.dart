@@ -90,64 +90,58 @@ class TwoFAMQTT {
     }
   }
 
-  Future<void> _openFaceCapture(String twoFaId) async {
-    // 1) Pridobi seznam kamer (moraš jih navesti preden odpreš)
-    final cameras = await availableCameras();
+Future<void> _openFaceCapture(String twoFaId) async {
+  final cameras = await availableCameras();
 
-    // 2) Preusmeri na FaceCaptureScreen, ki bo vrnil pot do slike
-    final imagePath = await Navigator.push<String>(
-      context,
-      MaterialPageRoute(
-        builder: (context) => FaceCaptureScreen(
-          onImageCaptured: (String path) {
-            Navigator.pop(context, path);
-          },
-        ),
-      ),
-    );
-
-    // Če uporabnik ni posnel slike, imagePath == null
-    if (imagePath == null) {
-      debugPrint("❌ Uporabnik ni posnel slike.");
-      return;
-    }
-
-    // 3) Pretvori posneto datoteko v Base64
-    final File imageFile = File(imagePath);
-    final bytes = await imageFile.readAsBytes();
-    final String base64Image = base64Encode(bytes);
-
-    // 4) Pridobi JWT token
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('jwt_token');
-    debugPrint('🔑 JWT token: $token');
-
-    // 5) Pošlji POST na backend
-    final uri = Uri.parse('http://192.168.0.26:3001/api/face/verify');
-    try {
-      final response = await http.post(
-        uri,
-        headers: {
-          'Content-Type': 'application/json',
-          if (token != null) 'Authorization': 'Bearer $token',
+  final imagePath = await Navigator.push<String>(
+    context,
+    MaterialPageRoute(
+      builder: (context) => FaceCaptureScreen(
+        onImageCaptured: (String path) {
+          Navigator.pop(context, path);
         },
-        body: jsonEncode({
-          'userId': userId,
-          'twoFaId': twoFaId,
-          'imageBase64': base64Image,
-        }),
-      );
+      ),
+    ),
+  );
 
-      if (response.statusCode == 200) {
-        debugPrint("✅ Preverjanje obraza uspešno. 2FA odobreno.");
-      } else {
-        debugPrint(
-            "❌ Preverjanje obraza ni uspelo. Status: ${response.statusCode}");
-      }
-    } catch (e) {
-      debugPrint("❌ Napaka pri preverjanju obraza: $e");
-    }
+  if (imagePath == null) {
+    debugPrint("❌ Uporabnik ni posnel slike.");
+    return;
   }
+
+  final prefs = await SharedPreferences.getInstance();
+  final token = prefs.getString('jwt_token');
+  debugPrint('🔑 JWT token: $token');
+
+  final uri = Uri.parse('http://192.168.0.26:3001/api/face/verify');
+
+  try {
+    final request = http.MultipartRequest('POST', uri);
+
+    // Dodamo sliko kot datoteko
+    request.files.add(await http.MultipartFile.fromPath('image', imagePath));
+
+    // Dodamo dodatna polja
+    request.fields['userId'] = userId;
+    request.fields['twoFaId'] = twoFaId;
+
+    // Dodamo avtorizacijo če obstaja
+    if (token != null) {
+      request.headers['Authorization'] = 'Bearer $token';
+    }
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+
+    if (response.statusCode == 200) {
+      debugPrint("✅ Preverjanje obraza uspešno. 2FA odobreno.");
+    } else {
+      debugPrint("❌ Preverjanje obraza ni uspelo. Status: ${response.statusCode}");
+    }
+  } catch (e) {
+    debugPrint("❌ Napaka pri preverjanju obraza: $e");
+  }
+}
 
   void disconnect() => client.disconnect();
 }
