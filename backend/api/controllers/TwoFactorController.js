@@ -281,5 +281,5 @@ module.exports = {
     } catch (err) {
       res.status(500).json({ message: "Napaka pri preverjanju obraza", error: err });
     }
-  }
+  },
 };

@@ -15,11 +15,17 @@ export default function Login() {
 
   useEffect(() => {
     if (!pending2FA || !twoFactorRequestId) return;
+    
     const interval = setInterval(async () => {
       try {
         const statusRes = await fetch(
           `http://localhost:3001/api/2fa/${twoFactorRequestId}/status`
         );
+        
+        if (!statusRes.ok) {
+          throw new Error('Napaka pri pridobivanju statusa');
+        }
+        
         const statusData = await statusRes.json();
 
         if (statusData.approved) {
@@ -31,7 +37,13 @@ export default function Login() {
               body: JSON.stringify({ requestId: twoFactorRequestId })
             }
           );
+          
+          if (!verifyRes.ok) {
+            throw new Error('Napaka pri verifikaciji');
+          }
+          
           const verifyData = await verifyRes.json();
+          
           if (verifyData.user && verifyData.token) {
             localStorage.setItem("token", verifyData.token);
             localStorage.setItem("user", JSON.stringify(verifyData.user));
@@ -42,6 +54,7 @@ export default function Login() {
             throw new Error("Napaka pri dokončanju prijave");
           }
         }
+        
         if (statusData.rejected) {
           setError("2FA zahteva zavrnjena.");
           setPending2FA(false);
@@ -53,6 +66,7 @@ export default function Login() {
         clearInterval(interval);
       }
     }, 2000);
+    
     return () => clearInterval(interval);
   }, [pending2FA, twoFactorRequestId, setUserContext, navigate]);
 
@@ -63,8 +77,13 @@ export default function Login() {
       const res = await fetch("http://localhost:3001/api/users/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ 
+          username, 
+          password,
+          isMobile: false // Dodaj to za spletno prijavo
+        })
       });
+      
       const data = await res.json();
 
       if (data.pending2FA && data.twoFactorRequestId) {
@@ -78,7 +97,7 @@ export default function Login() {
       } else {
         throw new Error("Neveljavni podatki");
       }
-    } catch {
+    } catch (err) {
       setError("Neveljavno uporabniško ime ali geslo");
       setUsername("");
       setPassword("");
@@ -92,10 +111,23 @@ export default function Login() {
   return (
     <form onSubmit={handleSubmit} className="max-w-sm mx-auto p-4 border rounded">
       <h2 className="text-lg mb-4">Prijava</h2>
-      <input className="w-full mb-2 p-2 border rounded" placeholder="Uporabniško ime" value={username} disabled={pending2FA} required onChange={e => setUsername(e.target.value)}/>
-      <input className="w-full mb-2 p-2 border rounded" type="password"placeholder="Geslo" value={password} disabled={pending2FA}  required onChange={e => setPassword(e.target.value)}/>
+      <input className="w-full mb-2 p-2 border rounded" 
+             placeholder="Uporabniško ime" 
+             value={username} 
+             disabled={pending2FA} 
+             required 
+             onChange={e => setUsername(e.target.value)}/>
+      
+      <input className="w-full mb-2 p-2 border rounded" 
+             type="password"
+             placeholder="Geslo" 
+             value={password} 
+             disabled={pending2FA}  
+             required 
+             onChange={e => setPassword(e.target.value)}/>
 
-      <button className="w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700"disabled={pending2FA}>
+      <button className="w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              disabled={pending2FA}>
         {pending2FA ? "Čakam na 2FA potrditev..." : "Prijava"}
       </button>
       
