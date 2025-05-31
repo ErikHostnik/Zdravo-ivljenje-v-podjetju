@@ -7,7 +7,7 @@ RUN npm ci --only=production
 
 COPY . .
 
-ARG PORT=3000
+ARG PORT=3001
 ENV PORT=${PORT}
 EXPOSE ${PORT}
 
