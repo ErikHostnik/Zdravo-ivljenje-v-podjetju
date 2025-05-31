@@ -37,7 +37,7 @@ module.exports = {
 
         try {
             const User = await UserModel.findById(id)
-                .populate('activities'); // <-- tukaj dodano
+                .populate('activities'); 
 
             if (!User) {
                 return res.status(404).json({
@@ -46,8 +46,8 @@ module.exports = {
             }
 
             if (!User.stepGoal) {
-                User.stepGoal = 10000; // ali karkoli je privzeta vrednost
-                await User.save(); // shrani spremembo
+                User.stepGoal = 10000; 
+                await User.save();
             }
 
             return res.json(User);
