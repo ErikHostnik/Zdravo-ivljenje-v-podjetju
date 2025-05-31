@@ -2,3 +2,4 @@ opencv-python>=4.5.0
 tensorflow>=2.0.0
 mtcnn>=0.1.0
 numpy>=1.18.0
+scikit-learn>=1.4.2
