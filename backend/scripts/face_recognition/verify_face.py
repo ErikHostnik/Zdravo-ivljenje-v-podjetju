@@ -30,8 +30,14 @@ try:
         print(json.dumps({"error": "Napaka pri branju slike"}))
         exit(1)
         
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    resized = cv2.resize(gray, (100, 100))  # Enaka velikost kot pri treningu
+    # POPRAVEK: Pretvori v sivo sliko
+    if len(image.shape) == 3:
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    else:
+        gray = image
+    
+    # POPRAVEK: Uporabi pravilno velikost (100x100)
+    resized = cv2.resize(gray, (100, 100))
     
     # Napovedujemo
     label, confidence = model.predict(resized)

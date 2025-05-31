@@ -140,7 +140,10 @@ module.exports = {
 
   verifyFace: async function (req, res) {
     try {
-      const { userId, twoFaId } = req.body;
+      // POPRAVEK: Preveri če req.body obstaja in sicer uporabi prazen objekt
+      const body = req.body || {};
+      const userId = body.userId;
+      const twoFaId = body.twoFaId;
       
       if (!userId || !twoFaId) {
         return res.status(400).json({ 
