@@ -1,4 +1,3 @@
-version: '3.9'
 
 services:
 
@@ -40,7 +39,7 @@ services:
   # Node.js Backend
   backend:
     build:
-      context: ./backend/api
+      context: ./api
       dockerfile: Dockerfile
     image: zdravoziv-backend:latest
     container_name: zdrv_backend
@@ -50,7 +49,7 @@ services:
       - mongo
       - mosquitto
     env_file:
-      - .env
+      - /.env
     restart: unless-stopped
 
 volumes:
