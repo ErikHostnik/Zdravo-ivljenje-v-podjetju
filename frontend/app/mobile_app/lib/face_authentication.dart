@@ -1,143 +1,123 @@
-import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
-
-import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:path/path.dart' as p;
+import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class FaceCaptureScreen extends StatefulWidget {
-  final ValueChanged<String> onImageCaptured;
+class FaceAuthenticationScreen extends StatefulWidget {
+  final String twoFaId; // Dodan parameter za 2FA ID
 
-  const FaceCaptureScreen({Key? key, required this.onImageCaptured})
-      : super(key: key);
+  const FaceAuthenticationScreen({super.key, required this.twoFaId});
 
   @override
-  _FaceCaptureScreenState createState() => _FaceCaptureScreenState();
+  State<FaceAuthenticationScreen> createState() => _FaceAuthenticationScreenState();
 }
 
-class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
-  CameraController? _controller;
-  late Future<void> _initializeControllerFuture;
-  List<CameraDescription> cameras = [];
-
-  @override
-  void initState() {
-    super.initState();
-    _initCamera();
-  }
-
-  Future<void> _initCamera() async {
-    try {
-      cameras = await availableCameras();
-      if (cameras.isEmpty) {
-        throw Exception('No cameras available');
-      }
-
-      // POPRAVEK: Iščemo sprednjo kamero
-      CameraDescription? frontCamera;
-      for (var camera in cameras) {
-        if (camera.lensDirection == CameraLensDirection.front) {
-          frontCamera = camera;
-          break;
-        }
-      }
-
-      // Če ni sprednje kamere, uporabi prvo
-      final selectedCamera = frontCamera ?? cameras.first;
-
-      _controller = CameraController(
-        selectedCamera,
-        ResolutionPreset.medium,
-        enableAudio: false,
-      );
-
-      _initializeControllerFuture = _controller!.initialize();
-      await _initializeControllerFuture;
-      setState(() {});
-    } catch (e) {
-      print('Camera initialization error: $e');
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller?.dispose();
-    super.dispose();
-  }
+class _FaceAuthenticationScreenState extends State<FaceAuthenticationScreen> {
+  File? _capturedImage;
+  bool _isLoading = false;
+  bool _isVerifying = false;
+  String? _verificationResult;
 
   Future<void> _captureFace() async {
-    if (_controller == null || !_controller!.value.isInitialized) return;
+    // Implementacija zajema slike s kamero (dodajte svojo kodo)
+  }
+
+  Future<void> _verifyFace() async {
+    if (_capturedImage == null) return;
+
+    setState(() {
+      _isVerifying = true;
+      _verificationResult = null;
+    });
+
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('jwt_token') ?? '';
+    final userId = prefs.getString('user_id') ?? '';
+
+    final url = Uri.parse('http://192.168.0.26:3001/api/2fa/verify');
 
     try {
-      await _initializeControllerFuture;
-      final tempDir = await getTemporaryDirectory();
-      final imagePath = p.join(
-        tempDir.path,
-        'face_${DateTime.now().millisecondsSinceEpoch}.jpg',
-      );
+      final request = http.MultipartRequest('POST', url)
+        ..headers['Authorization'] = 'Bearer $token'
+        ..fields['userId'] = userId
+        ..fields['twoFaId'] = widget.twoFaId // Uporaba twoFaId iz parametra
+        ..files.add(await http.MultipartFile.fromPath(
+          'image',
+          _capturedImage!.path,
+        ));
 
-      final imageFile = await _controller!.takePicture();
-      await imageFile.saveTo(imagePath);
+      final response = await request.send();
+      final responseBody = await response.stream.bytesToString();
+      final data = json.decode(responseBody);
 
-      widget.onImageCaptured(imagePath);
+      if (response.statusCode == 200) {
+        setState(() {
+          _verificationResult = data['match'] 
+              ? 'Uspešna avtentikacija!'
+              : 'Avtentikacija ni uspela. Poskusite znova.';
+        });
+
+        if (data['match']) {
+          // Vrnitev uspešnega rezultata nazaj v TwoFAMQTT
+          if (mounted) Navigator.pop(context, true);
+        }
+      } else {
+        setState(() {
+          _verificationResult = 'Napaka pri preverjanju: ${data['message']}';
+        });
+      }
     } catch (e) {
-      print('Error capturing image: $e');
+      setState(() {
+        _verificationResult = 'Napaka pri povezavi s strežnikom: $e';
+      });
+    } finally {
+      setState(() => _isVerifying = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_controller == null || !_controller!.value.isInitialized) {
-      return Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 20),
-              Text('Inicializacija kamere...'),
-            ],
-          ),
-        ),
-      );
-    }
-
     return Scaffold(
-      body: Stack(
-        children: [
-          CameraPreview(_controller!),
-          Align(
-            alignment: Alignment.center,
-            child: Container(
-              width: 500,
-              height: 500,
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.white, width: 3),
-                color: Colors.white.withOpacity(0.12),
-              ),
+      appBar: AppBar(
+        title: const Text('Face ID Avtentikacija'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (_capturedImage != null)
+              Image.file(_capturedImage!, height: 200),
+              
+            const SizedBox(height: 20),
+            
+            ElevatedButton(
+              onPressed: _captureFace,
+              child: const Text('Zajemi obraz'),
             ),
-          ),
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 40.0),
-              child: ElevatedButton(
-                onPressed: _captureFace,
-                style: ElevatedButton.styleFrom(
-                  shape: CircleBorder(),
-                  padding: EdgeInsets.all(20),
-                  backgroundColor: Colors.white70,
-                ),
-                child: Icon(
-                  Icons.camera_alt,
-                  color: Colors.black,
-                  size: 32,
+            
+            const SizedBox(height: 20),
+            
+            if (!_isVerifying && _verificationResult != null)
+              Text(
+                _verificationResult!,
+                style: TextStyle(
+                  color: _verificationResult!.contains('Uspešna')
+                      ? Colors.green
+                      : Colors.red,
                 ),
               ),
+            
+            const SizedBox(height: 20),
+            
+            ElevatedButton(
+              onPressed: _capturedImage != null ? _verifyFace : null,
+              child: const Text('Preveri obraz'),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
