@@ -11,6 +11,7 @@ const UserSchema = new Schema({
   createdAt: { type: Date, default: Date.now },
   stepGoal: { type: Number, default: 10000 }, 
   activities: [{ type: Schema.Types.ObjectId, ref: 'SensorData' }],
+  model: { type: String, default: 'default' }, // Model za AI analizo
 
   dailyStats: [
     {

@@ -22,7 +22,6 @@ sensor_collection = db.sensordatas
 user_collection = db.users
 
 
-
 def calculate_total_steps_and_distance(session):
     total_steps = 0
     total_distance = 0.0
@@ -88,8 +87,8 @@ def call_scraper(lat, lon):
         print(f"Weather scraper error: {str(e)}")
         return None
 
-def on_connect(client, userdata, flags, reasonCode, properties=None):
-    if reasonCode == 0:
+def on_connect(client, userdata, flags, rc, properties=None):
+    if rc == 0:
         print("Povezan na MQTT broker")
         client.subscribe(TOPIC)
         client.subscribe(f"{TWO_FA_TOPIC_PREFIX}#")

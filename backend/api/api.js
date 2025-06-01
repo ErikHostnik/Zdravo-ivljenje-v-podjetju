@@ -7,6 +7,9 @@ const logger = require('morgan');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
 const createError = require('http-errors');
+const bodyParser = require('body-parser');
+
+
 const app = express();
 
 
@@ -15,6 +18,8 @@ const userRoutes = require('./routes/UserRoutes');
 const sensorDataRoutes = require('./routes/SensorDataRoutes');
 const twoFactorRoutes = require('./routes/TwoFactorRoutes');
 
+app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
+app.use(bodyParser.json({ limit: '10mb' }));
 
 // MongoDB connection URI
 const mongoDB = process.env.MONGODB_URI;

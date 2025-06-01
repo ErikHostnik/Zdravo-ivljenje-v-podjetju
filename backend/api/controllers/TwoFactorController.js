@@ -78,7 +78,7 @@ module.exports = {
 
       // Klic Python pipeline skripte za obdelavo slik
       const scriptPath = path.join(__dirname, '../../scripts/face_recognition/process_pipeline.py');
-      const cmd = `py "${scriptPath}" "${dataDir}"`;
+      const cmd = `python "${scriptPath}" "${dataDir}"`;
 
       exec(cmd, (error, stdout, stderr) => {
         if (error) {
@@ -179,4 +179,129 @@ module.exports = {
       res.status(500).json({ message: "Napaka pri preverjanju statusa", error: err });
     }
   },
+
+  /**
+ * POST /api/2fa/recognize/:userId
+ * Metoda sproži Python skripto, ki naredi face-recognition na podatkih v data/userId.
+ */
+  recognize: async function (req, res) {
+    try {
+      const userId = req.params.userId;
+
+      // (Neobvezno) Preverba JWT/auth—primer, če uporabljate auth-middleware, je lahko req.user.id:
+      // if (req.user.id !== userId) {
+      //   return res.status(403).json({ message: 'Niste pooblaščeni za prepoznavanje za tega uporabnika.' });
+      // }
+
+      // Sestavite pot do mape, kjer so že obdelane (augmentirane) slike:
+      const dataDir = path.join(__dirname, '../../scripts/face_recognition/data', userId);
+      // Pot do Python skripte:
+      const scriptPath = path.join(__dirname, '../../scripts/face_recognition/recognition_model.py');
+
+      // Prepričajte se, da mapa dataDir obstaja:
+      if (!fs.existsSync(dataDir)) {
+        return res.status(400).json({ message: `Podatki za uporabnika ${userId} ne obstajajo.` });
+      }
+
+      // Zaženemo Python skripto s parametrom dataDir
+      exec(`python "${scriptPath}" "${dataDir}"`, (error, stdout, stderr) => {
+        if (error) {
+          console.error(`[recognition] Napaka pri zagonu:`, error);
+          return res.status(500).json({
+            message: 'Napaka pri prepoznavanju obrazov',
+            error: error.message
+          });
+        }
+
+        console.log('[recognition] Rezultat stdout:', stdout);
+        if (stderr) console.warn('[recognition] STDERR:', stderr);
+
+        return res.json({ message: 'Prepoznavanje obrazov je zaključeno.' });
+      });
+
+    } catch (err) {
+      console.error('[recognize controller] Uncaught error:', err);
+      res.status(500).json({ message: 'Napaka pri sprožitvi prepoznave', error: err });
+    }
+  },
+
+  // Dodaj novo metodo za preverjanje obraza
+  verifyFace: async function (req, res) {
+    try {
+      const userId = req.params.userId;
+      const imageFile = req.file; // Ena slika iz Flutter
+
+      console.log('✅ Začetek verifyFace');
+      console.log('📸 userId:', userId);
+      console.log('📸 imageFile:', imageFile);
+
+      if (!imageFile) {
+        console.log('❌ Slika ni bila poslana.');
+        return res.status(400).json({ message: "Slika ni bila poslana." });
+      }
+
+      const modelPath = path.join(__dirname, '../../scripts/face_recognition/models', `${userId}.yml`);
+      console.log('📂 Model Path:', modelPath);
+
+      if (!fs.existsSync(modelPath)) {
+        console.log('❌ Model ne obstaja.');
+        return res.status(400).json({ message: "Model za to osebo ne obstaja." });
+      }
+
+      const verifyDir = path.join(__dirname, '../../uploads/verify');
+      fs.mkdirSync(verifyDir, { recursive: true });
+      const verifyPath = path.join(verifyDir, `${userId}_verify.jpg`);
+      fs.copyFileSync(imageFile.path, verifyPath);
+
+      console.log('🖼️ Shranjena začasna slika na:', verifyPath);
+
+      const scriptPath = path.join(__dirname, '../../scripts/face_recognition/verify_face.py');
+      const cmd = `python "${scriptPath}" --model "${modelPath}" --image "${verifyPath}"`;
+      console.log('🚀 Klic Python skripte:', cmd);
+
+      exec(cmd, (error, stdout, stderr) => {
+        console.log('🔍 Rezultat exec klica:');
+        console.log('STDOUT:', stdout);
+        console.log('STDERR:', stderr);
+        console.log('ERROR:', error);
+
+        // Počisti začasne datoteke
+        try {
+          fs.unlinkSync(imageFile.path);
+          fs.unlinkSync(verifyPath);
+          console.log('🧹 Začasne datoteke pobrisane');
+        } catch (err) {
+          console.log('⚠️ Napaka pri brisanju datotek:', err.message);
+        }
+
+        if (error) {
+          console.error(`❌ Napaka pri preverjanju obraza: ${error.message}`);
+          return res.status(500).json({ message: "Napaka pri preverjanju obraza", error: error.message });
+        }
+
+        try {
+          const result = JSON.parse(stdout);
+          console.log('✅ JSON rezultat iz Python:', result);
+
+          if (result.error) {
+            console.log('❌ Python error:', result.error);
+            return res.status(400).json({ message: result.error });
+          }
+
+          res.json({
+            match: result.match,
+            confidence: result.confidence,
+            label: result.label,
+            raw: result // za debug dodatno
+          });
+        } catch (parseError) {
+          console.log('❌ Napaka pri JSON.parse:', parseError.message);
+          return res.status(500).json({ message: "Napaka pri obdelavi rezultatov", error: parseError.message, raw: stdout });
+        }
+      });
+    } catch (err) {
+      console.log('❌ Napaka v try-catch:', err.message);
+      return res.status(500).json({ message: "Napaka pri preverjanju obraza", error: err.message });
+    }
+  }
 };

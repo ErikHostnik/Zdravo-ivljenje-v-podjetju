@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'twofa_mqtt.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert'; 
 import 'camera_capture.dart';
 
 class HomePage extends StatefulWidget {
@@ -27,16 +25,11 @@ class _HomePageState extends State<HomePage> {
     final token = prefs.getString('jwt_token') ?? '';
     final userId = prefs.getString('user_id');
 
-    print('DEBUG: HomePage - token: $token');
-    print('DEBUG: HomePage - userId: $userId');
-
     if (token.isNotEmpty && userId != null) {
-      print('DEBUG: Prijavljen uporabnik - inicializacija MQTT');
       setState(() => _isLoggedIn = true);
       _twoFaMqtt = TwoFAMQTT(context: context, userId: userId);
       await _twoFaMqtt!.connectAndListen();
     } else {
-      print('DEBUG: Uporabnik ni prijavljen');
       setState(() => _isLoggedIn = false);
     }
   }
@@ -51,23 +44,24 @@ class _HomePageState extends State<HomePage> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Uspešno ste se odjavili.')),
     );
-    print('DEBUG: Odjava - token in userId odstranjena');
   }
 
   Future<void> _navigateToLogin() async {
-    final result = await Navigator.pushNamed(context, '/login');
-
-    print('DEBUG: Rezultat vrnitve iz login screena: $result');
-
-    // Poizkusi vedno osvežiti stanje, ne glede na result
+    await Navigator.pushNamed(context, '/login');
     await _checkLoginStatusAndInit();
   }
 
-   Future<void> _setup2FA() async {
+  Future<void> _setup2FA() async {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const CameraCaptureScreen()),
     );
+  }
+
+  @override
+  void dispose() {
+    _twoFaMqtt?.disconnect();
+    super.dispose();
   }
 
   @override
@@ -88,7 +82,7 @@ class _HomePageState extends State<HomePage> {
               SizedBox(
                 height: 250,
                 child: Image.asset(
-                  'assets/FitOffice_logo_new.jpeg',  // Dodaj svojo sliko logotipa v assets in registriraj v pubspec.yaml
+                  'assets/FitOffice_logo_new.jpeg',
                   fit: BoxFit.contain,
                 ),
               ),
