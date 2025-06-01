@@ -1,7 +1,7 @@
 var express = require('express');
 var router = express.Router();
 var UserController = require('../controllers/UserController.js');
-var authJWT = require('../../middlewares/auth.js')
+var authJWT = require('../middlewares/auth.js')
 
 /*
  * GET

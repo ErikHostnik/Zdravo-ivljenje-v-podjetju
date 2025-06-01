@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const path = require('path');
@@ -7,6 +8,7 @@ const session = require('express-session');
 const MongoStore = require('connect-mongo');
 const createError = require('http-errors');
 const bodyParser = require('body-parser');
+
 
 const app = express();
 
@@ -20,8 +22,7 @@ app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 app.use(bodyParser.json({ limit: '10mb' }));
 
 // MongoDB connection URI
-const mongoDB = 'mongodb+srv://root:hojladrijadrom@zdravozivpodjetja.1hunr7p.mongodb.net/zdravozivpodjetja?retryWrites=true&w=majority&appName=ZdravoZivPodjetja';
-
+const mongoDB = process.env.MONGODB_URI;
 // Connect to MongoDB
 mongoose.connect(mongoDB, {
   useNewUrlParser: true,
@@ -39,7 +40,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Session middleware
 app.use(session({
-  secret: 'shhhh-secret',
+  secret: process.env.SESSION_SECRET,
   resave: true,
   saveUninitialized: false,
   store: MongoStore.create({ mongoUrl: mongoDB })
@@ -53,8 +54,7 @@ app.use(function (req, res, next) {
 
 
 var cors = require('cors');
-var allowedOrigins = ['http://localhost:3000', 'http://localhost:3001', 'http://192.168.0.11:3001', 'http://192.168.0.11:3000','http://192.168.0.40:3001','http://192.168.0.40:3001'];
-app.use(cors({
+const allowedOrigins = process.env.ALLOWED_ORIGINS.split(',');app.use(cors({
   credentials: true,
   origin: function (origin, callback) {
     if (!origin) return callback(null, true);
