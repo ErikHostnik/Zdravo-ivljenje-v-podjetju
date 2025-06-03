@@ -14,9 +14,11 @@ dependencies:
   sensors_plus: ^3.0.3
   pedometer: ^4.0.1
   shared_preferences: ^2.2.2
-  
-    
+  camera: ^0.10.5
+  path_provider: ^2.0.15
+  image_picker: ^1.0.4
   http: ^1.0.0
+  path: ^1.8.3
 
   cupertino_icons: ^1.0.8
   flutter_map: ^8.1.1
@@ -35,5 +37,6 @@ flutter:
 
   assets:
     - assets/ca.crt
+    - assets/FitOffice_logo_new.jpeg
 
   

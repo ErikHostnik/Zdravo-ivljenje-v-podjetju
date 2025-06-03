@@ -17,6 +17,7 @@ jobs:
     services:
       mongodb:
         image: mongo:latest
+       
         ports:
           - 27017:27017
         options: >-
@@ -25,26 +26,26 @@ jobs:
           --health-timeout=5s
           --health-retries=3
 
+    defaults:
+      run:
+        working-directory: backend/api
+
     steps:
       - name: Check out code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Set up Node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
           node-version: '16'
 
       - name: Install dependencies
-        run: |
-          cd backend/api
-          npm install
+        run: npm install
 
       - name: Run backend tests
         env:
-          MONGO_URI: 'mongodb+srv://root:hojladrijadrom@zdravozivpodjetja.1hunr7p.mongodb.net/?retryWrites=true&w=majority&appName=ZdravoZivPodjetja'
-        run: |
-          cd backend/api
-          npm test -- --verbose --runInBand --forceExit
+          MONGODB_URI: 'mongodb://localhost:27017/testdb'
+        run: npm test -- --verbose --runInBand --forceExit
 
   docker-push:
     needs: test
@@ -53,7 +54,7 @@ jobs:
 
     steps:
       - name: Check out code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2

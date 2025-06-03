@@ -1,7 +1,7 @@
 var express = require('express');
 var router = express.Router();
 var UserController = require('../controllers/UserController.js');
-var authJWT = require('../../middlewares/auth.js')
+var authJWT = require('../middlewares/auth.js')
 
 /*
  * GET
@@ -21,7 +21,7 @@ router.get('/:id',authJWT, UserController.show);
 router.post('/', UserController.create);
 router.post('/login', UserController.login);
 router.post('/verify2fa', UserController.verify2fa);
-
+router.post('/update_model', UserController.updateFaceModel)
 
 
 /*

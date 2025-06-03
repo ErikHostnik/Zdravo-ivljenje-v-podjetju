@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'twofa_mqtt.dart';
+import 'camera_capture.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -24,16 +25,11 @@ class _HomePageState extends State<HomePage> {
     final token = prefs.getString('jwt_token') ?? '';
     final userId = prefs.getString('user_id');
 
-    print('DEBUG: HomePage - token: $token');
-    print('DEBUG: HomePage - userId: $userId');
-
     if (token.isNotEmpty && userId != null) {
-      print('DEBUG: Prijavljen uporabnik - inicializacija MQTT');
       setState(() => _isLoggedIn = true);
       _twoFaMqtt = TwoFAMQTT(context: context, userId: userId);
       await _twoFaMqtt!.connectAndListen();
     } else {
-      print('DEBUG: Uporabnik ni prijavljen');
       setState(() => _isLoggedIn = false);
     }
   }
@@ -48,18 +44,25 @@ class _HomePageState extends State<HomePage> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Uspešno ste se odjavili.')),
     );
-    print('DEBUG: Odjava - token in userId odstranjena');
   }
 
   Future<void> _navigateToLogin() async {
-    final result = await Navigator.pushNamed(context, '/login');
-
-    print('DEBUG: Rezultat vrnitve iz login screena: $result');
-
-    // Poizkusi vedno osvežiti stanje, ne glede na result
+    await Navigator.pushNamed(context, '/login');
     await _checkLoginStatusAndInit();
   }
 
+  Future<void> _setup2FA() async {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const CameraCaptureScreen()),
+    );
+  }
+
+  @override
+  void dispose() {
+    _twoFaMqtt?.disconnect();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -67,34 +70,116 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         title: const Text('FitOffice Domov'),
         centerTitle: true,
+        backgroundColor: Colors.teal[700],
       ),
-      body: Center(
+      body: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              // Logo na vrhu
+              SizedBox(
+                height: 250,
+                child: Image.asset(
+                  'assets/FitOffice_logo_new.jpeg',
+                  fit: BoxFit.contain,
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // Naslov
+              const Text(
+                'Dobrodošli v FitOffice',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.teal,
+                ),
+                textAlign: TextAlign.center,
+              ),
+
+              const SizedBox(height: 12),
+
+              // Opis
+              const Text(
+                'FitOffice je vaša platforma za spremljanje aktivnosti in motivacijo za zdrav življenjski slog na delovnem mestu. '
+                'Začni svojo aktivnost z enim klikom in spremljaj svoje korake, prehojene razdalje ter izkoristi personalizirane izzive!',
+                style: TextStyle(fontSize: 16, color: Colors.black87),
+                textAlign: TextAlign.center,
+              ),
+
+              const SizedBox(height: 36),
+
+              // Gumbi za prijavo ali aktivnosti
               if (!_isLoggedIn)
-                ElevatedButton(
+                ElevatedButton.icon(
                   onPressed: _navigateToLogin,
-                  child: const Text('Prijava / Registracija'),
+                  icon: const Icon(Icons.login),
+                  label: const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 14.0),
+                    child: Text('Prijava / Registracija', style: TextStyle(fontSize: 18)),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.teal,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    minimumSize: const Size(double.infinity, 50),
+                  ),
                 ),
               if (_isLoggedIn) ...[
-                ElevatedButton(
+                ElevatedButton.icon(
                   onPressed: () => Navigator.pushNamed(context, '/sensor'),
-                  child: const Text('Začni aktivnost'),
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: _logout,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    foregroundColor: Colors.white,
+                  icon: const Icon(Icons.directions_run),
+                  label: const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 14.0),
+                    child: Text('Začni aktivnost', style: TextStyle(fontSize: 18)),
                   ),
-                  child: const Text('Odjava'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green[700],
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    minimumSize: const Size(double.infinity, 50),
+                  ),
+                ),
+
+                ElevatedButton.icon(
+                  onPressed: _setup2FA,
+                  icon: const Icon(Icons.verified_user),
+                  label: const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 14.0),
+                    child: Text('Nastavi 2FA', style: TextStyle(fontSize: 18)),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueGrey[700],
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    minimumSize: const Size(double.infinity, 50),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                ElevatedButton.icon(
+                  onPressed: _logout,
+                  icon: const Icon(Icons.logout),
+                  label: const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 14.0),
+                    child: Text('Odjava', style: TextStyle(fontSize: 18)),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red[700],
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    minimumSize: const Size(double.infinity, 50),
+                  ),
                 ),
               ],
-              const SizedBox(height: 20),
+
+              const SizedBox(height: 40),
+
+              // Debug info (lahko odstraniš pozneje)
               Text(
                 'DEBUG: _isLoggedIn = $_isLoggedIn',
                 style: const TextStyle(fontSize: 12, color: Colors.grey),

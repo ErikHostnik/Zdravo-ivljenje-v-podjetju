@@ -1,11 +1,11 @@
+require('dotenv').config();
 const UserModel = require('../models/UserModel.js');
 const jwt = require('jsonwebtoken');
 const TwoFactorRequest = require('../models/TwoFactorRequestModel.js');
-// MQTT klient
 const mqtt = require('mqtt');
-const mqttClient = mqtt.connect('mqtt://192.168.0.11:1883');
+const mqttClient = mqtt.connect(process.env.MQTT_URI);
 
-const secret = 'moja-skrivnost';
+const secret = process.env.JWT_SECRET;
 
 /**
  * UserController.js
@@ -13,6 +13,27 @@ const secret = 'moja-skrivnost';
  * @description :: Server-side logic for managing Users.
  */
 module.exports = {
+    updateFaceModel: async function (req, res) {
+        const { userId, faceModelPath } = req.body;
+        try {
+            const updatedUser = await UserModel.findByIdAndUpdate(
+            userId,
+            { faceModel: faceModelPath },
+            { new: true }
+            );
+            if (!updatedUser) {
+                return res.status(404).json({
+                    message: 'No such User to update faceModel.'
+                });
+            }
+            return res.json({ success: true, user: updatedUser });
+        } catch (err) {
+            return res.status(500).json({
+            message: 'Error when updating faceModel.',
+            error: err
+            });
+        }
+    },
 
     /**
      * UserController.list()
@@ -37,12 +58,17 @@ module.exports = {
 
         try {
             const User = await UserModel.findById(id)
-                .populate('activities'); // <-- tukaj dodano
+                .populate('activities'); 
 
             if (!User) {
                 return res.status(404).json({
                     message: 'No such User'
                 });
+            }
+
+            if (!User.stepGoal) {
+                User.stepGoal = 10000; 
+                await User.save();
             }
 
             return res.json(User);
@@ -63,6 +89,8 @@ module.exports = {
             email: req.body.email,
             password: req.body.password,
             stepCount: req.body.stepCount,
+            stepGoal: req.body.stepGoal || 10000, // privzeta vrednost
+            activities: req.body.activities || [],
             distance: req.body.distance,
             createdAt: req.body.createdAt
         });
@@ -98,6 +126,8 @@ module.exports = {
             User.stepCount = req.body.stepCount || User.stepCount;
             User.distance = req.body.distance || User.distance;
             User.routes = req.body.routes || User.routes;
+            User.stepGoal = req.body.stepGoal || User.stepGoal;
+            User.activities = req.body.activities || User.activities;
             User.createdAt = req.body.createdAt || User.createdAt;
 
             const updatedUser = await User.save();
