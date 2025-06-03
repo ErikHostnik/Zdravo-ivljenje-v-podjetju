@@ -181,9 +181,9 @@ module.exports = {
   },
 
   /**
- * POST /api/2fa/recognize/:userId
- * Metoda sproži Python skripto, ki naredi face-recognition na podatkih v data/userId.
- */
+   * POST /api/2fa/recognize/:userId
+   * Metoda sproži Python skripto, ki naredi face-recognition na podatkih v data/userId.
+   */
   recognize: async function (req, res) {
     try {
       const userId = req.params.userId;
@@ -225,27 +225,37 @@ module.exports = {
     }
   },
 
-  // Dodaj novo metodo za preverjanje obraza
+  // Popravljena metoda verifyFace: ob uspešnem ujemanju avtomatsko pokliče approve
   verifyFace: async function (req, res) {
     try {
       const userId = req.params.userId;
-      const imageFile = req.file; // Ena slika iz Flutter
+      const twoFaId = req.body.twoFaId; // ID dvostopenjske zahteve iz Flutterja
+      const imageFile = req.file;
 
       console.log('✅ Začetek verifyFace');
       console.log('📸 userId:', userId);
+      console.log('🆔 twoFaId:', twoFaId);
       console.log('📸 imageFile:', imageFile);
 
       if (!imageFile) {
         console.log('❌ Slika ni bila poslana.');
-        return res.status(400).json({ message: "Slika ni bila poslana." });
+        return res.status(400).json({ success: false, message: "Slika ni bila poslana." });
+      }
+      if (!twoFaId) {
+        console.log('❌ twoFaId ni bil poslan.');
+        return res.status(400).json({ success: false, message: "twoFaId je obvezen parameter." });
       }
 
-      const modelPath = path.join(__dirname, '../../scripts/face_recognition/models', `${userId}.yml`);
+      const modelPath = path.join(
+        __dirname,
+        '../../scripts/face_recognition/models',
+        `${userId}.yml`
+      );
       console.log('📂 Model Path:', modelPath);
 
       if (!fs.existsSync(modelPath)) {
         console.log('❌ Model ne obstaja.');
-        return res.status(400).json({ message: "Model za to osebo ne obstaja." });
+        return res.status(400).json({ success: false, message: "Model za to osebo ne obstaja." });
       }
 
       const verifyDir = path.join(__dirname, '../../uploads/verify');
@@ -255,17 +265,19 @@ module.exports = {
 
       console.log('🖼️ Shranjena začasna slika na:', verifyPath);
 
-      const scriptPath = path.join(__dirname, '../../scripts/face_recognition/verify_face.py');
+      const scriptPath = path.join(
+        __dirname,
+        '../../scripts/face_recognition/verify_face.py'
+      );
       const cmd = `python "${scriptPath}" --model "${modelPath}" --image "${verifyPath}"`;
       console.log('🚀 Klic Python skripte:', cmd);
 
-      exec(cmd, (error, stdout, stderr) => {
+      exec(cmd, async (error, stdout, stderr) => {
         console.log('🔍 Rezultat exec klica:');
         console.log('STDOUT:', stdout);
         console.log('STDERR:', stderr);
         console.log('ERROR:', error);
 
-        // Počisti začasne datoteke
         try {
           fs.unlinkSync(imageFile.path);
           fs.unlinkSync(verifyPath);
@@ -276,7 +288,7 @@ module.exports = {
 
         if (error) {
           console.error(`❌ Napaka pri preverjanju obraza: ${error.message}`);
-          return res.status(500).json({ message: "Napaka pri preverjanju obraza", error: error.message });
+          return res.status(500).json({ success: false, message: "Napaka pri preverjanju obraza", error: error.message });
         }
 
         try {
@@ -285,23 +297,52 @@ module.exports = {
 
           if (result.error) {
             console.log('❌ Python error:', result.error);
-            return res.status(400).json({ message: result.error });
+            return res.status(400).json({ success: false, message: result.error });
           }
 
-          res.json({
+          if (!result.match) {
+            console.log(`❌ Obraz se ni ujemal (confidence: ${result.confidence})`);
+            return res.status(401).json({
+              success: false,
+              message: "Preverjanje obraza ni uspelo",
+              confidence: result.confidence
+            });
+          }
+
+          try {
+            const request = await TwoFactorRequest.findById(twoFaId);
+            if (!request) {
+              console.log('❌ TwoFactorRequest ne obstaja:', twoFaId);
+              return res.status(404).json({ success: false, message: "2FA zahteva ne obstaja." });
+            }
+            request.approved = true;
+            await request.save();
+            console.log('✅ TwoFactorRequest je odobrena:', twoFaId);
+          } catch (dbErr) {
+            console.error(' Napaka pri shranjevanju TwoFactorRequest:', dbErr);
+            return res.status(500).json({ success: false, message: "Napaka pri odobritvi 2FA", error: dbErr.message });
+          }
+
+          return res.json({
+            success: true,
             match: result.match,
             confidence: result.confidence,
-            label: result.label,
-            raw: result // za debug dodatno
+            label: result.label
           });
+
         } catch (parseError) {
           console.log('❌ Napaka pri JSON.parse:', parseError.message);
-          return res.status(500).json({ message: "Napaka pri obdelavi rezultatov", error: parseError.message, raw: stdout });
+          return res.status(500).json({
+            success: false,
+            message: "Napaka pri obdelavi rezultatov",
+            error: parseError.message,
+            raw: stdout
+          });
         }
       });
     } catch (err) {
       console.log('❌ Napaka v try-catch:', err.message);
-      return res.status(500).json({ message: "Napaka pri preverjanju obraza", error: err.message });
+      return res.status(500).json({ success: false, message: "Napaka pri preverjanju obraza", error: err.message });
     }
   }
 };

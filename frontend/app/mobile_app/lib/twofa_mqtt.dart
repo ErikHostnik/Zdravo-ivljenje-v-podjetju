@@ -18,7 +18,8 @@ class TwoFAMQTT {
   static const String broker = '192.168.0.11';
   static const int port = 1883;
   late final String topic;
-
+  bool _isDialogVisible = false;
+  
   TwoFAMQTT({required this.context, required this.userId}) {
     topic = '2fa/request/$userId';
     client = MqttServerClient(broker, 'flutter_2fa_$userId');
@@ -52,14 +53,19 @@ class TwoFAMQTT {
     }
   }
 
-  void _onDisconnected() {
-    debugPrint(' MQTT disconnected');
-  }
+  void _onDisconnected() async {
+    debugPrint('MQTT disconnected');
+    
+}
 
   Future<void> _onMessageReceived(List<MqttReceivedMessage<MqttMessage>> messages) async {
+    if (_isDialogVisible) return; // Če je dialog že prikazan, ne pokaži novega
+
+    _isDialogVisible = true;
+
     final recMess = messages[0].payload as MqttPublishMessage;
     final payloadStr = MqttPublishPayload.bytesToStringAsString(recMess.payload.message);
-    debugPrint(' 2FA Message Received: $payloadStr');
+    debugPrint('2FA Message Received: $payloadStr');
 
     try {
       final payload = jsonDecode(payloadStr) as Map<String, dynamic>;
@@ -72,12 +78,12 @@ class TwoFAMQTT {
           content: const Text('Ali želite potrditi prijavo?'),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context, false), 
-              child: const Text('Zavrni')
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Zavrni'),
             ),
             ElevatedButton(
-              onPressed: () => Navigator.pop(context, true), 
-              child: const Text('Potrdi')
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Potrdi'),
             ),
           ],
         ),
@@ -89,7 +95,9 @@ class TwoFAMQTT {
         await _sendVerification(twoFaId, false);
       }
     } catch (e) {
-      debugPrint(' Error processing 2FA message: $e');
+      debugPrint('Error processing 2FA message: $e');
+    } finally {
+      _isDialogVisible = false; // omogoči, da se naslednji dialog lahko prikaže
     }
   }
 

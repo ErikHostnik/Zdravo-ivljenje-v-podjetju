@@ -43,7 +43,7 @@ try:
     label, confidence = model.predict(resized)
     
     # Če je zaupanje pod 50, se šteje za uspešno ujemanje
-    result = confidence < 50
+    result = confidence <= 140
     
     # Vrnemo rezultat
     print(json.dumps({

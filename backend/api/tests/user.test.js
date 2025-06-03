@@ -1,6 +1,6 @@
 const request = require('supertest');
 const mongoose = require('mongoose');
-const app = require('../api'); // prilagodi, če je drugače
+const app = require('../api'); 
 const User = require('../models/UserModel');
 
 beforeAll(async () => {
