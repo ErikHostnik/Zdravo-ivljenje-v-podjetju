@@ -15,7 +15,7 @@ class TwoFAMQTT {
   final String userId;
 
   late final MqttServerClient client;
-  static const String broker = '192.168.0.26';
+  static const String broker = '172.20.10.12';
   static const int port = 1883;
   late final String topic;
 
