@@ -241,4 +241,19 @@ module.exports = {
             return res.status(500).json({ message: 'verify2fa error.', error: err.message });
         }
     },
+
+    activities: async function(req, res) {
+        try {
+        const userId = req.params.id;
+        
+        const user = await UserModel.findById(userId).populate('activities');
+        if (!user) {
+            return res.status(404).json({ message: 'Uporabnik ni najden' });
+        }
+        return res.json(user.activities);
+        } catch (err) {
+        console.error(err);
+        return res.status(500).json({ message: 'Napaka pri pridobivanju aktivnosti' });
+        }
+    },
 };
