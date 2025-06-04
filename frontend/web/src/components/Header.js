@@ -16,6 +16,7 @@ function Header({ title }) {
                                         <li><Link to="/">Home</Link></li>
                                         <li><Link to={`/path/${context.user._id}`}>Path</Link></li>
                                         <li><Link to={`/userProfile/${context.user._id}`}>Profile</Link></li>
+                                        <li><Link to={"/leaderboard"}>Leaderboard</Link></li>
                                         <li><Link to="/logout">Logout</Link></li>
                                     </>
                                 ) : (

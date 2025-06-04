@@ -21,13 +21,13 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
   final TextEditingController passwordCtrl = TextEditingController();
 
   // SPREMENI IP NASLOV!!! GLEDE NA SVOJO NAPRAVO!!!
-  final String baseUrl = 'http://192.168.0.11:3001/api/users';
+  final String baseUrl = 'http://192.168.0.26:3001/api/users';
 
   late MqttServerClient _mqttClient;
   Timer? _heartbeatTimer;
   String? _currentUserId;
 
-  static const String _broker = '192.168.0.11';
+  static const String _broker = '192.168.0.26';
   static const int _port = 1883;
 
   Future<void> _submit() async {
