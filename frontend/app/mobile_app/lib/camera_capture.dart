@@ -14,7 +14,7 @@ class CameraCaptureScreen extends StatefulWidget {
 
 class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
   CameraController? _cameraController;
-  List<File> _capturedImages = [];
+  final List<File> _capturedImages = [];
   bool _isLoading = false;
   bool _isCapturing = false;
 

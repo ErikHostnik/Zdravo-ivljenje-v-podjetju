@@ -30,12 +30,12 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
   final _maxPathPoints = 1000;
 
   bool _isPublishing = false;
-  List<Map<String, dynamic>> _collectedData = [];
-  List<LatLng> _path = [];
+  final List<Map<String, dynamic>> _collectedData = [];
+  final List<LatLng> _path = [];
   String? _userId;
 
   double _prevMagnitude = 0;
-  int _stepThreshold = 12;
+  final int _stepThreshold = 12;
   bool _stepDetected = false;
 
   @override

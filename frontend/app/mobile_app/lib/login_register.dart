@@ -26,7 +26,7 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
     final password = passwordCtrl.text.trim();
 
     try {
-      final url = isLogin ? '$baseUrl/login' : '$baseUrl';
+      final url = isLogin ? '$baseUrl/login' : baseUrl;
       final response = await http.post(
         Uri.parse(url),
         headers: {'Content-Type': 'application/json', 'x-mobile-client': 'true'},
