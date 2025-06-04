@@ -73,15 +73,12 @@ export default function Compare() {
     const steps = todayEntry ? todayEntry.stepCount : 0;
     const distance = todayEntry ? todayEntry.distance : 0;
     const calories = +(steps * 0.04).toFixed(2);
-    const stepGoal = u.stepGoal || 0;
 
     return {
       username: u.username,
-      email: u.email,
       steps,
       distance: +distance.toFixed(2),
       calories,
-      stepGoal,
     };
   };
 
@@ -89,27 +86,38 @@ export default function Compare() {
   const stats2 = prepareStats(user2);
 
   return (
-    <div className="user-profile" style={{ padding: '20px' }}>
-      <h2 style={{ textAlign: 'center', marginBottom: '30px', color: 'white' }}>
+    <div style={{ 
+      width: '100%',
+      maxWidth: '1400px',
+      margin: '0 auto',
+      padding: '20px'
+    }}>
+      <h2 style={{ 
+        textAlign: 'center', 
+        marginBottom: '30px', 
+        color: 'white',
+        fontSize: '2rem'
+      }}>
         Primerjava uporabnikov
       </h2>
       
       <div style={{
         display: 'flex',
-        justifyContent: 'center',
-        gap: '30px',
-        flexWrap: 'wrap'
+        justifyContent: 'space-between',
+        alignItems: 'stretch',
+        gap: '40px'
       }}>
-        {/* Kartica 1 - Preoblikovana z novim dizajnom */}
+        {/* Kartica 1 */}
         <div style={{
           flex: '1',
-          minWidth: '350px',
-          maxWidth: '500px',
+          minWidth: '0',
           backgroundColor: '#1F2235',
-          padding: '25px',
+          padding: '30px',
           borderRadius: '12px',
           boxShadow: '0 6px 15px rgba(0,0,0,0.3)',
-          border: '1px solid #3A3F67'
+          border: '1px solid #3A3F67',
+          display: 'flex',
+          flexDirection: 'column'
         }}>
           <div style={{
             display: 'flex',
@@ -119,8 +127,8 @@ export default function Compare() {
             borderBottom: '1px solid #3A3F67'
           }}>
             <div style={{
-              width: '50px',
-              height: '50px',
+              width: '60px',
+              height: '60px',
               borderRadius: '50%',
               backgroundColor: '#4F536F',
               display: 'flex',
@@ -128,48 +136,53 @@ export default function Compare() {
               justifyContent: 'center',
               marginRight: '15px',
               fontWeight: 'bold',
-              fontSize: '20px',
+              fontSize: '24px',
               color: '#FFD700'
             }}>
               {stats1.username.charAt(0).toUpperCase()}
             </div>
-            <h3 style={{ color: '#FFD700', margin: 0 }}>{stats1.username}</h3>
+            <h3 style={{ 
+              color: '#FFD700', 
+              margin: 0,
+              fontSize: '1.5rem'
+            }}>{stats1.username}</h3>
           </div>
           
-          <div style={{ color: '#E0E0FF' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-              <span><strong>Email:</strong></span>
-              <span>{stats1.email}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-              <span><strong>Cilj korakov:</strong></span>
-              <span>{stats1.stepGoal.toLocaleString('sl-SI')}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-              <span><strong>Koraki danes:</strong></span>
-              <span>{stats1.steps.toLocaleString('sl-SI')}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-              <span><strong>Razdalja danes:</strong></span>
-              <span>{stats1.distance.toLocaleString('sl-SI', { minimumFractionDigits: 2 })} km</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-              <span><strong>Kalorije danes:</strong></span>
-              <span>{stats1.calories.toLocaleString('sl-SI', { minimumFractionDigits: 2 })} kcal</span>
+          <div style={{ 
+            color: '#E0E0FF',
+            flex: '1',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between'
+          }}>
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
+                <span><strong>Koraki danes:</strong></span>
+                <span>{stats1.steps.toLocaleString('sl-SI')}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
+                <span><strong>Razdalja danes:</strong></span>
+                <span>{stats1.distance.toLocaleString('sl-SI', { minimumFractionDigits: 2 })} km</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
+                <span><strong>Kalorije danes:</strong></span>
+                <span>{stats1.calories.toLocaleString('sl-SI', { minimumFractionDigits: 2 })} kcal</span>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Kartica 2 - Preoblikovana z novim dizajnom */}
+        {/* Kartica 2 */}
         <div style={{
           flex: '1',
-          minWidth: '350px',
-          maxWidth: '500px',
+          minWidth: '0',
           backgroundColor: '#1F2235',
-          padding: '25px',
+          padding: '30px',
           borderRadius: '12px',
           boxShadow: '0 6px 15px rgba(0,0,0,0.3)',
-          border: '1px solid #3A3F67'
+          border: '1px solid #3A3F67',
+          display: 'flex',
+          flexDirection: 'column'
         }}>
           <div style={{
             display: 'flex',
@@ -179,8 +192,8 @@ export default function Compare() {
             borderBottom: '1px solid #3A3F67'
           }}>
             <div style={{
-              width: '50px',
-              height: '50px',
+              width: '60px',
+              height: '60px',
               borderRadius: '50%',
               backgroundColor: '#4F536F',
               display: 'flex',
@@ -188,34 +201,38 @@ export default function Compare() {
               justifyContent: 'center',
               marginRight: '15px',
               fontWeight: 'bold',
-              fontSize: '20px',
+              fontSize: '24px',
               color: '#FFD700'
             }}>
               {stats2.username.charAt(0).toUpperCase()}
             </div>
-            <h3 style={{ color: '#FFD700', margin: 0 }}>{stats2.username}</h3>
+            <h3 style={{ 
+              color: '#FFD700', 
+              margin: 0,
+              fontSize: '1.5rem'
+            }}>{stats2.username}</h3>
           </div>
           
-          <div style={{ color: '#E0E0FF' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-              <span><strong>Email:</strong></span>
-              <span>{stats2.email}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-              <span><strong>Cilj korakov:</strong></span>
-              <span>{stats2.stepGoal.toLocaleString('sl-SI')}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-              <span><strong>Koraki danes:</strong></span>
-              <span>{stats2.steps.toLocaleString('sl-SI')}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-              <span><strong>Razdalja danes:</strong></span>
-              <span>{stats2.distance.toLocaleString('sl-SI', { minimumFractionDigits: 2 })} km</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-              <span><strong>Kalorije danes:</strong></span>
-              <span>{stats2.calories.toLocaleString('sl-SI', { minimumFractionDigits: 2 })} kcal</span>
+          <div style={{ 
+            color: '#E0E0FF',
+            flex: '1',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between'
+          }}>
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
+                <span><strong>Koraki danes:</strong></span>
+                <span>{stats2.steps.toLocaleString('sl-SI')}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
+                <span><strong>Razdalja danes:</strong></span>
+                <span>{stats2.distance.toLocaleString('sl-SI', { minimumFractionDigits: 2 })} km</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
+                <span><strong>Kalorije danes:</strong></span>
+                <span>{stats2.calories.toLocaleString('sl-SI', { minimumFractionDigits: 2 })} kcal</span>
+              </div>
             </div>
           </div>
         </div>
