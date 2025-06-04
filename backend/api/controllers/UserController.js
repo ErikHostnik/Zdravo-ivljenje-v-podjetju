@@ -164,7 +164,60 @@ module.exports = {
         }
     },
 
-   login: async function (req, res) {
+login: async function (req, res) {
+        const { username, password, isMobile } = req.body;
+
+        try {
+            const user = await UserModel.authenticate(username, password);
+            if (!user) {
+                return res.status(401).json({ message: 'Invalid credentials.' });
+            }
+
+            // 🔓 ZAČASNO: omogoči prijavo brez 2FA za vse (mobilne + spletne uporabnike)
+            const token = jwt.sign({ id: user._id }, secret, { expiresIn: '1h' });
+            return res.json({ user, token });
+
+            // 🔒 ORIGINALNA 2FA LOGIKA (za spletno aplikacijo) — trenutno zakomentirano:
+            /*
+            if (isMobile) {
+                const token = jwt.sign({ id: user._id }, secret, { expiresIn: '1h' });
+                return res.json({ user, token });
+            }
+
+            const existing = await TwoFactorRequest.findOne({
+                user: user._id,
+                approved: false,
+                rejected: false
+            });
+
+            if (existing) {
+                return res.json({
+                    pending2FA: true,
+                    twoFactorRequestId: existing._id
+                });
+            }
+
+            const twoFa = new TwoFactorRequest({ user: user._id });
+            await twoFa.save();
+
+            mqttClient.publish(
+                `2fa/request/${user._id}`,
+                JSON.stringify({ requestId: twoFa._id })
+            );
+
+            return res.json({
+                pending2FA: true,
+                twoFactorRequestId: twoFa._id
+            });
+            */
+        } catch (err) {
+            console.error("Login Error:", err);
+            return res.status(500).json({ message: 'Login error.', error: err.message });
+        }
+    },
+
+
+    /*login: async function (req, res) {
         const { username, password, isMobile } = req.body;
 
         try {
@@ -209,8 +262,8 @@ module.exports = {
             console.error("Login Error:", err);
             return res.status(500).json({ message: 'Login error.', error: err.message });
         }
-    },
-
+    },*/
+    
     logout: async function (req, res) {
         try {
             await req.session.destroy();

@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import './Leaderboard.css'; // kasneje lahko dodaš svoj CSS
+import '../styles/global.css';
 
 export default function Leaderboard() {
-  // 1) Državni hooki
-  const [usersData, setUsersData] = useState([]);     // seznam uporabnikov z izračunanimi metričnimi vrednostmi
+  const [usersData, setUsersData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [sortKey, setSortKey] = useState('steps');    // privzeto: "koraki"
+  const [sortKey, setSortKey] = useState('steps');
   const [error, setError] = useState(null);
 
   // Možni ključi za sortiranje, s prilagoditvami label za UI
@@ -19,7 +18,6 @@ export default function Leaderboard() {
     // In podobno za max altitude, če bi izračunali.
   ];
 
-  // 2) Ob prvem montaži naloži podatke vseh uporabnikov
   useEffect(() => {
     const fetchAllUsers = async () => {
       try {
@@ -42,7 +40,6 @@ export default function Leaderboard() {
         const todayStr = now.toISOString().substring(0, 10); // npr. "2025-06-04"
 
         const processed = allUsers.map((u) => {
-          // najdi v dailyStats zapis z današnjim datumom
           let todayEntry = null;
           if (Array.isArray(u.dailyStats)) {
             todayEntry = u.dailyStats.find((stat) => {
