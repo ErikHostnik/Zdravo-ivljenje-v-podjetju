@@ -57,7 +57,25 @@ def calculate_speed_stats(session):
 
     return avg_speed, min_speed, max_speed
 
-def update_daily_stats(user_id, steps, distance, avg_speed, min_speed=None, max_speed=None):
+def calculate_total_ascent(session):
+    total_ascent = 0.0
+    prev_altitude = None
+
+    for entry in session:
+        altitude = entry.get("altitude")
+        if altitude is None:
+            continue
+
+        if prev_altitude is not None:
+            diff = altitude - prev_altitude
+            if diff > 0:
+                total_ascent += diff
+
+        prev_altitude = altitude
+
+    return total_ascent
+
+def update_daily_stats(user_id, steps, distance, avg_speed, min_speed, max_speed, total_ascent):
     today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
 
     user_collection.update_one(
@@ -71,7 +89,8 @@ def update_daily_stats(user_id, steps, distance, avg_speed, min_speed=None, max_
         "distance": distance,
         "avgSpeed": avg_speed, 
         "minSpeed": min_speed,
-        "maxSpeed": max_speed
+        "maxSpeed": max_speed,
+        "altitudeDistance": total_ascent
 
     }
 

@@ -21,7 +21,8 @@ const UserSchema = new Schema({
       avgSpeed: { type: Number, default: 0 },
       minSpeed: { type: Number, default: 0 },
       maxSpeed: { type: Number, default: 0 },
-      altitude: { type: Number, default: 0 }
+      altitudeDistance: { type: Number, default: 0 }
+
 
     }
   ]
