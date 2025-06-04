@@ -1,3 +1,4 @@
+// src/components/Compare.js
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useParams } from 'react-router-dom';
@@ -10,7 +11,6 @@ export default function Compare() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // korenski API: vrne podrobnosti uporabnika (vključno z dailyStats, stepGoal ipd.)
   useEffect(() => {
     const fetchUsers = async () => {
       try {
@@ -30,7 +30,7 @@ export default function Compare() {
         setUser2(res2.data);
       } catch (err) {
         console.error('Napaka pri nalaganju uporabnikov:', err);
-        setError(err.message || 'Napaka pri nalaganju');
+        setError(err.response?.data?.message || err.message || 'Napaka pri nalaganju');
       } finally {
         setLoading(false);
       }
@@ -61,20 +61,18 @@ export default function Compare() {
     );
   }
 
-  // Pomagajmo si z datumom za današnji vnos
+  // Pripravimo podatke za izračun statistike
   const now = new Date();
   const todayStr = now.toISOString().substring(0, 10);
 
   const prepareStats = (u) => {
-    // Najdemo današnjo statistiko:
     let todayEntry = null;
     if (Array.isArray(u.dailyStats)) {
-      todayEntry = u.dailyStats.find((stat) => stat.date.substring(0,10) === todayStr);
+      todayEntry = u.dailyStats.find((stat) => stat.date.substring(0, 10) === todayStr);
     }
     const steps = todayEntry ? todayEntry.stepCount : 0;
     const distance = todayEntry ? todayEntry.distance : 0;
     const calories = +(steps * 0.04).toFixed(2);
-    // Vzemimo tudi stepGoal iz u.stepGoal (če obstaja) in npr. prejšnje dneve itd.
     const stepGoal = u.stepGoal || 0;
 
     return {
@@ -84,8 +82,6 @@ export default function Compare() {
       distance: +distance.toFixed(2),
       calories,
       stepGoal,
-      // Dodaj tudi npr. maxDistanceEver, maxAltitude, ipd. če obstajajo v podatkih
-      // maxDistanceEver: Math.max(...(u.dailyStats.map(s => s.distance || 0)))
     };
   };
 
@@ -93,27 +89,136 @@ export default function Compare() {
   const stats2 = prepareStats(user2);
 
   return (
-    <div className="user-profile" style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
-      {/* Kartica za prvega uporabnika */}
-      <div className="stat-section" style={{ flex: '1 1 300px' }}>
-        <h3>{stats1.username}</h3>
-        <div className="stat-box"><strong>Email:</strong> {stats1.email}</div>
-        <div className="stat-box"><strong>Cilj korakov:</strong> {stats1.stepGoal}</div>
-        <div className="stat-box"><strong>Koraki danes:</strong> {stats1.steps.toLocaleString('sl-SI')}</div>
-        <div className="stat-box"><strong>Razdalja danes:</strong> {stats1.distance.toLocaleString('sl-SI', { minimumFractionDigits: 2 })} km</div>
-        <div className="stat-box"><strong>Kalorije danes:</strong> {stats1.calories.toLocaleString('sl-SI', { minimumFractionDigits: 2 })} kcal</div>
-        {/* Če želite še dodatne vrstice, jih dodajte tukaj */}
-      </div>
+    <div className="user-profile" style={{ padding: '20px' }}>
+      <h2 style={{ textAlign: 'center', marginBottom: '30px', color: 'white' }}>
+        Primerjava uporabnikov
+      </h2>
+      
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        gap: '30px',
+        flexWrap: 'wrap'
+      }}>
+        {/* Kartica 1 - Preoblikovana z novim dizajnom */}
+        <div style={{
+          flex: '1',
+          minWidth: '350px',
+          maxWidth: '500px',
+          backgroundColor: '#1F2235',
+          padding: '25px',
+          borderRadius: '12px',
+          boxShadow: '0 6px 15px rgba(0,0,0,0.3)',
+          border: '1px solid #3A3F67'
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            marginBottom: '20px',
+            paddingBottom: '15px',
+            borderBottom: '1px solid #3A3F67'
+          }}>
+            <div style={{
+              width: '50px',
+              height: '50px',
+              borderRadius: '50%',
+              backgroundColor: '#4F536F',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginRight: '15px',
+              fontWeight: 'bold',
+              fontSize: '20px',
+              color: '#FFD700'
+            }}>
+              {stats1.username.charAt(0).toUpperCase()}
+            </div>
+            <h3 style={{ color: '#FFD700', margin: 0 }}>{stats1.username}</h3>
+          </div>
+          
+          <div style={{ color: '#E0E0FF' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <span><strong>Email:</strong></span>
+              <span>{stats1.email}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <span><strong>Cilj korakov:</strong></span>
+              <span>{stats1.stepGoal.toLocaleString('sl-SI')}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <span><strong>Koraki danes:</strong></span>
+              <span>{stats1.steps.toLocaleString('sl-SI')}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <span><strong>Razdalja danes:</strong></span>
+              <span>{stats1.distance.toLocaleString('sl-SI', { minimumFractionDigits: 2 })} km</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <span><strong>Kalorije danes:</strong></span>
+              <span>{stats1.calories.toLocaleString('sl-SI', { minimumFractionDigits: 2 })} kcal</span>
+            </div>
+          </div>
+        </div>
 
-      {/* Kartica za drugega uporabnika */}
-      <div className="stat-section" style={{ flex: '1 1 300px' }}>
-        <h3>{stats2.username}</h3>
-        <div className="stat-box"><strong>Email:</strong> {stats2.email}</div>
-        <div className="stat-box"><strong>Cilj korakov:</strong> {stats2.stepGoal}</div>
-        <div className="stat-box"><strong>Koraki danes:</strong> {stats2.steps.toLocaleString('sl-SI')}</div>
-        <div className="stat-box"><strong>Razdalja danes:</strong> {stats2.distance.toLocaleString('sl-SI', { minimumFractionDigits: 2 })} km</div>
-        <div className="stat-box"><strong>Kalorije danes:</strong> {stats2.calories.toLocaleString('sl-SI', { minimumFractionDigits: 2 })} kcal</div>
-        {/* Dodajte ostale vrstice po potrebi */}
+        {/* Kartica 2 - Preoblikovana z novim dizajnom */}
+        <div style={{
+          flex: '1',
+          minWidth: '350px',
+          maxWidth: '500px',
+          backgroundColor: '#1F2235',
+          padding: '25px',
+          borderRadius: '12px',
+          boxShadow: '0 6px 15px rgba(0,0,0,0.3)',
+          border: '1px solid #3A3F67'
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            marginBottom: '20px',
+            paddingBottom: '15px',
+            borderBottom: '1px solid #3A3F67'
+          }}>
+            <div style={{
+              width: '50px',
+              height: '50px',
+              borderRadius: '50%',
+              backgroundColor: '#4F536F',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginRight: '15px',
+              fontWeight: 'bold',
+              fontSize: '20px',
+              color: '#FFD700'
+            }}>
+              {stats2.username.charAt(0).toUpperCase()}
+            </div>
+            <h3 style={{ color: '#FFD700', margin: 0 }}>{stats2.username}</h3>
+          </div>
+          
+          <div style={{ color: '#E0E0FF' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <span><strong>Email:</strong></span>
+              <span>{stats2.email}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <span><strong>Cilj korakov:</strong></span>
+              <span>{stats2.stepGoal.toLocaleString('sl-SI')}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <span><strong>Koraki danes:</strong></span>
+              <span>{stats2.steps.toLocaleString('sl-SI')}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <span><strong>Razdalja danes:</strong></span>
+              <span>{stats2.distance.toLocaleString('sl-SI', { minimumFractionDigits: 2 })} km</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <span><strong>Kalorije danes:</strong></span>
+              <span>{stats2.calories.toLocaleString('sl-SI', { minimumFractionDigits: 2 })} kcal</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
