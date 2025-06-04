@@ -27,7 +27,7 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
   static const broker = '192.168.0.11';
   static const port = 1883;
   static const topic = 'sensors/test';
-  final _maxPathPoints = 1000;
+  final _maxPathPoints = 5000;
 
   bool _isPublishing = false;
   List<Map<String, dynamic>> _collectedData = [];
@@ -35,7 +35,7 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
   String? _userId;
 
   double _prevMagnitude = 0;
-  int _stepThreshold = 12;
+  int _stepThreshold = 18;
   bool _stepDetected = false;
 
   @override
