@@ -54,7 +54,7 @@ try:
     label, confidence = model.predict(face_resized)
 
     # Meja zaupanja (manj pomeni boljše ujemanje)
-    threshold = 105  # Prilagodi po potrebi
+    threshold = 85  # Prilagodi po potrebi
     match = confidence <= threshold
 
     # Rezultat v JSON obliki
