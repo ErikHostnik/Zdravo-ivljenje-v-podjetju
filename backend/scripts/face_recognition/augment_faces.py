@@ -4,24 +4,16 @@ import os
 import random
 import sys
 
-
-
 input_folder = sys.argv[1]
 os.makedirs(input_folder, exist_ok=True)
-
-def rotate_image(image, angle):
-    (h, w) = image.shape[:2]
-    center = (w // 2, h // 2)
-    matrix = cv.getRotationMatrix2D(center, angle, 1.0)
-    rotated = cv.warpAffine(image, matrix, (w, h), borderMode=cv.BORDER_REFLECT)
-    return rotated
-
-def flip_horizontal(image):
-    return cv.flip(image, 1)
 
 def change_contrast(image, factor):
     contrasted = np.clip(image.astype(np.float32) * factor, 0, 255)
     return contrasted.astype(np.uint8)
+
+def change_brightness(image, value):
+    brightened = cv.add(image, value)
+    return np.clip(brightened, 0, 255).astype(np.uint8)
 
 def add_salt_pepper_noise(image, amount=0.01):
     noisy = image.copy()
@@ -40,21 +32,37 @@ def add_salt_pepper_noise(image, amount=0.01):
 
     return noisy
 
+def color_jitter_grayscale(image):
+    # Naključno spremeni kontrast med 0.7 in 1.3
+    contrast_factor = random.uniform(0.7, 1.3)
+    img_contrast = change_contrast(image, contrast_factor)
+    # Naključno spremeni svetlost med -20 in +20
+    brightness_val = random.randint(-20, 20)
+    img_jitter = change_brightness(img_contrast, brightness_val)
+    return img_jitter
+
 def augment_image(image, filename_base, counter):
-    angles = [15, -15]
-    for angle in angles:
-        a = rotate_image(image, angle)
-        cv.imwrite(os.path.join(input_folder, f'{filename_base}_aug_rot{angle}_{counter}.png'), a)
+    # Posvetlitev
+    bright = change_brightness(image, 30)
+    cv.imwrite(os.path.join(input_folder, f'{filename_base}_aug_bright_{counter}.png'), bright)
 
-    f = flip_horizontal(image)
-    cv.imwrite(os.path.join(input_folder, f'{filename_base}_aug_flip_{counter}.png'), f)
+    # Potemnitev
+    dark = change_brightness(image, -30)
+    cv.imwrite(os.path.join(input_folder, f'{filename_base}_aug_dark_{counter}.png'), dark)
 
+    # Sprememba kontrasta
     contrast_factor = random.uniform(0.8, 1.5)
     c = change_contrast(image, contrast_factor)
     cv.imwrite(os.path.join(input_folder, f'{filename_base}_aug_contrast_{counter}.png'), c)
 
+    # Salt & pepper šum
     n = add_salt_pepper_noise(image, amount=0.02)
     cv.imwrite(os.path.join(input_folder, f'{filename_base}_aug_noise_{counter}.png'), n)
+
+    # Color jitter (svetlost + kontrast skupaj, naključno)
+    jitter = color_jitter_grayscale(image)
+    cv.imwrite(os.path.join(input_folder, f'{filename_base}_aug_jitter_{counter}.png'), jitter)
+
 
 counter = 0
 for file in os.listdir(input_folder):
