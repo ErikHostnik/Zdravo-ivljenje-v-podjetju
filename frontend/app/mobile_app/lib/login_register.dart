@@ -23,15 +23,12 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
   // SPREMENI IP NASLOV!!! GLEDE NA SVOJO NAPRAVO!!!
   final String baseUrl = 'http://192.168.0.11:3001/api/users';
 
-  // === Dodano za MQTT ===
   late MqttServerClient _mqttClient;
   Timer? _heartbeatTimer;
   String? _currentUserId;
 
-  // Uporabimo iste vrednosti kot v sensors.dart:
   static const String _broker = '192.168.0.11';
   static const int _port = 1883;
-  // =======================
 
   Future<void> _submit() async {
     final username = usernameCtrl.text.trim();
@@ -83,19 +80,16 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
           print('DEBUG: user_id manjka!');
         }
 
-        // === Po uspešnem loginu: vzpostavimo MQTT in zaženemo heartbeats ===
         if (_currentUserId != null) {
           await _connectToMqttBroker(_currentUserId!);
           if (_mqttClient.connectionStatus?.state == MqttConnectionState.connected) {
             _startHeartbeatTimer();
           } else {
-            // Če še ni povezan, začnemo timer, ko bo povezan:
             _mqttClient.onConnected = () {
               _startHeartbeatTimer();
             };
           }
         }
-        // ===================================================================
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('${isLogin ? 'Prijava' : 'Registracija'} uspešna!')),
@@ -115,10 +109,8 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
     }
   }
 
-  // === METODE ZA MQTT ===
 
   Future<void> _connectToMqttBroker(String userId) async {
-    // clientId nastavimo na userId, da bo identiteta enaka kot na backendu
     _mqttClient = MqttServerClient(_broker, userId);
     _mqttClient.port = _port;
     _mqttClient.logging(on: false);
@@ -129,7 +121,7 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
 
     final connMess = MqttConnectMessage()
         .withClientIdentifier(userId)
-        .startClean() // nova seja vsakič
+        .startClean()
         .withWillQos(MqttQos.atLeastOnce);
     _mqttClient.connectionMessage = connMess;
 
@@ -143,7 +135,6 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
 
   void _onMqttConnected() {
     print('MQTT: Povezan na $_broker:$_port');
-    // Če timer še ni aktiven, ga zaženemo
     if (_heartbeatTimer == null || !_heartbeatTimer!.isActive) {
       _startHeartbeatTimer();
     }
@@ -177,15 +168,11 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
   }
 
   void _startHeartbeatTimer() {
-    // Pošljemo prvo sporočilo takoj
     _sendHeartbeat();
-    // Nato vsako minuto
     _heartbeatTimer = Timer.periodic(const Duration(seconds: 60), (_) {
       _sendHeartbeat();
     });
   }
-
-  // ===================================================================
 
   @override
   void dispose() {

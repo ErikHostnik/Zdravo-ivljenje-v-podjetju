@@ -19,10 +19,8 @@ BROKER_PORT = int(os.getenv("BROKER_PORT"))
 TOPIC = os.getenv("TOPIC")
 TWO_FA_TOPIC_PREFIX = os.getenv("TWO_FA_TOPIC_PREFIX")
 
-# Prefiks za heartbeat (lahko ga nastaviš tudi v .env, npr. "status/heartbeat/")
 HEARTBEAT_TOPIC_PREFIX = os.getenv("HEARTBEAT_TOPIC_PREFIX", "status/heartbeat/")
 
-# Koliko sekund čakati preden nek uporabnik postane “neaktiven”
 HEARTBEAT_TIMEOUT_SECONDS = int(os.getenv("HEARTBEAT_TIMEOUT_SECONDS", "90"))
 
 mongo_client = MongoClient(MONGO_URI)
@@ -30,7 +28,6 @@ db = mongo_client.zdravozivpodjetja
 sensor_collection = db.sensordatas
 user_collection = db.users
 
-# Slovar: ključ = userId, vrednost = datetime (UTC) zadnjega heartbeat sporočila
 active_users = {}
 active_users_lock = threading.Lock()
 
@@ -106,11 +103,8 @@ def call_scraper(lat, lon):
 def on_connect(client, userdata, flags, rc, properties=None):
     if rc == 0:
         print("Povezan na MQTT broker")
-        # naroči se na glavni topic za senzorje
         client.subscribe(TOPIC)
-        # naroči se na 2FA topice
         client.subscribe(f"{TWO_FA_TOPIC_PREFIX}#")
-        # naroči se na heartbeat topice (vsi userId-ji)
         client.subscribe(f"{HEARTBEAT_TOPIC_PREFIX}#")
     else:
         print(f" Napaka pri povezavi: Koda {rc}")
@@ -120,10 +114,8 @@ def on_message(client, userdata, msg):
     try:
         topic = msg.topic
         payload_raw = msg.payload.decode()
-        # ________________ 1) Preveri, če je heartbeat sporočilo ________________
         if topic.startswith(HEARTBEAT_TOPIC_PREFIX):
             user_id = topic[len(HEARTBEAT_TOPIC_PREFIX):]
-            # Predpostavimo, da je payload JSON s timestampom, lahko pa je tudi samo prazno
             try:
                 data = json.loads(payload_raw)
                 ts_str = data.get("timestamp")
@@ -132,7 +124,6 @@ def on_message(client, userdata, msg):
                 else:
                     last_hbt = datetime.now(timezone.utc)
             except Exception:
-                # Če ni validnega JSON ali timestamp, vzami trenutni UTC čas
                 last_hbt = datetime.now(timezone.utc)
 
             with active_users_lock:
@@ -140,7 +131,6 @@ def on_message(client, userdata, msg):
             print(f"[HEARTBEAT] Prejet od {user_id}, čas: {last_hbt.isoformat()}")
             return
 
-        # ________________ 2) Preveri, če je 2FA sporočilo ________________
         if topic.startswith(TWO_FA_TOPIC_PREFIX):
             user_id = topic[len(TWO_FA_TOPIC_PREFIX):]
             payload = json.loads(payload_raw)
@@ -154,7 +144,6 @@ def on_message(client, userdata, msg):
                 print(" Neveljavno 2FA sporočilo (manjka 'confirmed')")
             return
 
-        # ________________ 3) Obdelaj navadne “session” sporočila ________________
         payload = json.loads(payload_raw)
         print(f" Prejeto ({topic}): {payload}")
 
@@ -229,7 +218,6 @@ def main():
         print("Error: MONGO_URI ni nastavljen.")
         exit(1)
 
-    # Zaženi MQTT klienta
     client = mqtt.Client(callback_api_version=mqtt.CallbackAPIVersion.VERSION2)
     client.on_connect = on_connect
     client.on_message = on_message
@@ -237,7 +225,6 @@ def main():
     print(" Povezujem se na MQTT broker...")
     client.connect(BROKER_HOST, BROKER_PORT, keepalive=60)
 
-    # Zaženi ozadni thread za spremljanje aktivnih uporabnikov
     monitor_thread = threading.Thread(target=monitor_active_users, daemon=True)
     monitor_thread.start()
 
