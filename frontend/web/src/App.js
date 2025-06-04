@@ -43,7 +43,7 @@ function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/userProfile/:userId" element={<UserProfile />} />
             <Route path="/leaderboard" element={<Leaderboard/>} />
-            <Route path="/compare" element={<Compare/>} />
+            <Route path="/compare/:id1/:id2" element={<Compare/>} />
             <Route path="/path/:userId" element={<PathMap />} />
             <Route path="/logout" element={<Logout />} />
           </Routes>

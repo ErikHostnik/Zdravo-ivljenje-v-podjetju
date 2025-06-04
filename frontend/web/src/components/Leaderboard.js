@@ -1,5 +1,8 @@
+// src/components/Leaderboard.js
+
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import '../styles/global.css';
 
 export default function Leaderboard() {
@@ -8,10 +11,12 @@ export default function Leaderboard() {
   const [sortKey, setSortKey] = useState('steps');
   const [error, setError] = useState(null);
 
-  // V tem polju hranimo največ dva userId za primerjavo
+  // Shranjujemo največ dva izbrana userId
   const [selectedUsers, setSelectedUsers] = useState([]);
 
-  // Možni ključi za sortiranje
+  // Hook iz React Router, ki omogoči navigacijo v kodo
+  const navigate = useNavigate();
+
   const sortOptions = [
     { key: 'steps', label: 'Koraki (danes)' },
     { key: 'distance', label: 'Razdalja (km)' },
@@ -32,7 +37,7 @@ export default function Leaderboard() {
 
         const allUsers = res.data;
         const now = new Date();
-        const todayStr = now.toISOString().substring(0, 10); // "2025-06-04"
+        const todayStr = now.toISOString().substring(0, 10);
 
         const processed = allUsers.map((u) => {
           let todayEntry = null;
@@ -82,14 +87,14 @@ export default function Leaderboard() {
     );
   }
 
-  // Razvrstimo po izbranem ključu (padajoče)
+  // Razvrščanje uporabnikov po izbranem ključu
   const sorted = [...usersData].sort((a, b) => {
     const aVal = a[sortKey] ?? 0;
     const bVal = b[sortKey] ?? 0;
     return bVal - aVal;
   });
 
-  // Toggle izbire: če je že izbran, ga odstranimo; če ni in je manj kot 2, ga dodamo
+  // Toggle izbire uporabnika (doda ali odstrani iz selectedUsers)
   const toggleSelection = (userId) => {
     setSelectedUsers((prev) => {
       if (prev.includes(userId)) {
@@ -100,7 +105,7 @@ export default function Leaderboard() {
     });
   };
 
-  // Funkcija za prikaz posamične metrike, glede na sortKey
+  // Prikaže samo metriko, po kateri se trenutno sortira
   const renderMetric = (user) => {
     switch (sortKey) {
       case 'steps':
@@ -130,7 +135,7 @@ export default function Leaderboard() {
     <div className="user-profile">
       <h2 style={{ color: 'white' }}>Leaderboard (danes)</h2>
 
-      {/* Dropdown za izbiro sortiranja */}
+      {/* Izbira kriterija sortiranja */}
       <div className="leaderboard-controls" style={{ marginBottom: '16px' }}>
         <label htmlFor="sortKeySelect" style={{ color: 'white' }}>
           <strong>Razvrsti po:</strong>
@@ -156,7 +161,7 @@ export default function Leaderboard() {
         </select>
       </div>
 
-      {/* Seznam kartic; klik na kartico izbere/odznači uporabnika */}
+      {/* Seznam “kartic” z uporabniki; klik na kartico izbere ali odznači */}
       {sorted.map((user, idx) => {
         const isSelected = selectedUsers.includes(user.userId);
         return (
@@ -181,14 +186,13 @@ export default function Leaderboard() {
         );
       })}
 
-      {/* Gumb za primerjavo, omogočen le, če sta dva izbrana */}
+      {/* Gumb za prehod na primerjalno stran; aktiven le, če sta točno dva izbrana */}
       <div style={{ marginTop: '24px', textAlign: 'center' }}>
         <button
           disabled={selectedUsers.length !== 2}
           onClick={() => {
             const [id1, id2] = selectedUsers;
-            // Uporabi useNavigate ali window.location:
-            window.location.href = `/compare/${id1}/${id2}`;
+            navigate(`/compare/${id1}/${id2}`); // ← uporaba useNavigate
           }}
           style={{
             padding: '8px 16px',
