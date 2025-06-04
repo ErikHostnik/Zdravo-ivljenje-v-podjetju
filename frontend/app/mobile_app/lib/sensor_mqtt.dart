@@ -27,8 +27,17 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
   static const broker = '192.168.0.11';
   static const port = 1883;
   static const topic = 'sensors/test';
-  final _maxPathPoints = 1000;
 
+  static const _heartbeatPrefix = 'status/heartbeat/';
+  static const _heartbeatTopic = 'status/heartbeat/#';
+  static const Duration _heartbeatTimeout = Duration(seconds: 90);
+
+  final Map<String, DateTime> _activeUsers = {};
+
+  Timer? _heartbeatCleanupTimer;
+  Timer? _heartbeatPublishTimer;
+
+  final _maxPathPoints = 1000;
   bool _isPublishing = false;
   final List<Map<String, dynamic>> _collectedData = [];
   final List<LatLng> _path = [];
@@ -57,6 +66,11 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
       _initializeAccelerometer();
       await _initializeMqttClient();
       await _connectToBroker();
+
+      _heartbeatCleanupTimer =
+          Timer.periodic(const Duration(seconds: 30), (_) {
+        _cleanupHeartbeatEntries();
+      });
     } else {
       _updateStatus('Dovoljenja za lokacijo ali senzorje zavrnjena.');
     }
@@ -65,8 +79,11 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
   void _initializeAccelerometer() {
     _accelSubscription = accelerometerEvents.listen(
       (event) {
-        final double magnitude = sqrt(event.x * event.x + event.y * event.y + event.z * event.z);
-        if (!_stepDetected && magnitude > _stepThreshold && _prevMagnitude <= _stepThreshold) {
+        final double magnitude =
+            sqrt(event.x * event.x + event.y * event.y + event.z * event.z);
+        if (!_stepDetected &&
+            magnitude > _stepThreshold &&
+            _prevMagnitude <= _stepThreshold) {
           setState(() {
             stepCount++;
           });
@@ -77,7 +94,8 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
         }
         _prevMagnitude = magnitude;
       },
-      onError: (error) => _updateStatus('Napaka pri branju akcelerometra: $error'),
+      onError: (error) =>
+          _updateStatus('Napaka pri branju akcelerometra: $error'),
       cancelOnError: true,
     );
   }
@@ -103,6 +121,26 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
       await client.connect();
       if (client.connectionStatus!.state == MqttConnectionState.connected) {
         _updateStatus('Povezan na MQTT strežnik!');
+
+        client.subscribe(_heartbeatTopic, MqttQos.atLeastOnce);
+
+        client.updates!.listen((List<MqttReceivedMessage<MqttMessage>> c) {
+          for (final msg in c) {
+            final recTopic = msg.topic;
+            if (recTopic.startsWith(_heartbeatPrefix)) {
+              final userId = recTopic.substring(_heartbeatPrefix.length);
+              setState(() {
+                _activeUsers[userId] = DateTime.now();
+              });
+            }
+          }
+        });
+
+        _sendHeartbeat();
+        _heartbeatPublishTimer =
+            Timer.periodic(const Duration(seconds: 60), (_) {
+          _sendHeartbeat();
+        });
       } else {
         _updateStatus('Napaka: ${client.connectionStatus!.returnCode}');
       }
@@ -126,6 +164,37 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
     _updateStatus('Povezava prekinjena.');
     _isPublishing = false;
     _timer?.cancel();
+    _heartbeatCleanupTimer?.cancel();
+    _heartbeatPublishTimer?.cancel();
+  }
+
+  void _sendHeartbeat() {
+    if (client.connectionStatus?.state == MqttConnectionState.connected &&
+        _userId != null) {
+      final topicHb = '${_heartbeatPrefix}$_userId';
+      final payloadMap = {
+        'timestamp': DateTime.now().toUtc().toIso8601String(),
+      };
+      final builder = MqttClientPayloadBuilder()..addString(jsonEncode(payloadMap));
+      client.publishMessage(topicHb, MqttQos.atLeastOnce, builder.payload!);
+    }
+  }
+
+  void _cleanupHeartbeatEntries() {
+    final now = DateTime.now();
+    final toRemove = <String>[];
+    _activeUsers.forEach((userId, lastTime) {
+      if (now.difference(lastTime) > _heartbeatTimeout) {
+        toRemove.add(userId);
+      }
+    });
+    if (toRemove.isNotEmpty) {
+      setState(() {
+        for (final u in toRemove) {
+          _activeUsers.remove(u);
+        }
+      });
+    }
   }
 
   void _startCollecting() {
@@ -140,8 +209,10 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
           desiredAccuracy: LocationAccuracy.bestForNavigation,
         );
 
-        if (position.latitude.isNaN || position.longitude.isNaN ||
-            position.latitude.abs() > 90 || position.longitude.abs() > 180) {
+        if (position.latitude.isNaN ||
+            position.longitude.isNaN ||
+            position.latitude.abs() > 90 ||
+            position.longitude.abs() > 180) {
           throw Exception('Neveljavne koordinate');
         }
 
@@ -219,6 +290,8 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
     _timer?.cancel();
     _accelSubscription?.cancel();
     client.disconnect();
+    _heartbeatCleanupTimer?.cancel();
+    _heartbeatPublishTimer?.cancel();
     super.dispose();
   }
 
@@ -251,13 +324,15 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
               ),
             ),
           ),
+
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 ElevatedButton.icon(
-                  onPressed: _isPublishing || _userId == null ? null : _startCollecting,
+                  onPressed:
+                      _isPublishing || _userId == null ? null : _startCollecting,
                   icon: const Icon(Icons.play_arrow),
                   label: const Text("Začni zajemanje"),
                 ),
@@ -274,9 +349,21 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
               ],
             ),
           ),
+
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 0),
+            child: Text(
+              '${_activeUsers.length} Online',
+              style: const TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+
           const SizedBox(height: 16),
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 50),
+            padding: const EdgeInsets.symmetric(vertical: 25),
             child: Center(
               child: ClipOval(
                 child: Container(

@@ -190,20 +190,10 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
             style: const TextStyle(fontSize: 16),
           ),
           const SizedBox(height: 12),
-          Expanded(
-            child: GridView.builder(
-              padding: const EdgeInsets.all(8),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 5,
-                crossAxisSpacing: 8,
-                mainAxisSpacing: 8,
-              ),
-              itemCount: _capturedImages.length,
-              itemBuilder: (context, index) {
-                return Image.file(_capturedImages[index], fit: BoxFit.cover);
-              },
-            ),
-          ),
+          // Odstranjen GridView za prikaz slik:
+          // Če želiš ohraniti prostor, lahko dodaš:
+          SizedBox(height: 0),
+
           if (_isLoading) const CircularProgressIndicator(),
           if (!_isLoading)
             Padding(
