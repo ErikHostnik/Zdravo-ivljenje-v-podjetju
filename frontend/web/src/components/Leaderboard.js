@@ -8,7 +8,10 @@ export default function Leaderboard() {
   const [sortKey, setSortKey] = useState('steps');
   const [error, setError] = useState(null);
 
-  // Možni ključi za sortiranje, z labelami za UI
+  // V tem polju hranimo največ dva userId za primerjavo
+  const [selectedUsers, setSelectedUsers] = useState([]);
+
+  // Možni ključi za sortiranje
   const sortOptions = [
     { key: 'steps', label: 'Koraki (danes)' },
     { key: 'distance', label: 'Razdalja (km)' },
@@ -29,7 +32,7 @@ export default function Leaderboard() {
 
         const allUsers = res.data;
         const now = new Date();
-        const todayStr = now.toISOString().substring(0, 10); // npr. "2025-06-04"
+        const todayStr = now.toISOString().substring(0, 10); // "2025-06-04"
 
         const processed = allUsers.map((u) => {
           let todayEntry = null;
@@ -79,31 +82,42 @@ export default function Leaderboard() {
     );
   }
 
-  // Razvrstimo po izbranem ključu v padajočem vrstnem redu
+  // Razvrstimo po izbranem ključu (padajoče)
   const sorted = [...usersData].sort((a, b) => {
     const aVal = a[sortKey] ?? 0;
     const bVal = b[sortKey] ?? 0;
     return bVal - aVal;
   });
 
-  // Funkcija, ki vrne JSX z izbrano metriko
+  // Toggle izbire: če je že izbran, ga odstranimo; če ni in je manj kot 2, ga dodamo
+  const toggleSelection = (userId) => {
+    setSelectedUsers((prev) => {
+      if (prev.includes(userId)) {
+        return prev.filter((id) => id !== userId);
+      }
+      if (prev.length >= 2) return prev;
+      return [...prev, userId];
+    });
+  };
+
+  // Funkcija za prikaz posamične metrike, glede na sortKey
   const renderMetric = (user) => {
     switch (sortKey) {
       case 'steps':
         return (
-          <div className="stat-box">
+          <div style={{ fontSize: '1rem', color: '#00E0A3' }}>
             <strong>Koraki:</strong> {user.steps.toLocaleString('sl-SI')}
           </div>
         );
       case 'distance':
         return (
-          <div className="stat-box">
+          <div style={{ fontSize: '1rem', color: '#00E0A3' }}>
             <strong>Razdalja:</strong> {user.distance.toLocaleString('sl-SI', { minimumFractionDigits: 2 })} km
           </div>
         );
       case 'calories':
         return (
-          <div className="stat-box">
+          <div style={{ fontSize: '1rem', color: '#00E0A3' }}>
             <strong>Kalorije:</strong> {user.calories.toLocaleString('sl-SI', { minimumFractionDigits: 2 })} kcal
           </div>
         );
@@ -114,16 +128,25 @@ export default function Leaderboard() {
 
   return (
     <div className="user-profile">
-      <h2>Leaderboard (danes)</h2>
+      <h2 style={{ color: 'white' }}>Leaderboard (danes)</h2>
 
-      {/* Dropdown za menjavo kriterija sortiranja */}
+      {/* Dropdown za izbiro sortiranja */}
       <div className="leaderboard-controls" style={{ marginBottom: '16px' }}>
-        <label htmlFor="sortKeySelect"><strong>Razvrsti po:</strong> </label>
+        <label htmlFor="sortKeySelect" style={{ color: 'white' }}>
+          <strong>Razvrsti po:</strong>
+        </label>
         <select
           id="sortKeySelect"
           value={sortKey}
           onChange={(e) => setSortKey(e.target.value)}
-          style={{ marginLeft: '8px', padding: '4px 8px', fontSize: '1rem' }}
+          style={{
+            marginLeft: '8px',
+            padding: '4px 8px',
+            fontSize: '1rem',
+            backgroundColor: '#1F2235',
+            color: 'white',
+            border: '1px solid #444'
+          }}
         >
           {sortOptions.map((opt) => (
             <option key={opt.key} value={opt.key}>
@@ -133,15 +156,53 @@ export default function Leaderboard() {
         </select>
       </div>
 
-      {/* Zdaj za vsakega uporabnika ustvarimo “kartico” z izbrano metriko */}
-      {sorted.map((user, idx) => (
-        <div className="stat-section" key={user.userId} style={{ marginBottom: '24px' }}>
-          <h3 style={{ marginBottom: '8px' }}>
-            #{idx + 1} {user.username}
-          </h3>
-          {renderMetric(user)}
-        </div>
-      ))}
+      {/* Seznam kartic; klik na kartico izbere/odznači uporabnika */}
+      {sorted.map((user, idx) => {
+        const isSelected = selectedUsers.includes(user.userId);
+        return (
+          <div
+            key={user.userId}
+            className="stat-section"
+            onClick={() => toggleSelection(user.userId)}
+            style={{
+              marginBottom: '12px',
+              cursor: 'pointer',
+              padding: '12px',
+              borderRadius: '8px',
+              border: isSelected ? '2px solid #00E0A3' : '1px solid #444',
+              backgroundColor: isSelected ? '#252A3B' : '#1F2235'
+            }}
+          >
+            <h3 style={{ margin: 0, color: 'white', fontSize: '1.1rem' }}>
+              #{idx + 1} {user.username}
+            </h3>
+            <div style={{ marginTop: '6px' }}>{renderMetric(user)}</div>
+          </div>
+        );
+      })}
+
+      {/* Gumb za primerjavo, omogočen le, če sta dva izbrana */}
+      <div style={{ marginTop: '24px', textAlign: 'center' }}>
+        <button
+          disabled={selectedUsers.length !== 2}
+          onClick={() => {
+            const [id1, id2] = selectedUsers;
+            // Uporabi useNavigate ali window.location:
+            window.location.href = `/compare/${id1}/${id2}`;
+          }}
+          style={{
+            padding: '8px 16px',
+            fontSize: '1rem',
+            backgroundColor: selectedUsers.length === 2 ? '#00E0A3' : '#555',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: selectedUsers.length === 2 ? 'pointer' : 'not-allowed'
+          }}
+        >
+          Primerjaj izbrana dva
+        </button>
+      </div>
     </div>
   );
 }

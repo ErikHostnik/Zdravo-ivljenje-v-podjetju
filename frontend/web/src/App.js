@@ -11,6 +11,7 @@ import Register from './components/Register';
 import UserProfile from './components/UserProfile';
 import PathMap from './components/PathMap';
 import Leaderboard from './components/Leaderboard';
+import Compare from './components/Compare';
 
 function App() {
   const [user, setUser] = useState(() => {
@@ -42,6 +43,7 @@ function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/userProfile/:userId" element={<UserProfile />} />
             <Route path="/leaderboard" element={<Leaderboard/>} />
+            <Route path="/compare" element={<Compare/>} />
             <Route path="/path/:userId" element={<PathMap />} />
             <Route path="/logout" element={<Logout />} />
           </Routes>
