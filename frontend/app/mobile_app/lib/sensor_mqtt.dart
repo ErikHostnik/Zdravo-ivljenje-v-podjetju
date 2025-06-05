@@ -24,7 +24,7 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
   Timer? _timer;
   StreamSubscription<AccelerometerEvent>? _accelSubscription;
 
-  static const broker = '192.168.0.26';
+  static const broker = '192.168.0.242';
   static const port = 1883;
   static const topic = 'sensors/test';
 
@@ -67,8 +67,7 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
       await _initializeMqttClient();
       await _connectToBroker();
 
-      _heartbeatCleanupTimer =
-          Timer.periodic(const Duration(seconds: 30), (_) {
+      _heartbeatCleanupTimer = Timer.periodic(const Duration(seconds: 30), (_) {
         _cleanupHeartbeatEntries();
       });
     } else {
@@ -79,8 +78,9 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
   void _initializeAccelerometer() {
     _accelSubscription = accelerometerEvents.listen(
       (event) {
-        final double magnitude =
-            sqrt(event.x * event.x + event.y * event.y + event.z * event.z);
+        final double magnitude = sqrt(
+          event.x * event.x + event.y * event.y + event.z * event.z,
+        );
         if (!_stepDetected &&
             magnitude > _stepThreshold &&
             _prevMagnitude <= _stepThreshold) {
@@ -137,8 +137,9 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
         });
 
         _sendHeartbeat();
-        _heartbeatPublishTimer =
-            Timer.periodic(const Duration(seconds: 60), (_) {
+        _heartbeatPublishTimer = Timer.periodic(const Duration(seconds: 60), (
+          _,
+        ) {
           _sendHeartbeat();
         });
       } else {
@@ -175,7 +176,8 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
       final payloadMap = {
         'timestamp': DateTime.now().toUtc().toIso8601String(),
       };
-      final builder = MqttClientPayloadBuilder()..addString(jsonEncode(payloadMap));
+      final builder = MqttClientPayloadBuilder()
+        ..addString(jsonEncode(payloadMap));
       client.publishMessage(topicHb, MqttQos.atLeastOnce, builder.payload!);
     }
   }
@@ -331,8 +333,9 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 ElevatedButton.icon(
-                  onPressed:
-                      _isPublishing || _userId == null ? null : _startCollecting,
+                  onPressed: _isPublishing || _userId == null
+                      ? null
+                      : _startCollecting,
                   icon: const Icon(Icons.play_arrow),
                   label: const Text("Začni zajemanje"),
                 ),
@@ -354,10 +357,7 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
             padding: const EdgeInsets.symmetric(vertical: 0),
             child: Text(
               '${_activeUsers.length} Online',
-              style: const TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
             ),
           ),
 

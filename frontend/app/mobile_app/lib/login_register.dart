@@ -21,13 +21,13 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
   final TextEditingController passwordCtrl = TextEditingController();
 
   // SPREMENI IP NASLOV!!! GLEDE NA SVOJO NAPRAVO!!!
-  final String baseUrl = 'http://192.168.0.26:3001/api/users';
+  final String baseUrl = 'http://192.168.0.242:3001/api/users';
 
   late MqttServerClient _mqttClient;
   Timer? _heartbeatTimer;
   String? _currentUserId;
 
-  static const String _broker = '192.168.0.26';
+  static const String _broker = '192.168.0.242';
   static const int _port = 1883;
 
   Future<void> _submit() async {
@@ -39,15 +39,20 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
       final url = isLogin ? '$baseUrl/login' : baseUrl;
       final response = await http.post(
         Uri.parse(url),
-        headers: {'Content-Type': 'application/json', 'x-mobile-client': 'true'},
-        body: jsonEncode(isLogin
-            ? {'username': username, 'password': password, 'isMobile': true}
-            : {
-                'username': username,
-                'email': email,
-                'password': password,
-                'isMobile': true,
-              }),
+        headers: {
+          'Content-Type': 'application/json',
+          'x-mobile-client': 'true',
+        },
+        body: jsonEncode(
+          isLogin
+              ? {'username': username, 'password': password, 'isMobile': true}
+              : {
+                  'username': username,
+                  'email': email,
+                  'password': password,
+                  'isMobile': true,
+                },
+        ),
       );
 
       print('DEBUG: status code = ${response.statusCode}');
@@ -82,7 +87,8 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
 
         if (_currentUserId != null) {
           await _connectToMqttBroker(_currentUserId!);
-          if (_mqttClient.connectionStatus?.state == MqttConnectionState.connected) {
+          if (_mqttClient.connectionStatus?.state ==
+              MqttConnectionState.connected) {
             _startHeartbeatTimer();
           } else {
             _mqttClient.onConnected = () {
@@ -92,23 +98,24 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
         }
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${isLogin ? 'Prijava' : 'Registracija'} uspešna!')),
+          SnackBar(
+            content: Text('${isLogin ? 'Prijava' : 'Registracija'} uspešna!'),
+          ),
         );
 
         Navigator.pop(context, true);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Napaka: ${response.body}')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Napaka: ${response.body}')));
       }
     } catch (e) {
       print('DEBUG: Exception: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Napaka pri povezavi: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Napaka pri povezavi: $e')));
     }
   }
-
 
   Future<void> _connectToMqttBroker(String userId) async {
     _mqttClient = MqttServerClient(_broker, userId);
@@ -155,7 +162,8 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
       final payloadMap = {
         'timestamp': DateTime.now().toUtc().toIso8601String(),
       };
-      final builder = MqttClientPayloadBuilder()..addString(jsonEncode(payloadMap));
+      final builder = MqttClientPayloadBuilder()
+        ..addString(jsonEncode(payloadMap));
 
       _mqttClient.publishMessage(
         topic,
@@ -261,7 +269,9 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
                   passwordCtrl.clear();
                 },
                 child: Text(
-                  isLogin ? 'Nimate računa? Registracija' : 'Imate račun? Prijava',
+                  isLogin
+                      ? 'Nimate računa? Registracija'
+                      : 'Imate račun? Prijava',
                   style: TextStyle(color: theme.primaryColor),
                 ),
               ),

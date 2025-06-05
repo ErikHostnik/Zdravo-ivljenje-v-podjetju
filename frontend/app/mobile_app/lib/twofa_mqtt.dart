@@ -15,7 +15,7 @@ class TwoFAMQTT {
   final String userId;
 
   late final MqttServerClient client;
-  static const String broker = '192.168.0.26';
+  static const String broker = '192.168.0.242';
   static const int port = 1883;
   late final String topic;
 
@@ -44,7 +44,9 @@ class TwoFAMQTT {
         client.subscribe(topic, MqttQos.atLeastOnce);
         client.updates!.listen(_onMessageReceived);
       } else {
-        debugPrint(' MQTT connection failed: ${client.connectionStatus!.returnCode}');
+        debugPrint(
+          ' MQTT connection failed: ${client.connectionStatus!.returnCode}',
+        );
       }
     } catch (e) {
       debugPrint(' MQTT connection error: $e');
@@ -56,9 +58,13 @@ class TwoFAMQTT {
     debugPrint(' MQTT disconnected');
   }
 
-  Future<void> _onMessageReceived(List<MqttReceivedMessage<MqttMessage>> messages) async {
+  Future<void> _onMessageReceived(
+    List<MqttReceivedMessage<MqttMessage>> messages,
+  ) async {
     final recMess = messages[0].payload as MqttPublishMessage;
-    final payloadStr = MqttPublishPayload.bytesToStringAsString(recMess.payload.message);
+    final payloadStr = MqttPublishPayload.bytesToStringAsString(
+      recMess.payload.message,
+    );
     debugPrint(' 2FA Message Received: $payloadStr');
 
     try {
@@ -72,12 +78,12 @@ class TwoFAMQTT {
           content: const Text('Ali želite potrditi prijavo?'),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context, false), 
-              child: const Text('Zavrni')
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Zavrni'),
             ),
             ElevatedButton(
-              onPressed: () => Navigator.pop(context, true), 
-              child: const Text('Potrdi')
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Potrdi'),
             ),
           ],
         ),
@@ -97,19 +103,20 @@ class TwoFAMQTT {
     try {
       final cameras = await availableCameras();
       if (cameras.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Ni na voljo kamere')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Ni na voljo kamere')));
         return;
       }
 
-      final imagePath = await Navigator.of(context, rootNavigator: true).push<String>(
-        MaterialPageRoute(
-          builder: (context) => FaceCaptureScreen(
-            onImageCaptured: (path) => Navigator.of(context).pop(path),
-          ),
-        ),
-      );
+      final imagePath = await Navigator.of(context, rootNavigator: true)
+          .push<String>(
+            MaterialPageRoute(
+              builder: (context) => FaceCaptureScreen(
+                onImageCaptured: (path) => Navigator.of(context).pop(path),
+              ),
+            ),
+          );
 
       if (imagePath == null || imagePath.isEmpty) {
         debugPrint("Uporabnik ni posnel slike");
@@ -122,10 +129,7 @@ class TwoFAMQTT {
       final uri = Uri.parse('http://$broker:3001/api/2fa/verify/$userId');
       final request = http.MultipartRequest('POST', uri);
 
-      request.files.add(await http.MultipartFile.fromPath(
-        'image',
-        imagePath,
-      ));
+      request.files.add(await http.MultipartFile.fromPath('image', imagePath));
 
       request.fields['twoFaId'] = twoFaId;
 
@@ -144,7 +148,11 @@ class TwoFAMQTT {
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Avtentikacija ni uspela: ${jsonResponse['message']}')),
+            SnackBar(
+              content: Text(
+                'Avtentikacija ni uspela: ${jsonResponse['message']}',
+              ),
+            ),
           );
         }
       } else {
@@ -154,16 +162,18 @@ class TwoFAMQTT {
       }
     } catch (e) {
       debugPrint("Napaka pri preverjanju obraza: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Napaka: ${e.toString()}')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Napaka: ${e.toString()}')));
     }
   }
 
   Future<void> _sendVerification(String id, bool allow) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('jwt_token');
-    final uri = Uri.parse('http://$broker:3001/api/2fa/$id/${allow ? 'approve' : 'reject'}');
+    final uri = Uri.parse(
+      'http://$broker:3001/api/2fa/$id/${allow ? 'approve' : 'reject'}',
+    );
 
     try {
       final response = await http.post(
@@ -306,11 +316,7 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
                   padding: EdgeInsets.all(20),
                   backgroundColor: Colors.white70,
                 ),
-                child: Icon(
-                  Icons.camera_alt,
-                  color: Colors.black,
-                  size: 32,
-                ),
+                child: Icon(Icons.camera_alt, color: Colors.black, size: 32),
               ),
             ),
           ),

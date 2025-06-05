@@ -44,11 +44,13 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
 
   // Zajame eno sliko
   Future<File?> _captureSingleImage() async {
-    if (_cameraController == null || !_cameraController!.value.isInitialized) return null;
+    if (_cameraController == null || !_cameraController!.value.isInitialized)
+      return null;
 
     try {
       final tempDir = await getTemporaryDirectory();
-      final path = '${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final path =
+          '${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}.jpg';
       final file = await _cameraController!.takePicture();
       final savedImage = await File(file.path).copy(path);
       return savedImage;
@@ -73,7 +75,9 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
           _capturedImages.add(image);
         });
       }
-      await Future.delayed(const Duration(milliseconds: 10)); // časovni zamik med zajemi
+      await Future.delayed(
+        const Duration(milliseconds: 10),
+      ); // časovni zamik med zajemi
     }
 
     setState(() {
@@ -90,7 +94,9 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
     final userId = prefs.getString('user_id') ?? '';
 
     // Endpoint za nalaganje slik
-    final uploadUri = Uri.parse('http://192.168.0.26:3001/api/2fa/setup/$userId');
+    final uploadUri = Uri.parse(
+      'http://192.168.0.242:3001/api/2fa/setup/$userId',
+    );
 
     final request = http.MultipartRequest('POST', uploadUri)
       ..headers['Authorization'] = 'Bearer $token';
@@ -118,13 +124,15 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
         _runRecognition(userId, token);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Napaka pri pošiljanju: ${response.statusCode}')),
+          SnackBar(
+            content: Text('Napaka pri pošiljanju: ${response.statusCode}'),
+          ),
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Napaka pri pošiljanju: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Napaka pri pošiljanju: $e')));
     } finally {
       setState(() => _isLoading = false);
     }
@@ -132,7 +140,9 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
 
   // Nova funkcija: pošljemo zahtevo na backend, da zažene recognition_model.py
   Future<void> _runRecognition(String userId, String token) async {
-    final recogUri = Uri.parse('http://192.168.0.26:3001/api/2fa/recognize/$userId');
+    final recogUri = Uri.parse(
+      'http://192.168.0.242:3001/api/2fa/recognize/$userId',
+    );
     try {
       final response = await http.post(
         recogUri,
@@ -144,12 +154,18 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
 
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Prepoznavanje obrazov sproženo uspešno.')),
+          const SnackBar(
+            content: Text('Prepoznavanje obrazov sproženo uspešno.'),
+          ),
         );
         // Lahko tu tudi navigirate nazaj ali storite kaj drugega
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Napaka pri sprožitvi prepoznave: ${response.statusCode}')),
+          SnackBar(
+            content: Text(
+              'Napaka pri sprožitvi prepoznave: ${response.statusCode}',
+            ),
+          ),
         );
       }
     } catch (e) {
@@ -168,9 +184,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
   @override
   Widget build(BuildContext context) {
     if (_cameraController == null || !_cameraController!.value.isInitialized) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
@@ -204,14 +218,22 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
                   ElevatedButton.icon(
                     onPressed: _isCapturing ? null : _captureMultipleImages,
                     icon: const Icon(Icons.camera),
-                    label: Text(_isCapturing ? 'Zajemanje ...' : 'Zajemi 100 slik'),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
+                    label: Text(
+                      _isCapturing ? 'Zajemanje ...' : 'Zajemi 100 slik',
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.teal,
+                    ),
                   ),
                   ElevatedButton.icon(
-                    onPressed: _capturedImages.isNotEmpty ? _uploadImages : null,
+                    onPressed: _capturedImages.isNotEmpty
+                        ? _uploadImages
+                        : null,
                     icon: const Icon(Icons.cloud_upload),
                     label: const Text('Pošlji slike'),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.blueGrey),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blueGrey,
+                    ),
                   ),
                 ],
               ),
