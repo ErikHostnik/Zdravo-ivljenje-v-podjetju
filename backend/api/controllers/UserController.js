@@ -165,7 +165,7 @@ module.exports = {
         }
     },
 
-   login: async function (req, res) {
+login: async function (req, res) {
         const { username, password, isMobile } = req.body;
 
         try {
@@ -175,11 +175,11 @@ module.exports = {
             }
 
             // 🔓 ZAČASNO: omogoči prijavo brez 2FA za vse (mobilne + spletne uporabnike)
-            const token = jwt.sign({ id: user._id }, secret, { expiresIn: '1h' });
-            return res.json({ user, token });
+           // const token = jwt.sign({ id: user._id }, secret, { expiresIn: '1h' });
+           // return res.json({ user, token });
 
             // 🔒 ORIGINALNA 2FA LOGIKA (za spletno aplikacijo) — trenutno zakomentirano:
-            /*
+
             if (isMobile) {
                 const token = jwt.sign({ id: user._id }, secret, { expiresIn: '1h' });
                 return res.json({ user, token });
@@ -215,7 +215,7 @@ module.exports = {
             console.error("Login Error:", err);
             return res.status(500).json({ message: 'Login error.', error: err.message });
         }
-    },
+    },*/ 
 
 
     /*login: async function (req, res) {
@@ -263,8 +263,8 @@ module.exports = {
             console.error("Login Error:", err);
             return res.status(500).json({ message: 'Login error.', error: err.message });
         }
-    },*/ 
-
+    },*/
+    
     logout: async function (req, res) {
         try {
             await req.session.destroy();

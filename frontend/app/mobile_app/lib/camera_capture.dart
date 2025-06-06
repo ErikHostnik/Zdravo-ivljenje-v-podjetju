@@ -14,7 +14,7 @@ class CameraCaptureScreen extends StatefulWidget {
 
 class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
   CameraController? _cameraController;
-  List<File> _capturedImages = [];
+  final List<File> _capturedImages = [];
   bool _isLoading = false;
   bool _isCapturing = false;
 
@@ -90,7 +90,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
     final userId = prefs.getString('user_id') ?? '';
 
     // Endpoint za nalaganje slik
-    final uploadUri = Uri.parse('http://192.168.0.11:3001/api/2fa/setup/$userId');
+    final uploadUri = Uri.parse('http://192.168.0.26:3001/api/2fa/setup/$userId');
 
     final request = http.MultipartRequest('POST', uploadUri)
       ..headers['Authorization'] = 'Bearer $token';
@@ -132,7 +132,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
 
   // Nova funkcija: pošljemo zahtevo na backend, da zažene recognition_model.py
   Future<void> _runRecognition(String userId, String token) async {
-    final recogUri = Uri.parse('http://192.168.0.11:3001/api/2fa/recognize/$userId');
+    final recogUri = Uri.parse('http://192.168.0.26:3001/api/2fa/recognize/$userId');
     try {
       final response = await http.post(
         recogUri,

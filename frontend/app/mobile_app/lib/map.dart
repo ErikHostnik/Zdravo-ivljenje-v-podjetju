@@ -5,7 +5,7 @@ import 'package:latlong2/latlong.dart';
 class SensorMapPage extends StatefulWidget {
   final List<LatLng> pathPoints;
 
-  const SensorMapPage({Key? key, required this.pathPoints}) : super(key: key);
+  const SensorMapPage({super.key, required this.pathPoints});
 
   @override
   State<SensorMapPage> createState() => _SensorMapPageState();

@@ -8,14 +8,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:camera/camera.dart';
 import 'package:path/path.dart' as path_lib;
-import 'package:path_provider/path_provider.dart';
 
 // Face Capture Screen ========================================================
 class FaceCaptureScreen extends StatefulWidget {
   final ValueChanged<String> onImageCaptured;
 
-  const FaceCaptureScreen({Key? key, required this.onImageCaptured})
-      : super(key: key);
+  const FaceCaptureScreen({super.key, required this.onImageCaptured});
 
   @override
   _FaceCaptureScreenState createState() => _FaceCaptureScreenState();
