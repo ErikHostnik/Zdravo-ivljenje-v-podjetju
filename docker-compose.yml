@@ -1,6 +1,6 @@
 version: '3.8'
-
 services:
+
   mosquitto:
     build:
       context: ./backend/mosquitto
@@ -34,25 +34,31 @@ services:
     restart: unless-stopped
 
   backend:
-    build: ./backend/api
+    build:
+      context: ./backend/api
+      dockerfile: Dockerfile
+    image: zdravoziv-backend:latest
     container_name: zdrv_backend
-    ports:
-      - "3001:3001"
     depends_on:
       - mongodb
       - mosquitto
       - mqttReceiver
+    ports:
+      - "3001:3001"
     environment:
       - MONGO_URI=mongodb+srv://root:hojladrijadrom@zdravozivpodjetja.1hunr7p.mongodb.net/?retryWrites=true&w=majority&appName=ZdravoZivPodjetja
     restart: unless-stopped
 
   frontend:
-    build: ./frontend/web
+    build:
+      context: ./frontend/web
+      dockerfile: Dockerfile
+    image: zdravoziv-frontend:latest
     container_name: zdrv_frontend
-    ports:
-      - "3000:80"
     depends_on:
       - backend
+    ports:
+      - "3000:80"
     restart: unless-stopped
 
 volumes:
