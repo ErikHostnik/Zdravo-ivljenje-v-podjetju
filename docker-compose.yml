@@ -39,6 +39,8 @@ services:
       - "3001:3001"
     depends_on:
       - mongodb
+      - mosquitto
+      - mqttReceiver
     environment:
       - MONGO_URI=mongodb+srv://root:hojladrijadrom@zdravozivpodjetja.1hunr7p.mongodb.net/?retryWrites=true&w=majority&appName=ZdravoZivPodjetja
 
