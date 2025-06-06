@@ -18,6 +18,12 @@ const UserSchema = new Schema({
       date: { type: Date, required: true },
       stepCount: { type: Number, default: 0 },
       distance: { type: Number, default: 0 },
+      avgSpeed: { type: Number, default: 0 },
+      minSpeed: { type: Number, default: 0 },
+      maxSpeed: { type: Number, default: 0 },
+      altitudeDistance: { type: Number, default: 0 }
+
+
     }
   ]
 });

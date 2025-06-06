@@ -1,5 +1,6 @@
 require('dotenv').config();
 const UserModel = require('../models/UserModel.js');
+const SensorDataModel = require('../models/SensorDataModel.js');
 const jwt = require('jsonwebtoken');
 const TwoFactorRequest = require('../models/TwoFactorRequestModel.js');
 const mqtt = require('mqtt');
@@ -70,8 +71,9 @@ module.exports = {
                 User.stepGoal = 10000; 
                 await User.save();
             }
+            const SensorData = await SensorDataModel.find({ user: id });
 
-            return res.json(User);
+            return res.json({ ...User.toObject(), sensorData: SensorData });
         } catch (err) {
             return res.status(500).json({
                 message: 'Error when getting User.',
@@ -120,7 +122,6 @@ module.exports = {
                     message: 'No such User'
                 });
             }
-
             User.name = req.body.name || User.name;
             User.email = req.body.email || User.email;
             User.stepCount = req.body.stepCount || User.stepCount;
@@ -174,11 +175,11 @@ login: async function (req, res) {
             }
 
             // 🔓 ZAČASNO: omogoči prijavo brez 2FA za vse (mobilne + spletne uporabnike)
-            const token = jwt.sign({ id: user._id }, secret, { expiresIn: '1h' });
-            return res.json({ user, token });
+           // const token = jwt.sign({ id: user._id }, secret, { expiresIn: '1h' });
+           // return res.json({ user, token });
 
             // 🔒 ORIGINALNA 2FA LOGIKA (za spletno aplikacijo) — trenutno zakomentirano:
-            /*
+
             if (isMobile) {
                 const token = jwt.sign({ id: user._id }, secret, { expiresIn: '1h' });
                 return res.json({ user, token });
@@ -214,7 +215,7 @@ login: async function (req, res) {
             console.error("Login Error:", err);
             return res.status(500).json({ message: 'Login error.', error: err.message });
         }
-    },
+    },*/ 
 
 
     /*login: async function (req, res) {
@@ -292,6 +293,57 @@ login: async function (req, res) {
         } catch (err) {
             console.error("verify2fa Error:", err);
             return res.status(500).json({ message: 'verify2fa error.', error: err.message });
+        }
+    },
+
+    activities: async function (req, res) {
+        try {
+        const userId = req.params.id;
+
+        // 1) Najprej najdemo vse SensorData zapise, ki pripadajo temu uporabniku.
+        //    Namesto findById + populate, raje kar direktno poiščemo SensorData po polju 'user'.
+        const sensorDataList = await SensorDataModel.find({ user: userId }).lean();
+        if (!sensorDataList || sensorDataList.length === 0) {
+            // Če ni nobenega zapisa, vrnemo prazen array (frontend bo tako vedel, da ni aktivnosti).
+            return res.json([]);
+        }
+
+        // 2) Strežnik pošlje “flattened” seznam vseh activity objektov.
+        const flattened = [];
+        sensorDataList.forEach(doc => {
+            // Za vsak SensorData dokument vzamemo njegov array doc.activity (ali prazen array, če ga ni)
+            const arr = Array.isArray(doc.activity) ? doc.activity : [];
+
+            arr.forEach(act => {
+            flattened.push({
+                timestamp: act.timestamp || doc.timestamp,      // če slučajno act.timestamp manjka, uporabimo doc.timestamp
+                steps: act.steps || 0,
+                speed: act.speed || 0,
+                temperature: typeof act.temperature === 'number'
+                ? act.temperature
+                : 0,
+                latitude: act.latitude ?? null,
+                longitude: act.longitude ?? null,
+                altitude: act.altitude ?? null,
+                // Vstavimo še objekt 'weather' iz vrhnjega SensorData dokumenta:
+                weather: {
+                temperature:
+                    doc.weather && typeof doc.weather.temperature === 'number'
+                    ? doc.weather.temperature
+                    : null,
+                conditions: doc.weather?.conditions || ''
+                }
+            });
+            });
+        });
+
+        // 3) Po želji lahko sortiramo po timestamp-u (naraščajoče):
+        flattened.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+        return res.json(flattened);
+        } catch (err) {
+        console.error('Napaka pri pridobivanju in flattenanju aktivnosti:', err);
+        return res.status(500).json({ message: 'Napaka pri pridobivanju aktivnosti' });
         }
     },
 };

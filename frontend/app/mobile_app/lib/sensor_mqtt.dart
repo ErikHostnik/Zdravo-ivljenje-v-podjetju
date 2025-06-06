@@ -27,6 +27,8 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
   static const broker = '192.168.0.26';
   static const port = 1883;
   static const topic = 'sensors/test';
+  final _maxPathPoints = 5000;
+
 
   static const _heartbeatPrefix = 'status/heartbeat/';
   static const _heartbeatTopic = 'status/heartbeat/#';
@@ -44,7 +46,8 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
   String? _userId;
 
   double _prevMagnitude = 0;
-  final int _stepThreshold = 12;
+  int _stepThreshold = 18;
+
   bool _stepDetected = false;
 
   @override
