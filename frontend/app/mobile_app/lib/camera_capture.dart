@@ -68,7 +68,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
       _capturedImages.clear(); // počisti stare slike pred zajemom
     });
 
-    for (int i = 0; i < 100; i++) {
+    for (int i = 0; i < 5; i++) {
       final image = await _captureSingleImage();
       if (image != null) {
         setState(() {
@@ -226,9 +226,8 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
                     ),
                   ),
                   ElevatedButton.icon(
-                    onPressed: _capturedImages.isNotEmpty
-                        ? _uploadImages
-                        : null,
+                    onPressed:
+                        _capturedImages.isNotEmpty ? _uploadImages : null,
                     icon: const Icon(Icons.cloud_upload),
                     label: const Text('Pošlji slike'),
                     style: ElevatedButton.styleFrom(
