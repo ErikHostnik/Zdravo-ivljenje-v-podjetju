@@ -1,6 +1,16 @@
 version: '3.8'
 
 services:
+  mosquitto:
+    build:
+      context: ./backend/mosquitto
+      dockerfile: Dockerfile
+    image: custom-mosquitto:2.0.21
+    container_name: zdrv_mosquitto
+    ports:
+      - "1883:1883"
+    restart: unless-stopped
+
   mongodb:
     image: mongo:latest
     container_name: mongodb
