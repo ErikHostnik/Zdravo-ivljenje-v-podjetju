@@ -90,7 +90,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
     final userId = prefs.getString('user_id') ?? '';
 
     // Endpoint za nalaganje slik
-    final uploadUri = Uri.parse('http://192.168.0.26:3001/api/2fa/setup/$userId');
+    final uploadUri = Uri.parse('http://192.168.0.11:3001/api/2fa/setup/$userId');
 
     final request = http.MultipartRequest('POST', uploadUri)
       ..headers['Authorization'] = 'Bearer $token';
