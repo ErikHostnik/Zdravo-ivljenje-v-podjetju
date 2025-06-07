@@ -43,4 +43,22 @@ describe("User API testi", () => {
     expect(res.statusCode).toBe(200);
   });
 
+  it("ne uspe prijava z napačnim geslom", async () => {
+    await User.create({
+      username: "testuser",
+      email: "test@example.com",
+      password: "pravilnoGeslo"
+    });
+
+    const res = await request(app)
+      .post("/api/users/login")
+      .send({
+        username: "testuser",
+        password: "napačnoGeslo"
+      });
+
+    expect(res.statusCode).toBe(401); 
+    expect(res.body.message).toMatch(/geslo.*napačno/i);
+  });
+
 });
