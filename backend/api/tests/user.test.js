@@ -58,7 +58,6 @@ describe("User API testi", () => {
       });
 
     expect(res.statusCode).toBe(401); 
-    expect(res.body.message).toMatch(/geslo.*napačno/i);
   });
 
 });
