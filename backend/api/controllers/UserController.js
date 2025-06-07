@@ -173,14 +173,13 @@ module.exports = {
             if (!user) {
                 return res.status(401).json({ message: 'Invalid credentials.' });
             }
+            //Zaasna prijava za testiranje spletne aplikacije (brez 2FA):
+           const token = jwt.sign({ id: user._id }, secret, { expiresIn: '1h' });
+           return res.json({ user, token });
 
-            // 🔓 ZAČASNO: omogoči prijavo brez 2FA za vse (mobilne + spletne uporabnike)
-           // const token = jwt.sign({ id: user._id }, secret, { expiresIn: '1h' });
-           // return res.json({ user, token });
+            //  ORIGINALNA 2FA LOGIKA (za spletno aplikacijo) — trenutno zakomentirano:
 
-            // 🔒 ORIGINALNA 2FA LOGIKA (za spletno aplikacijo) — trenutno zakomentirano:
-
-            if (isMobile) {
+            /*if (isMobile) {
                 const token = jwt.sign({ id: user._id }, secret, { expiresIn: '1h' });
                 return res.json({ user, token });
             }
@@ -209,7 +208,7 @@ module.exports = {
             return res.json({
                 pending2FA: true,
                 twoFactorRequestId: twoFa._id
-            });
+            }); */
             
         } catch (err) {
             console.error("Login Error:", err);
