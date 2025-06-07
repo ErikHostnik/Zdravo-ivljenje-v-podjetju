@@ -3,8 +3,6 @@ import numpy as np
 import os
 import sys
 
-
-
 input_folder = sys.argv[1]
 os.makedirs(input_folder, exist_ok=True)
 
