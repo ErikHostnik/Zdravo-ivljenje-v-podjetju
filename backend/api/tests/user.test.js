@@ -30,7 +30,6 @@ describe("User API testi", () => {
   });
 
   it("prijavi obstoječega uporabnika", async () => {
-    // Najprej ustvarimo uporabnika
     await User.create({
       username: "testuser",
       email: "test@example.com",
