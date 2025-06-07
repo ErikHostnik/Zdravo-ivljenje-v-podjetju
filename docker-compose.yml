@@ -66,13 +66,13 @@ services:
     image: zdravoziv-mobile-builder:latest
     container_name: mobile_builder
     volumes:
-      - ./frontend/app/mobile_app:/app
       - ./apk_output:/output
     command: >
       bash -c "
+        cd /app &&
         flutter pub get &&
         flutter build apk --release &&
-        cp /app/build/app/outputs/flutter-apk/app-release.apk /output/app-release.apk &&
+        cp build/app/outputs/flutter-apk/app-release.apk /output/app-release.apk &&
         chmod a+rw /output/app-release.apk
       "
     restart: "no"
