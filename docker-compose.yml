@@ -9,23 +9,74 @@ services:
     volumes:
       - mongo-data:/data/db
 
+  mosquitto:
+    build:
+      context: ./backend/mosquitto
+      dockerfile: Dockerfile
+    image: custom-mosquitto:2.0.21
+    container_name: mosquitto
+    ports:
+      - "1883:1883"
+    restart: unless-stopped
+
+  mqttReceiver:
+    build:
+      context: ./backend/mqttReceiver
+      dockerfile: Dockerfile
+    image: custom-mqtt-receiver:latest
+    container_name: mqttReceiver
+    depends_on:
+      - mosquitto
+    environment:
+      - MQTT_HOST=mosquitto
+      - MQTT_PORT=1883
+    restart: unless-stopped
+
   backend:
-    build: ./backend/api
+    build:
+      context: ./backend/api
+      dockerfile: Dockerfile
+    image: zdravoziv-backend:latest
     container_name: zdravoziv-backend
     ports:
       - "3001:3001"
     depends_on:
       - mongodb
+      - mosquitto
     environment:
       - MONGO_URI=mongodb+srv://root:hojladrijadrom@zdravozivpodjetja.1hunr7p.mongodb.net/?retryWrites=true&w=majority&appName=ZdravoZivPodjetja
+    restart: unless-stopped
 
   frontend:
-    build: ./frontend/web
+    build:
+      context: ./frontend/web
+      dockerfile: Dockerfile
+    image: zdravoziv-frontend:latest
     container_name: zdravoziv-frontend
     ports:
-      - "3000:80"
+      - "3000:3000"
     depends_on:
       - backend
+    restart: unless-stopped
+
+  mobile_builder:
+    build:
+      context: ./frontend/app/mobile_app
+      dockerfile: Dockerfile
+    image: zdravoziv-mobile-builder:latest
+    container_name: mobile_builder
+    volumes:
+      - ./apk_output:/output
+    command: >
+      bash -c "
+        cd /app &&
+        flutter pub get &&
+        flutter build apk --release &&
+        cp build/app/outputs/flutter-apk/app-release.apk /output/app-release.apk &&
+        chmod a+rw /output/app-release.apk
+      "
+    restart: "no"
 
 volumes:
   mongo-data:
+  apk_output:
