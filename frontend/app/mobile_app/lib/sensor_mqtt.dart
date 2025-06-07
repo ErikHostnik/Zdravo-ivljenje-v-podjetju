@@ -39,7 +39,6 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
   Timer? _heartbeatCleanupTimer;
   Timer? _heartbeatPublishTimer;
 
-  final _maxPathPoints = 1000;
   bool _isPublishing = false;
   final List<Map<String, dynamic>> _collectedData = [];
   final List<LatLng> _path = [];
