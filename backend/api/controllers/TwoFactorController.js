@@ -246,34 +246,53 @@ module.exports = {
       const cmd = `python "${scriptPath}" --model "${modelPath}" --image "${verifyPath}"`;
 
       exec(cmd, async (error, stdout, stderr) => {
+        console.log("STDOUT:", stdout);
+        console.log("STDERR:", stderr);
+
+        // Odstrani začasne datoteke
         fs.unlinkSync(imageFile.path);
         fs.unlinkSync(verifyPath);
 
-        if (error) {
-          return res.status(500).json({ success: false, message: "Napaka pri preverjanju obraza", error: error.message });
+        // Iz vzorca preberemo samo zadnjo JSON vrstico
+        const lines = stdout.trim().split(/\r?\n/);
+        const jsonLine = lines[lines.length - 1];
+
+        let result;
+        try {
+          result = JSON.parse(jsonLine);
+        } catch (parseErr) {
+          console.error('Neveljaven JSON iz Python skripta:', jsonLine);
+          return res.status(500).json({ success: false, message: "Napaka pri obdelavi rezultatov", error: parseErr.message });
         }
 
-        try {
-          const result = JSON.parse(stdout);
+        // Če Python skript vrne lastno napako
+        if (result.error) {
+          return res.status(500).json({ success: false, message: result.error });
+        }
 
-          const request = await TwoFactorRequest.findById(twoFaId);
-          if (!request) {
-            return res.status(404).json({ success: false, message: "2FA zahteva ne obstaja." });
-          }
+        // Če je proces Python-a vrnil exit kodo != 0, a imamo veljaven rezultat, ignoriraj error
+        if (error) {
+          console.warn("Python proces se ni končal z 0, a rezultat je OK:", error.message);
+        }
 
-          if (result.match) {
-            request.approved = true;
-            await request.save();
-            return res.json({ success: true, match: true, confidence: result.confidence, label: result.label });
-          } else {
-            request.rejected = true;
-            await request.save();
-            return res.status(401).json({ success: false, match: false, message: "Preverjanje obraza ni uspelo", confidence: result.confidence });
-          }
-        } catch (parseError) {
-          return res.status(500).json({ success: false, message: "Napaka pri obdelavi rezultatov", error: parseError.message, raw: stdout });
+        // Poišči in shrani 2FA zahtevo
+        const request = await TwoFactorRequest.findById(twoFaId);
+        if (!request) {
+          return res.status(404).json({ success: false, message: "2FA zahteva ne obstaja." });
+        }
+
+        // Odločanje na podlagi `match`
+        if (result.match) {
+          request.approved = true;
+          await request.save();
+          return res.json({ success: true, match: true, confidence: result.confidence, label: result.label });
+        } else {
+          request.rejected = true;
+          await request.save();
+          return res.status(401).json({ success: false, match: false, message: "Preverjanje obraza ni uspelo", confidence: result.confidence });
         }
       });
+
     } catch (err) {
       return res.status(500).json({ success: false, message: "Napaka pri preverjanju obraza", error: err.message });
     }

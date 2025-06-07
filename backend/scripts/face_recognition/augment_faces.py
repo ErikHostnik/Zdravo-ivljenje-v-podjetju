@@ -32,6 +32,14 @@ def add_salt_pepper_noise(image, amount=0.01):
 
     return noisy
 
+def rotate_image(image, angle_range=(-15, 15)):
+    angle = random.uniform(angle_range[0], angle_range[1])  # Naključni kot rotacije
+    (h, w) = image.shape[:2]
+    center = (w // 2, h // 2)
+    M = cv.getRotationMatrix2D(center, angle, 1.0)
+    rotated = cv.warpAffine(image, M, (w, h), borderMode=cv.BORDER_REPLICATE)
+    return rotated
+
 def color_jitter_grayscale(image):
     # Naključno spremeni kontrast med 0.7 in 1.3
     contrast_factor = random.uniform(0.7, 1.3)
