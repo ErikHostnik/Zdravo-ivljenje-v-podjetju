@@ -6,7 +6,7 @@ RUN npm install
 COPY . .
 RUN npm run build
 
-FROM node:18-alpine AS production
+FROM node:18 AS production
 
 WORKDIR /app
 RUN npm install -g serve

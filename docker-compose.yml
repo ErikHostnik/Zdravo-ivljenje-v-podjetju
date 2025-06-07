@@ -65,13 +65,17 @@ services:
       dockerfile: Dockerfile
     image: zdravoziv-mobile-builder:latest
     container_name: mobile_builder
-    # na lokalni mapi ./apk_output bo shranjen app-release.apk
     volumes:
-      - ./apk_output:/out
-    entrypoint: ["sh", "-c"]
+      - ./frontend/app/mobile_app:/app
+      - ./apk_output:/output
     command: >
-      flutter build apk --release &&
-      cp build/app/outputs/flutter-apk/app-release.apk /out/app-release.apk
+      bash -c "
+        flutter pub get &&
+        flutter build apk --release &&
+        cp /app/build/app/outputs/flutter-apk/app-release.apk /output/app-release.apk &&
+        chmod a+rw /output/app-release.apk
+      "
+    restart: "no"
 
 volumes:
   mongo-data:
