@@ -5,11 +5,16 @@ const fs = require('fs');
 const { exec } = require('child_process');
 const multer = require('multer');
 
-// Multer za začasno shranjevanje slik v uploads/tmp/
+// Detect if the application is running inside Docker
+const isDocker = process.env.IS_DOCKER === 'true';
+
+// Base path adjustments for Docker vs local
+const basePath = isDocker ? '/usr/src/app' : __dirname;
+
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     const userId = req.body.user || req.params.userId;
-    const tmpDir = path.join(__dirname, '../../uploads/tmp', userId);
+    const tmpDir = path.join(basePath, 'uploads/tmp', userId);  // Adjusted path for Docker/local
     fs.mkdirSync(tmpDir, { recursive: true });
     cb(null, tmpDir);
   },
@@ -54,8 +59,8 @@ module.exports = {
       }
 
       const userId = req.body.user || req.params.userId;
-      const tmpDir = path.join(__dirname, '../../uploads/tmp', userId);
-      const dataDir = path.join(__dirname, '../../scripts/face_recognition/data', userId);
+      const tmpDir = path.join(basePath, 'uploads/tmp', userId);  // Adjusted path for Docker/local
+      const dataDir = path.join(basePath, 'scripts/face_recognition/data', userId);  // Adjusted path for Docker/local
 
       // Ustvari direktorij za dataDir, če obstaja ga pobriši najprej
       if (fs.existsSync(dataDir)) {
@@ -77,7 +82,7 @@ module.exports = {
       }
 
       // Klic Python pipeline skripte za obdelavo slik
-      const scriptPath = path.join(__dirname, '../../scripts/face_recognition/process_pipeline.py');
+      const scriptPath = path.join(basePath, 'scripts/face_recognition/process_pipeline.py');  // Adjusted path for Docker/local
       const cmd = `python "${scriptPath}" "${dataDir}"`;
 
       exec(cmd, (error, stdout, stderr) => {
@@ -194,9 +199,9 @@ module.exports = {
       // }
 
       // Sestavite pot do mape, kjer so že obdelane (augmentirane) slike:
-      const dataDir = path.join(__dirname, '../../scripts/face_recognition/data', userId);
+      const dataDir = path.join(basePath, 'scripts/face_recognition/data', userId);  // Adjusted path for Docker/local
       // Pot do Python skripte:
-      const scriptPath = path.join(__dirname, '../../scripts/face_recognition/recognition_model.py');
+      const scriptPath = path.join(basePath, 'scripts/face_recognition/recognition_model.py');  // Adjusted path for Docker/local
 
       // Prepričajte se, da mapa dataDir obstaja:
       if (!fs.existsSync(dataDir)) {
@@ -246,11 +251,7 @@ module.exports = {
         return res.status(400).json({ success: false, message: "twoFaId je obvezen parameter." });
       }
 
-      const modelPath = path.join(
-        __dirname,
-        '../../scripts/face_recognition/models',
-        `${userId}.yml`
-      );
+      const modelPath = path.join(basePath, 'scripts/face_recognition/models', `${userId}.yml`);  // Adjusted path for Docker/local
       console.log('📂 Model Path:', modelPath);
 
       if (!fs.existsSync(modelPath)) {
@@ -258,17 +259,14 @@ module.exports = {
         return res.status(400).json({ success: false, message: "Model za to osebo ne obstaja." });
       }
 
-      const verifyDir = path.join(__dirname, '../../uploads/verify');
+      const verifyDir = path.join(basePath, 'uploads/verify');  // Adjusted path for Docker/local
       fs.mkdirSync(verifyDir, { recursive: true });
       const verifyPath = path.join(verifyDir, `${userId}_verify.jpg`);
       fs.copyFileSync(imageFile.path, verifyPath);
 
       console.log('🖼️ Shranjena začasna slika na:', verifyPath);
 
-      const scriptPath = path.join(
-        __dirname,
-        '../../scripts/face_recognition/verify_face.py'
-      );
+      const scriptPath = path.join(basePath, 'scripts/face_recognition/verify_face.py');  // Adjusted path for Docker/local
       const cmd = `python "${scriptPath}" --model "${modelPath}" --image "${verifyPath}"`;
       console.log('🚀 Klic Python skripte:', cmd);
 

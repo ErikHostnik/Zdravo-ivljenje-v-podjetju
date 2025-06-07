@@ -13,13 +13,14 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-MONGO_URI = os.getenv("MONGODB_URI")
+MONGO_URI = os.getenv("MONGO_URI")
 BROKER_HOST = os.getenv("BROKER_HOST")
 BROKER_PORT = int(os.getenv("BROKER_PORT"))
 TOPIC = os.getenv("TOPIC")
 TWO_FA_TOPIC_PREFIX = os.getenv("TWO_FA_TOPIC_PREFIX")
 
-HEARTBEAT_TOPIC_PREFIX = os.getenv("HEARTBEAT_TOPIC_PREFIX", "status/heartbeat/")
+HEARTBEAT_TOPIC_PREFIX = os.getenv(
+    "HEARTBEAT_TOPIC_PREFIX", "status/heartbeat/")
 
 HEARTBEAT_TIMEOUT_SECONDS = int(os.getenv("HEARTBEAT_TIMEOUT_SECONDS", "90"))
 
@@ -43,7 +44,8 @@ def calculate_total_steps_and_distance(session):
         lat = entry.get("latitude")
         lon = entry.get("longitude")
         if prev_point and lat is not None and lon is not None:
-            lon1, lat1, lon2, lat2 = map(radians, [prev_point["lon"], prev_point["lat"], lon, lat])
+            lon1, lat1, lon2, lat2 = map(
+                radians, [prev_point["lon"], prev_point["lat"], lon, lat])
             dlon = lon2 - lon1
             dlat = lat2 - lat1
             a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
@@ -58,7 +60,8 @@ def calculate_total_steps_and_distance(session):
 
 
 def update_daily_stats(user_id, steps, distance):
-    today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    today = datetime.now(timezone.utc).replace(
+        hour=0, minute=0, second=0, microsecond=0)
 
     user_collection.update_one(
         {"_id": user_id},
@@ -85,7 +88,8 @@ def update_daily_stats(user_id, steps, distance):
 
 def call_scraper(lat, lon):
     try:
-        script_path = os.path.join(os.path.dirname(__file__), '..', 'scripts', 'weather-scrapper.js')
+        script_path = os.path.join(os.path.dirname(
+            __file__), '..', 'scripts', 'weather-scrapper.js')
         result = subprocess.run(
             ["node", script_path, str(lat), str(lon)],
             capture_output=True, text=True, check=True
@@ -120,7 +124,8 @@ def on_message(client, userdata, msg):
                 data = json.loads(payload_raw)
                 ts_str = data.get("timestamp")
                 if ts_str:
-                    last_hbt = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
+                    last_hbt = datetime.fromisoformat(
+                        ts_str.replace("Z", "+00:00"))
                 else:
                     last_hbt = datetime.now(timezone.utc)
             except Exception:
@@ -128,7 +133,8 @@ def on_message(client, userdata, msg):
 
             with active_users_lock:
                 active_users[user_id] = last_hbt
-            print(f"[HEARTBEAT] Prejet od {user_id}, čas: {last_hbt.isoformat()}")
+            print(
+                f"[HEARTBEAT] Prejet od {user_id}, čas: {last_hbt.isoformat()}")
             return
 
         if topic.startswith(TWO_FA_TOPIC_PREFIX):
@@ -161,7 +167,8 @@ def on_message(client, userdata, msg):
 
         if session:
             last_point = session[-1]
-            weather = call_scraper(last_point.get("latitude"), last_point.get("longitude"))
+            weather = call_scraper(last_point.get(
+                "latitude"), last_point.get("longitude"))
             if weather:
                 session_data["weather"] = weather
 
@@ -171,7 +178,8 @@ def on_message(client, userdata, msg):
         if user_id:
             steps, distance = calculate_total_steps_and_distance(session)
             update_daily_stats(ObjectId(user_id), steps, distance)
-            print(f"Statistika posodobljena – Koraki: {steps}, Razdalja: {distance:.2f} km")
+            print(
+                f"Statistika posodobljena – Koraki: {steps}, Razdalja: {distance:.2f} km")
 
             user_collection.update_one(
                 {"_id": ObjectId(user_id)},
@@ -196,7 +204,8 @@ def remove_inactive_users():
                 to_remove.append(user_id)
 
         for user_id in to_remove:
-            print(f"[HEARTBEAT] Odstranjujem neaktivnega uporabnika: {user_id}")
+            print(
+                f"[HEARTBEAT] Odstranjujem neaktivnega uporabnika: {user_id}")
             del active_users[user_id]
 
 
@@ -210,7 +219,8 @@ def monitor_active_users():
         remove_inactive_users()
         with active_users_lock:
             trenutni = list(active_users.keys())
-        print(f"[HEARTBEAT] Trenutno aktivni uporabniki ({len(trenutni)}): {trenutni}")
+        print(
+            f"[HEARTBEAT] Trenutno aktivni uporabniki ({len(trenutni)}): {trenutni}")
 
 
 def main():
