@@ -3,6 +3,8 @@ FROM node:18-alpine
 WORKDIR /usr/src/app
 
 RUN apk add --no-cache python3 py3-pip
+RUN apk add --no-cache --virtual .build-deps gcc musl-dev libffi-dev
+RUN apk add --no-cache opencv
 
 COPY ./api/package*.json ./
 
