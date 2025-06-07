@@ -61,7 +61,7 @@ describe("User API testi", () => {
   it('posodobi uporabnikove podatke', async () => {
       const user = await User.findOne({ username: 'eriktester' });
 
-      const res = await request(app).put(`/users/${user._id}`).send({
+      const res = await request(app).put(`/api/users/${user._id}`).send({
           stepCount: 5000,
           distance: 4.2
       });
