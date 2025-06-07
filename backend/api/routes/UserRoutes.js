@@ -14,7 +14,6 @@ router.get('/logout', UserController.logout);
  * GET
  */
 router.get('/:id',authJWT, UserController.show);
-router.get('/:id/activities', authJWT, UserController.activities);
 
 
 /*
