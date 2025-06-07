@@ -2,6 +2,7 @@ const request = require("supertest");
 const mongoose = require("mongoose");
 const app = require("../api"); // tvoja Express aplikacija
 const User = require("../models/User"); // tvoja Mongoose shema za User
+require("dotenv").config();
 
 describe("User API testi", () => {
 
@@ -17,7 +18,7 @@ describe("User API testi", () => {
 
   it("ustvari novega uporabnika", async () => {
     const res = await request(app)
-      .post("/api/users/register")  // prilagodi, če imaš drugačno pot
+      .post("/api/users/register")  
       .send({
         username: "testuser",
         email: "test@example.com",
@@ -29,15 +30,15 @@ describe("User API testi", () => {
   });
 
   it("prijavi obstoječega uporabnika", async () => {
-    // Najprej ustvarimo uporabnika (lahko ga ustvariš direktno v bazi)
+    // Najprej ustvarimo uporabnika
     await User.create({
       username: "testuser",
       email: "test@example.com",
-      password: "test123" // Če imaš hash v shemi, uporabi pravi hash ali prilagodi test
+      password: "test123"
     });
 
     const res = await request(app)
-      .post("/api/users/login")  // prilagodi po potrebi
+      .post("/api/users/login")  
       .send({
         email: "test@example.com",
         password: "test123"
