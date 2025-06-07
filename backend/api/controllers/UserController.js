@@ -295,54 +295,5 @@ module.exports = {
         }
     },
 
-    activities: async function (req, res) {
-        try {
-        const userId = req.params.id;
-
-        // 1) Najprej najdemo vse SensorData zapise, ki pripadajo temu uporabniku.
-        //    Namesto findById + populate, raje kar direktno poiščemo SensorData po polju 'user'.
-        const sensorDataList = await SensorDataModel.find({ user: userId }).lean();
-        if (!sensorDataList || sensorDataList.length === 0) {
-            // Če ni nobenega zapisa, vrnemo prazen array (frontend bo tako vedel, da ni aktivnosti).
-            return res.json([]);
-        }
-
-        // 2) Strežnik pošlje “flattened” seznam vseh activity objektov.
-        const flattened = [];
-        sensorDataList.forEach(doc => {
-            // Za vsak SensorData dokument vzamemo njegov array doc.activity (ali prazen array, če ga ni)
-            const arr = Array.isArray(doc.activity) ? doc.activity : [];
-
-            arr.forEach(act => {
-            flattened.push({
-                timestamp: act.timestamp || doc.timestamp,      // če slučajno act.timestamp manjka, uporabimo doc.timestamp
-                steps: act.steps || 0,
-                speed: act.speed || 0,
-                temperature: typeof act.temperature === 'number'
-                ? act.temperature
-                : 0,
-                latitude: act.latitude ?? null,
-                longitude: act.longitude ?? null,
-                altitude: act.altitude ?? null,
-                // Vstavimo še objekt 'weather' iz vrhnjega SensorData dokumenta:
-                weather: {
-                temperature:
-                    doc.weather && typeof doc.weather.temperature === 'number'
-                    ? doc.weather.temperature
-                    : null,
-                conditions: doc.weather?.conditions || ''
-                }
-            });
-            });
-        });
-
-        // 3) Po želji lahko sortiramo po timestamp-u (naraščajoče):
-        flattened.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-
-        return res.json(flattened);
-        } catch (err) {
-        console.error('Napaka pri pridobivanju in flattenanju aktivnosti:', err);
-        return res.status(500).json({ message: 'Napaka pri pridobivanju aktivnosti' });
-        }
-    },
+    
 };
