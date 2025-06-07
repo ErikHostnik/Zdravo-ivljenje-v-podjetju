@@ -57,6 +57,16 @@ try:
     threshold = 90  # Prilagodi po potrebi
     match = confidence <= threshold
 
+    result_json = json.dumps({
+    "match": match,
+    "confidence": float(confidence),
+    "label": int(label)
+    })
+    print(result_json)  # izpiše JSON
+    # Zapiši tudi v datoteko za lažje debugiranje
+    with open("debug_output.json", "w") as f:
+        f.write(result_json)
+
     # Rezultat v JSON obliki
     print(json.dumps({
         "match": match,
