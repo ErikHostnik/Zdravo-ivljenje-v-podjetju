@@ -59,7 +59,7 @@ describe("User API testi", () => {
   });
 
   it('posodobi uporabnikove podatke', async () => {
-      const user = await UserModel.findOne({ username: 'eriktester' });
+      const user = await User.findOne({ username: 'eriktester' });
 
       const res = await request(app).put(`/users/${user._id}`).send({
           stepCount: 5000,
