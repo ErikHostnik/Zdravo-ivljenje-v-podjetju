@@ -11,7 +11,7 @@ services:
 
   mosquitto:
     build:
-      context: ./mosquitto
+      context: ./backend/mosquitto
       dockerfile: Dockerfile
     image: custom-mosquitto:2.0.21
     container_name: mosquitto
@@ -21,7 +21,7 @@ services:
 
   mqttReceiver:
     build:
-      context: ./mqttReceiver
+      context: ./backend/mqttReceiver
       dockerfile: Dockerfile
     image: custom-mqtt-receiver:latest
     container_name: mqttReceiver
@@ -54,7 +54,7 @@ services:
     image: zdravoziv-frontend:latest
     container_name: zdravoziv-frontend
     ports:
-      - "3000:80"
+      - "3000:3000"
     depends_on:
       - backend
     restart: unless-stopped
