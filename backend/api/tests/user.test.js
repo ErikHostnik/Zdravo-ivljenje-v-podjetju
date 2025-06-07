@@ -39,7 +39,7 @@ describe("User API testi", () => {
     const res = await request(app)
       .post("/api/users/login")  
       .send({
-        email: "test@example.com",
+        email: "testuser",
         password: "test123"
       });
     expect(res.statusCode).toBe(200);
