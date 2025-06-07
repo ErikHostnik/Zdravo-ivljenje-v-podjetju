@@ -281,19 +281,36 @@ module.exports = {
 
     verify2fa: async (req, res) => {
     const { requestId } = req.body;
-        try {
-            const req2FA = await TwoFactorRequest.findById(requestId).populate('user');
-            if (!req2FA) return res.status(404).json({ message: '2FA request not found.' });
+    console.log('[verify2fa] Prejeto requestId:', requestId);
 
-            if (req2FA.rejected) return res.status(403).json({ message: 'Access denied.' });
-            if (!req2FA.approved)  return res.json({ pending: true });
+    try {
+        const req2FA = await TwoFactorRequest
+        .findById(requestId)
+        .populate('user');
+        console.log('[verify2fa] Najdena 2FA zahteva:', req2FA);
 
-            const token = jwt.sign({ id: req2FA.user._id }, secret, { expiresIn: '1h' });
-            return res.json({ user: req2FA.user, token });
-        } catch (err) {
-            console.error("verify2fa Error:", err);
-            return res.status(500).json({ message: 'verify2fa error.', error: err.message });
+        if (!req2FA) {
+        console.log('[verify2fa] 2FA request ni najden.');
+        return res.status(404).json({ message: '2FA request not found.' });
         }
+        if (req2FA.rejected) {
+        console.log('[verify2fa] Zahteva že zavrnjena.');
+        return res.status(403).json({ message: 'Access denied.' });
+        }
+        if (!req2FA.approved)  {
+        console.log('[verify2fa] Zahteva še ni potrjena – pending.');
+        return res.json({ pending: true });
+        }
+
+        console.log('[verify2fa] Zahteva odobrena, generiram JWT...');
+        const token = jwt.sign({ id: req2FA.user._id }, secret, { expiresIn: '1h' });
+        console.log('[verify2fa] Token:', token);
+
+        return res.json({ user: req2FA.user, token });
+    } catch (err) {
+        console.error('[verify2fa] Napaka:', err);
+        return res.status(500).json({ message: 'verify2fa error.', error: err.message });
+    }
     },
 
     activities: async function (req, res) {

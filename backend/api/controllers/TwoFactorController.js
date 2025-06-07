@@ -229,52 +229,78 @@ module.exports = {
       const twoFaId = req.body.twoFaId;
       const imageFile = req.file;
 
-      if (!imageFile) return res.status(400).json({ success: false, message: "Slika ni bila poslana." });
-      if (!twoFaId) return res.status(400).json({ success: false, message: "twoFaId je obvezen parameter." });
+      console.log('[verifyFace] userId:', userId, 'twoFaId:', twoFaId);
+      if (!imageFile) {
+        console.log('[verifyFace] Ni slike v req.file');
+        return res.status(400).json({ success: false, message: "Slika ni bila poslana." });
+      }
 
-      const modelPath = path.join(__dirname, '../../scripts/face_recognition/models', `${userId}.yml`);
+      // Pot do modela
+      const modelPath = path.join(
+        __dirname, '../../scripts/face_recognition/models',
+        `${userId}.yml`
+      );
+      console.log('[verifyFace] Model path:', modelPath);
       if (!fs.existsSync(modelPath)) {
+        console.log('[verifyFace] Model ne obstaja za tega uporabnika');
         return res.status(400).json({ success: false, message: "Model za to osebo ne obstaja." });
       }
 
+      // Priprava slike za preverjanje
       const verifyDir = path.join(__dirname, '../../uploads/verify');
       fs.mkdirSync(verifyDir, { recursive: true });
       const verifyPath = path.join(verifyDir, `${userId}_verify.jpg`);
       fs.copyFileSync(imageFile.path, verifyPath);
+      console.log('[verifyFace] Shranjena začasna slika za preverjanje:', verifyPath);
 
+      // Poženemo Python skripto
       const scriptPath = path.join(__dirname, '../../scripts/face_recognition/verify_face.py');
       const cmd = `python "${scriptPath}" --model "${modelPath}" --image "${verifyPath}"`;
+      console.log('[verifyFace] Ukaz za exec:', cmd);
 
       exec(cmd, async (error, stdout, stderr) => {
+        // Po koncu skripte
+        console.log('[verifyFace][exec] stderr:', stderr);
+        console.log('[verifyFace][exec] stdout:', stdout);
+
+        // počisti temp slike
         fs.unlinkSync(imageFile.path);
         fs.unlinkSync(verifyPath);
 
         if (error) {
+          console.error('[verifyFace][exec] Napaka pri exec:', error);
           return res.status(500).json({ success: false, message: "Napaka pri preverjanju obraza", error: error.message });
         }
 
         try {
           const result = JSON.parse(stdout);
+          console.log('[verifyFace] Parsed result:', result);
 
           const request = await TwoFactorRequest.findById(twoFaId);
+          console.log('[verifyFace] Najdena 2FA zahteva:', request);
           if (!request) {
+            console.log('[verifyFace] 2FA zahteva ne obstaja');
             return res.status(404).json({ success: false, message: "2FA zahteva ne obstaja." });
           }
 
           if (result.match) {
+            console.log('[verifyFace] Ujemanje uspešno, confidence =', result.confidence);
             request.approved = true;
             await request.save();
             return res.json({ success: true, match: true, confidence: result.confidence, label: result.label });
           } else {
+            console.log('[verifyFace] Ujemanje neuspešno, confidence =', result.confidence);
             request.rejected = true;
             await request.save();
             return res.status(401).json({ success: false, match: false, message: "Preverjanje obraza ni uspelo", confidence: result.confidence });
           }
         } catch (parseError) {
+          console.error('[verifyFace] Napaka pri parse JSON:', parseError);
           return res.status(500).json({ success: false, message: "Napaka pri obdelavi rezultatov", error: parseError.message, raw: stdout });
         }
       });
     } catch (err) {
+      console.error('[verifyFace] General error:', err);
       return res.status(500).json({ success: false, message: "Napaka pri preverjanju obraza", error: err.message });
     }
   }
