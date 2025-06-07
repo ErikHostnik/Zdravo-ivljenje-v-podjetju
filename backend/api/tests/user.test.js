@@ -1,7 +1,7 @@
 const request = require("supertest");
 const mongoose = require("mongoose");
 const app = require("../api"); // tvoja Express aplikacija
-const User = require("../models/User"); // tvoja Mongoose shema za User
+const User = require("../models/UserModel.js"); // tvoja Mongoose shema za User
 require("dotenv").config();
 
 describe("User API testi", () => {
