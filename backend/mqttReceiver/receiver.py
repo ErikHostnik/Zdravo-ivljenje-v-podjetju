@@ -205,8 +205,21 @@ def on_message(client, userdata, msg):
 
         if user_id:
             steps, distance = calculate_total_steps_and_distance(session)
-            update_daily_stats(ObjectId(user_id), steps, distance)
-            print(f"Statistika posodobljena – Koraki: {steps}, Razdalja: {distance:.2f} km")
+            avg_speed, min_speed, max_speed = calculate_speed_stats(session)
+            total_ascent = calculate_total_ascent(session)
+
+            update_daily_stats(
+                ObjectId(user_id),
+                steps,
+                distance,
+                avg_speed,
+                min_speed,
+                max_speed,
+                total_ascent
+            )
+
+            print(f"Statistika posodobljena – Koraki: {steps}, Razdalja: {distance:.2f} km, "
+                  f"Povp. hitrost: {avg_speed}, Min: {min_speed}, Max: {max_speed}, Vzpon: {total_ascent} m")
 
             user_collection.update_one(
                 {"_id": ObjectId(user_id)},
