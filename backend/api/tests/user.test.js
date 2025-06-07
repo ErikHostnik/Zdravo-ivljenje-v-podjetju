@@ -18,7 +18,7 @@ describe("User API testi", () => {
 
   it("ustvari novega uporabnika", async () => {
     const res = await request(app)
-      .post("/api/users/register")  
+      .post("/api/users")  
       .send({
         username: "testuser",
         email: "test@example.com",

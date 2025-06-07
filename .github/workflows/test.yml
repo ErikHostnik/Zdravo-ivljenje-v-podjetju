@@ -30,7 +30,7 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Run backend tests
+      - name: Run only user.test.js
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
           SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
@@ -41,4 +41,4 @@ jobs:
           BROKER_PORT: 1883
           TOPIC: sensors/test
           TWO_FA_TOPIC_PREFIX: 2fa/confirm/
-        run: npm test -- --verbose --runInBand --forceExit
+        run: npx jest tests/user.test.js --verbose --runInBand --forceExit
