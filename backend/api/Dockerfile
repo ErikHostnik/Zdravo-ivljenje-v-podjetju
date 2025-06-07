@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y \
 RUN python3 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 RUN pip install --no-cache-dir \
-    opencv-python \
+    opencv-contrib-python \
     numpy \
     mtcnn \
     scikit-learn \
