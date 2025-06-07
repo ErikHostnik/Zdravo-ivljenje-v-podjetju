@@ -259,46 +259,54 @@ module.exports = {
       console.log('[verifyFace] Ukaz za exec:', cmd);
 
       exec(cmd, async (error, stdout, stderr) => {
-        // Po koncu skripte
-        console.log('[verifyFace][exec] stderr:', stderr);
-        console.log('[verifyFace][exec] stdout:', stdout);
-
-        // počisti temp slike
+        // Odstrani začasne datoteke
         fs.unlinkSync(imageFile.path);
         fs.unlinkSync(verifyPath);
 
+        // Iz vzorca preberemo samo zadnjo JSON vrstico
+        const lines = stdout.trim().split(/\r?\n/);
+        const jsonLine = lines[lines.length - 1];
+
+        let result;
+        try {
+          result = JSON.parse(jsonLine);
+        } catch (parseErr) {
+          console.error('Neveljaven JSON iz Python skripta:', jsonLine);
+          return res.status(500).json({ success: false, message: "Napaka pri obdelavi rezultatov", error: parseErr.message });
+        }
+
+        // Če Python skript vrne lastno napako
+        if (result.error) {
+          return res.status(500).json({ success: false, message: result.error });
+        }
+
+        // Če je proces Python-a vrnil exit kodo != 0, a imamo veljaven rezultat, ignoriraj error
         if (error) {
-          console.error('[verifyFace][exec] Napaka pri exec:', error);
           return res.status(500).json({ success: false, message: "Napaka pri preverjanju obraza", error: error.message });
         }
 
         try {
           const result = JSON.parse(stdout);
-          console.log('[verifyFace] Parsed result:', result);
 
           const request = await TwoFactorRequest.findById(twoFaId);
-          console.log('[verifyFace] Najdena 2FA zahteva:', request);
           if (!request) {
-            console.log('[verifyFace] 2FA zahteva ne obstaja');
             return res.status(404).json({ success: false, message: "2FA zahteva ne obstaja." });
           }
 
           if (result.match) {
-            console.log('[verifyFace] Ujemanje uspešno, confidence =', result.confidence);
             request.approved = true;
             await request.save();
             return res.json({ success: true, match: true, confidence: result.confidence, label: result.label });
           } else {
-            console.log('[verifyFace] Ujemanje neuspešno, confidence =', result.confidence);
             request.rejected = true;
             await request.save();
             return res.status(401).json({ success: false, match: false, message: "Preverjanje obraza ni uspelo", confidence: result.confidence });
           }
         } catch (parseError) {
-          console.error('[verifyFace] Napaka pri parse JSON:', parseError);
           return res.status(500).json({ success: false, message: "Napaka pri obdelavi rezultatov", error: parseError.message, raw: stdout });
         }
       });
+
     } catch (err) {
       console.error('[verifyFace] General error:', err);
       return res.status(500).json({ success: false, message: "Napaka pri preverjanju obraza", error: err.message });

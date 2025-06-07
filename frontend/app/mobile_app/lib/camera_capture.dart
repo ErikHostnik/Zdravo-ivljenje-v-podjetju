@@ -42,7 +42,6 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
     setState(() {});
   }
 
-  // Zajame eno sliko
   Future<File?> _captureSingleImage() async {
     if (_cameraController == null || !_cameraController!.value.isInitialized) return null;
 
@@ -58,22 +57,21 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
     }
   }
 
-  // Funkcija za zajem 100 slik zaporedoma z intervalom (v tej verziji: 5 slik kot primer)
   Future<void> _captureMultipleImages() async {
-    if (_isCapturing) return; // prepreči sočasno zajemanje
+    if (_isCapturing) return; 
     setState(() {
       _isCapturing = true;
-      _capturedImages.clear(); // počisti stare slike pred zajemom
+      _capturedImages.clear(); 
     });
 
-    for (int i = 0; i < 100; i++) {
+    for (int i = 0; i < 50; i++) {
       final image = await _captureSingleImage();
       if (image != null) {
         setState(() {
           _capturedImages.add(image);
         });
       }
-      await Future.delayed(const Duration(milliseconds: 10)); // časovni zamik med zajemi
+      await Future.delayed(const Duration(milliseconds: 10)); 
     }
 
     setState(() {
@@ -81,7 +79,6 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
     });
   }
 
-  // Pošlje slike na backend
   Future<void> _uploadImages() async {
     setState(() => _isLoading = true);
 
@@ -95,7 +92,6 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
     final request = http.MultipartRequest('POST', uploadUri)
       ..headers['Authorization'] = 'Bearer $token';
 
-    // Dodaj vsako sliko posebej
     for (var i = 0; i < _capturedImages.length; i++) {
       final imageFile = _capturedImages[i];
       request.files.add(
@@ -106,7 +102,6 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
     try {
       final response = await request.send();
       if (response.statusCode == 200) {
-        // Če upload uspe:
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Slike uspešno poslane za 2FA!')),
         );
@@ -114,7 +109,6 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
           _capturedImages.clear();
         });
 
-        // PO USPEŠNEM UPLOADU: kliči funkcijo, ki sproži recognition_model.py
         _runRecognition(userId, token);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -130,7 +124,6 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
     }
   }
 
-  // Nova funkcija: pošljemo zahtevo na backend, da zažene recognition_model.py
   Future<void> _runRecognition(String userId, String token) async {
     final recogUri = Uri.parse('http://192.168.0.11:3001/api/2fa/recognize/$userId');
     try {
@@ -146,7 +139,6 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Prepoznavanje obrazov sproženo uspešno.')),
         );
-        // Lahko tu tudi navigirate nazaj ali storite kaj drugega
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Napaka pri sprožitvi prepoznave: ${response.statusCode}')),
@@ -186,12 +178,10 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
           ),
           const SizedBox(height: 12),
           Text(
-            'Zajetih slik: ${_capturedImages.length} / 100',
+            'Zajetih slik: ${_capturedImages.length} / 50',
             style: const TextStyle(fontSize: 16),
           ),
           const SizedBox(height: 12),
-          // Odstranjen GridView za prikaz slik:
-          // Če želiš ohraniti prostor, lahko dodaš:
           SizedBox(height: 0),
 
           if (_isLoading) const CircularProgressIndicator(),

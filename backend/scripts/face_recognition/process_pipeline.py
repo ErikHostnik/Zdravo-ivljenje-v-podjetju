@@ -3,10 +3,8 @@ import sys
 import os
 import io
 
-# Nastavi default encoding na UTF-8 (za Windows terminal)
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
-# Absolutna pot do mape s skriptami
 SCRIPT_DIR = os.path.dirname(__file__)
 
 def run_script(script_name, folder_path):

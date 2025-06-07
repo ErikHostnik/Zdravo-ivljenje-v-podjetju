@@ -6,7 +6,7 @@ from mtcnn import MTCNN
 
 def detect_faces(input_folder):
     output_folder = os.path.join(input_folder, 'preprocessed')
-    os.makedirs(output_folder, exist_ok=True)  # Ustvari mapo, če ne obstaja
+    os.makedirs(output_folder, exist_ok=True)  
 
     detector = MTCNN()
 
@@ -30,7 +30,6 @@ def detect_faces(input_folder):
 
         for i, face in enumerate(results):
             x, y, w, h = face['box']
-            # Preveri, da koordinati ne izven slike
             x, y = max(0, x), max(0, y)
             face_img = img[y:y+h, x:x+w]
 
