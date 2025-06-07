@@ -151,8 +151,10 @@ export default function Login() {
         <h3>🔑 Navodila za 2FA</h3>
         <ol>
           <li>Prijavite se v <strong>mobilni aplikaciji</strong>.</li>
+          <li>Na mobilni aplikaciji nastavite 2FA - preverjanje obraza</li>
           <li>Nato vnesite enake podatke tukaj.</li>
           <li>Potrdite obvestilo na mobilni aplikaciji.</li>
+          <li>Pošljite obraz in počakajte, da se prijava potrdi.</li>
         </ol>
         <em>Če ne prejmete obvestila, preverite internetno povezavo.</em>
       </div>
