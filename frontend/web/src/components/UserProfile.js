@@ -297,40 +297,81 @@ export default function UserProfile() {
 
   return (
     <div style={{ width: '100%', maxWidth: '1400px', margin: '0 auto', padding: '20px' }}>
-      <h2 style={{ textAlign: 'center', marginBottom: '30px', color: 'white', fontSize: '2rem' }}>📊 Profil uporabnika</h2>
+      {/* Naslov */}
+      <h2 style={{ textAlign: 'center', marginBottom: '30px', color: 'white', fontSize: '2rem' }}>
+        📊 Profil uporabnika
+      </h2>
 
       {/* Osnovni podatki */}
       <div style={{ backgroundColor: '#1F2235', padding: '30px', borderRadius: '12px', marginBottom: '30px', color: '#E0E0FF' }}>
-        <p>👤 <strong>Uporabniško ime:</strong> {user.username}</p>
-        <p>✉️ <strong>Email:</strong> {user.email}</p>
+        <div style={{ display: 'flex', marginBottom: '10px' }}>
+          <strong>👤 Uporabniško ime:</strong>
+          <span style={{ marginLeft: 'auto', color: '#4DD0E1' }}>{user.username}</span>
+        </div>
+        <div style={{ display: 'flex' }}>
+          <strong>✉️ Email:</strong>
+          <span style={{ marginLeft: 'auto', color: '#FFC107' }}>{user.email}</span>
+        </div>
       </div>
 
       {/* Današnja statistika */}
       <div style={{ backgroundColor: '#1F2235', padding: '30px', borderRadius: '12px', marginBottom: '30px', color: '#E0E0FF' }}>
-        <h3>📅 Današnja statistika</h3>
+        <h3>🌞 Današnja statistika</h3>
         {latestStat ? (
           <>
+            {/* Progress bar */}
             <div style={{ margin: '20px 0' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span>0</span>
-                <span style={{ color: '#FFD700' }}>🎯 {stepGoal.toLocaleString('sl-SI')} korakov</span>
+                <span>{stepGoal.toLocaleString('sl-SI')} korakov</span>
               </div>
               <div style={{ backgroundColor: '#333', borderRadius: '8px', overflow: 'hidden', margin: '10px 0' }}>
-                <div style={{ backgroundColor: '#4CAF50', width: `${progressPercentage}%`, padding: '10px', color: 'white', textAlign: 'center' }}>🚶‍♂️ {steps.toLocaleString('sl-SI')}</div>
+                <div
+                  style={{
+                    backgroundColor: '#4CAF50',
+                    width: `${progressPercentage}%`,
+                    padding: '10px',
+                    color: 'white',
+                    textAlign: 'center'
+                  }}
+                >
+                  {steps.toLocaleString('sl-SI')}
+                </div>
               </div>
-              <div style={{ textAlign: 'center', color: '#FFD700' }}>{progressPercentage}%</div>
+              <div style={{ textAlign: 'center', color: '#FFEB3B' }}>{progressPercentage}%</div>
             </div>
-
-            <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: '20px' }}>
-              <div style={{ color: '#00BFFF' }}>📏 <strong>Razdalja:</strong><br />{distance} km</div>
-              <div style={{ color: '#FF69B4' }}>🔥 <strong>Kalorije:</strong><br />{calories}</div>
-              <div style={{ color: '#FFA500' }}>💨 <strong>Povprečna hitrost:</strong><br />{speedDisplay}</div>
-              <div style={{ color: '#ADFF2F' }}>🗻 <strong>Višina:</strong><br />{altitudeDisplay}</div>
-              <div style={{ color: '#FFFFFF' }}>📅 <strong>Datum:</strong><br />{new Date(latestStat.date).toLocaleDateString('sl-SI')}</div>
+            {/* Podatki */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', rowGap: '15px', columnGap: '40px' }}>
+              <div style={{ display: 'flex' }}>
+                <strong>🚶‍♂️ Razdalja:</strong>
+                <span style={{ marginLeft: 'auto', color: '#4DD0E1' }}>{distance} km</span>
+              </div>
+              <div style={{ display: 'flex' }}>
+                <strong>🔥 Kalorije:</strong>
+                <span style={{ marginLeft: 'auto', color: '#FFC107' }}>{calories}</span>
+              </div>
+              <div style={{ display: 'flex' }}>
+                <strong>💨 Hitrost:</strong>
+                <span style={{ marginLeft: 'auto', color: '#FFEB3B' }}>{speedDisplay}</span>
+              </div>
+              <div style={{ display: 'flex' }}>
+                <strong>⛰️ Višina:</strong>
+                <span style={{ marginLeft: 'auto', color: '#8BC34A' }}>{altitudeDisplay}</span>
+              </div>
+              <div style={{ display: 'flex' }}>
+                <strong>📅 Datum:</strong>
+                <span style={{ marginLeft: 'auto', color: '#B39DDB' }}>{new Date(latestStat.date).toLocaleDateString('sl-SI')}</span>
+              </div>
+              <div style={{ display: 'flex' }}>
+                <strong>🎯 Cilj:</strong>
+                <span style={{ marginLeft: 'auto', color: '#03A9F4' }}>{stepGoal.toLocaleString('sl-SI')}</span>
+              </div>
             </div>
-
+            {/* Nastavitev cilja */}
             <div style={{ marginTop: '30px' }}>
-              <label htmlFor="stepGoalInput" style={{ color: '#FFD700' }}><strong>🔧 Nastavi dnevni cilj korakov:</strong></label>
+              <label htmlFor="stepGoalInput">
+                <strong>📝 Nastavi dnevni cilj korakov:</strong>
+              </label>
               <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
                 <input
                   id="stepGoalInput"
@@ -340,14 +381,21 @@ export default function UserProfile() {
                   onChange={e => setNewGoalInput(e.target.value)}
                   placeholder="Vnesite nov cilj"
                   disabled={savingGoal}
-                  style={{ padding: '5px', borderRadius: '4px', border: '1px solid #555', background: '#2A2D3E', color: '#E0E0FF' }}
+                  style={{ padding: '5px', borderRadius: '4px', border: '1px solid #555' }}
                 />
                 <button
                   onClick={handleGoalSave}
                   disabled={savingGoal}
-                  style={{ backgroundColor: '#4CAF50', color: 'white', padding: '5px 10px', borderRadius: '4px' }}
+                  style={{
+                    padding: '5px 10px',
+                    borderRadius: '4px',
+                    border: 'none',
+                    backgroundColor: '#4CAF50',
+                    color: 'white',
+                    cursor: 'pointer'
+                  }}
                 >
-                  {savingGoal ? 'Shranjujem...' : '💾 Shrani cilj'}
+                  {savingGoal ? 'Shranjujem...' : '🔖 Shrani cilj'}
                 </button>
               </div>
             </div>
@@ -359,22 +407,40 @@ export default function UserProfile() {
 
       {/* Tedenska statistika */}
       <div style={{ backgroundColor: '#1F2235', padding: '30px', borderRadius: '12px', marginBottom: '30px', color: '#E0E0FF' }}>
-        <h3>📈 Tedenska statistika</h3>
+        <h3>📅 Tedenska statistika</h3>
         <Line data={weeklyChartData} options={chartOptions} />
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-around', marginTop: '20px', rowGap: '20px' }}>
-          <div style={{ color: '#00BFFF' }}>👟 <strong>Skupaj korakov (7 dni):</strong><br />{weeklySummary.totalSteps.toLocaleString('sl-SI')}</div>
-          <div style={{ color: '#00FA9A' }}>📏 <strong>Skupna razdalja (7 dni):</strong><br />{weeklySummary.totalDistance.toFixed(2)} km</div>
-          <div style={{ color: '#ADFF2F' }}>🗻 <strong>Skupna višina (7 dni):</strong><br />{weeklySummary.totalAltitude.toFixed(0)} m</div>
-          <div style={{ color: '#FFA500' }}>💨 <strong>Povprečna hitrost (7 dni):</strong><br />{weeklySummary.avgSpeed.toFixed(2)} km/h</div>
-          <div style={{ color: '#FF4500' }}>📉 <strong>Minimalna hitrost (7 dni):</strong><br />{weeklySummary.minSpeed.toFixed(2)} km/h</div>
-          <div style={{ color: '#32CD32' }}>📈 <strong>Maksimalna hitrost (7 dni):</strong><br />{weeklySummary.maxSpeed.toFixed(2)} km/h</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', rowGap: '20px', columnGap: '40px', marginTop: '20px' }}>
+          <div style={{ display: 'flex' }}>
+            <strong>👣 Skupaj korakov (7 dni):</strong>
+            <span style={{ marginLeft: 'auto', color: '#4DD0E1' }}>{weeklySummary.totalSteps.toLocaleString('sl-SI')}</span>
+          </div>
+          <div style={{ display: 'flex' }}>
+            <strong>📏 Skupna razdalja (7 dni):</strong>
+            <span style={{ marginLeft: 'auto', color: '#4DD0E1' }}>{weeklySummary.totalDistance.toFixed(2)} km</span>
+          </div>
+          <div style={{ display: 'flex' }}>
+            <strong>⛰️ Skupna višina (7 dni):</strong>
+            <span style={{ marginLeft: 'auto', color: '#8BC34A' }}>{weeklySummary.totalAltitude.toFixed(0)} m</span>
+          </div>
+          <div style={{ display: 'flex' }}>
+            <strong>💨 Povprečna hitrost (7 dni):</strong>
+            <span style={{ marginLeft: 'auto', color: '#FFEB3B' }}>{weeklySummary.avgSpeed.toFixed(2)} km/h</span>
+          </div>
+          <div style={{ display: 'flex' }}>
+            <strong>🐢 Minimalna hitrost (7 dni):</strong>
+            <span style={{ marginLeft: 'auto', color: '#FFEB3B' }}>{weeklySummary.minSpeed.toFixed(2)} km/h</span>
+          </div>
+          <div style={{ display: 'flex' }}>
+            <strong>🚀 Maksimalna hitrost (7 dni):</strong>
+            <span style={{ marginLeft: 'auto', color: '#FFEB3B' }}>{weeklySummary.maxSpeed.toFixed(2)} km/h</span>
+          </div>
         </div>
       </div>
 
       {/* Mesečna statistika */}
       <div style={{ backgroundColor: '#1F2235', padding: '30px', borderRadius: '12px', marginBottom: '30px', color: '#E0E0FF' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3>📅 Mesečna statistika</h3>
+          <h3>📆 Mesečna statistika</h3>
           <div>
             <DatePicker
               selected={dateRange.start}
@@ -399,49 +465,101 @@ export default function UserProfile() {
           </div>
         </div>
         <Bar data={monthlyChartData} options={chartOptions} />
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-around', marginTop: '20px', rowGap: '20px' }}>
-          <div style={{ color: '#00BFFF' }}>👟 <strong>Skupaj korakov (izbran mesec):</strong><br />{monthlySummary.totalSteps.toLocaleString('sl-SI')}</div>
-          <div style={{ color: '#00FA9A' }}>📏 <strong>Skupna razdalja (izbran mesec):</strong><br />{monthlySummary.totalDistance.toFixed(2)} km</div>
-          <div style={{ color: '#ADFF2F' }}>🗻 <strong>Skupna višina (izbran mesec):</strong><br />{monthlySummary.totalAltitude.toFixed(0)} m</div>
-          <div style={{ color: '#FFA500' }}>💨 <strong>Povprečna hitrost (izbran mesec):</strong><br />{monthlySummary.avgSpeed.toFixed(2)} km/h</div>
-          <div style={{ color: '#FF4500' }}>📉 <strong>Minimalna hitrost (izbran mesec):</strong><br />{monthlySummary.minSpeed.toFixed(2)} km/h</div>
-          <div style={{ color: '#32CD32' }}>📈 <strong>Maksimalna hitrost (izbran mesec):</strong><br />{monthlySummary.maxSpeed.toFixed(2)} km/h</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', rowGap: '20px', columnGap: '40px', marginTop: '20px' }}>
+          <div style={{ display: 'flex' }}>
+            <strong>👣 Skupaj korakov:</strong>
+            <span style={{ marginLeft: 'auto', color: '#4DD0E1' }}>{monthlySummary.totalSteps.toLocaleString('sl-SI')}</span>
+          </div>
+          <div style={{ display: 'flex' }}>
+            <strong>📏 Skupna razdalja:</strong>
+            <span style={{ marginLeft: 'auto', color: '#4DD0E1' }}>{monthlySummary.totalDistance.toFixed(2)} km</span>
+          </div>
+          <div style={{ display: 'flex' }}>
+            <strong>⛰️ Skupna višina:</strong>
+            <span style={{ marginLeft: 'auto', color: '#8BC34A' }}>{monthlySummary.totalAltitude.toFixed(0)} m</span>
+          </div>
+          <div style={{ display: 'flex' }}>
+            <strong>💨 Povprečna hitrost:</strong>
+            <span style={{ marginLeft: 'auto', color: '#FFEB3B' }}>{monthlySummary.avgSpeed.toFixed(2)} km/h</span>
+          </div>
+          <div style={{ display: 'flex' }}>
+            <strong>🐢 Minimalna hitrost:</strong>
+            <span style={{ marginLeft: 'auto', color: '#FFEB3B' }}>{monthlySummary.minSpeed.toFixed(2)} km/h</span>
+          </div>
+          <div style={{ display: 'flex' }}>
+            <strong>🚀 Maksimalna hitrost:</strong>
+            <span style={{ marginLeft: 'auto', color: '#FFEB3B' }}>{monthlySummary.maxSpeed.toFixed(2)} km/h</span>
+          </div>
         </div>
       </div>
 
       {/* Letna statistika */}
       <div style={{ backgroundColor: '#1F2235', padding: '30px', borderRadius: '12px', marginBottom: '30px', color: '#E0E0FF' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3>📆 Letna statistika ({yearFilter})</h3>
+          <h3>📈 Letna statistika ({yearFilter})</h3>
           <div>
-            <button onClick={() => setYearFilter(yearFilter - 1)}>&lt;</button>
+            <button onClick={() => setYearFilter(yearFilter - 1)}>◀️</button>
             <span style={{ margin: '0 10px' }}>{yearFilter}</span>
-            <button onClick={() => setYearFilter(yearFilter + 1)} disabled={yearFilter >= new Date().getFullYear()}>&gt;</button>
+            <button onClick={() => setYearFilter(yearFilter + 1)} disabled={yearFilter >= new Date().getFullYear()}>▶️</button>
           </div>
         </div>
         <Bar data={yearlyChartData} options={chartOptions} />
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-around', marginTop: '20px', rowGap: '20px' }}>
-          <div style={{ color: '#00BFFF' }}>👟 <strong>Skupaj korakov ({yearFilter}):</strong><br />{yearlySummary.totalSteps.toLocaleString('sl-SI')}</div>
-          <div style={{ color: '#00FA9A' }}>📏 <strong>Skupna razdalja ({yearFilter}):</strong><br />{yearlySummary.totalDistance.toFixed(2)} km</div>
-          <div style={{ color: '#ADFF2F' }}>🗻 <strong>Skupna višina ({yearFilter}):</strong><br />{yearlySummary.totalAltitude.toFixed(0)} m</div>
-          <div style={{ color: '#FFA500' }}>💨 <strong>Povprečna hitrost ({yearFilter}):</strong><br />{yearlySummary.avgSpeed.toFixed(2)} km/h</div>
-          <div style={{ color: '#FF4500' }}>📉 <strong>Minimalna hitrost ({yearFilter}):</strong><br />{yearlySummary.minSpeed.toFixed(2)} km/h</div>
-          <div style={{ color: '#32CD32' }}>📈 <strong>Maksimalna hitrost ({yearFilter}):</strong><br />{yearlySummary.maxSpeed.toFixed(2)} km/h</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', rowGap: '20px', columnGap: '40px', marginTop: '20px' }}>
+          <div style={{ display: 'flex' }}>
+            <strong>👣 Skupaj korakov:</strong>
+            <span style={{ marginLeft: 'auto', color: '#4DD0E1' }}>{yearlySummary.totalSteps.toLocaleString('sl-SI')}</span>
+          </div>
+          <div style={{ display: 'flex' }}>
+            <strong>📏 Skupna razdalja:</strong>
+            <span style={{ marginLeft: 'auto', color: '#4DD0E1' }}>{yearlySummary.totalDistance.toFixed(2)} km</span>
+          </div>
+          <div style={{ display: 'flex' }}>
+            <strong>⛰️ Skupna višina:</strong>
+            <span style={{ marginLeft: 'auto', color: '#8BC34A' }}>{yearlySummary.totalAltitude.toFixed(0)} m</span>
+          </div>
+          <div style={{ display: 'flex' }}>
+            <strong>💨 Povprečna hitrost:</strong>
+            <span style={{ marginLeft: 'auto', color: '#FFEB3B' }}>{yearlySummary.avgSpeed.toFixed(2)} km/h</span>
+          </div>
+          <div style={{ display: 'flex' }}>
+            <strong>🐢 Minimalna hitrost:</strong>
+            <span style={{ marginLeft: 'auto', color: '#FFEB3B' }}>{yearlySummary.minSpeed.toFixed(2)} km/h</span>
+          </div>
+          <div style={{ display: 'flex' }}>
+            <strong>🚀 Maksimalna hitrost:</strong>
+            <span style={{ marginLeft: 'auto', color: '#FFEB3B' }}>{yearlySummary.maxSpeed.toFixed(2)} km/h</span>
+          </div>
         </div>
       </div>
 
       {/* Življenjska statistika */}
       <div style={{ backgroundColor: '#1F2235', padding: '30px', borderRadius: '12px', color: '#E0E0FF' }}>
-        <h3>🏆 Življenjska statistika</h3>
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-around', marginTop: '20px', rowGap: '20px' }}>
-          <div style={{ color: '#00BFFF' }}>👟 <strong>Skupaj korakov:</strong><br />{lifetimeStats.totalSteps.toLocaleString('sl-SI')}</div>
-          <div style={{ color: '#00FA9A' }}>📏 <strong>Skupaj prehojeno:</strong><br />{lifetimeStats.totalDistance.toFixed(2)} km</div>
-          <div style={{ color: '#FF69B4' }}>🔥 <strong>Porabljenih kalorij:</strong><br />{lifetimeStats.totalCalories.toFixed(0)}</div>
-          <div style={{ color: '#ADFF2F' }}>📅 <strong>Dnevov s podatki:</strong><br />{lifetimeStats.daysCount}</div>
-          <div style={{ color: '#FFA500' }}>💨 <strong>Povprečna hitrost:</strong><br />{lifetimeStats.avgSpeed.toFixed(2)} km/h</div>
-          <div style={{ color: '#FF4500' }}>📉 <strong>Minimalna hitrost:</strong><br />{lifetimeStats.minSpeed.toFixed(2)} km/h</div>
-          <div style={{ color: '#32CD32' }}>📈 <strong>Maksimalna hitrost:</strong><br />{lifetimeStats.maxSpeed.toFixed(2)} km/h</div>
-          <div style={{ color: '#ADFF2F' }}>🗻 <strong>Skupna višina:</strong><br />{lifetimeStats.totalAltitudeDistance.toFixed(0)} m</div>
+        <h3 style={{ fontWeight: 'bold' }}>🏆 Življenjska statistika</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', rowGap: '20px', columnGap: '40px', marginTop: '20px' }}>
+          <div style={{ display: 'flex' }}>
+            <strong>👣 Skupaj korakov:</strong>
+            <span style={{ marginLeft: 'auto', color: '#4DD0E1' }}>{lifetimeStats.totalSteps.toLocaleString('sl-SI')}</span>
+          </div>
+          <div style={{ display: 'flex' }}>
+            <strong>📏 Skupaj prehojeno:</strong>
+            <span style={{ marginLeft: 'auto', color: '#4DD0E1' }}>{lifetimeStats.totalDistance.toFixed(2)} km</span>
+          </div>
+          <div style={{ display: 'flex' }}>
+            <strong>🔥 Porabljenih kalorij:</strong>
+            <span style={{ marginLeft: 'auto', color: '#FFC107' }}>{lifetimeStats.totalCalories.toFixed(0)}</span>
+          </div>
+          <div style={{ display: 'flex' }}>
+            <strong>📆 Dnevov s podatki:</strong>
+            <span style={{ marginLeft: 'auto', color: '#B39DDB' }}>{lifetimeStats.daysCount}</span>
+          </div>
+          <div style={{ display: 'flex' }}>
+            <strong>💨 Povprečna hitrost:</strong>
+            <span style={{ marginLeft: 'auto', color: '#FFEB3B' }}>{lifetimeStats.avgSpeed.toFixed(2)} km/h</span>
+          </div>
+          <div style={{ display: 'flex' }}>
+            <strong>⛰️ Skupna višina:</strong>
+            <span style={{ marginLeft: 'auto', color: '#8BC34A' }}>{lifetimeStats.totalAltitudeDistance.toFixed(0)} m</span>
+          </div>
         </div>
       </div>
     </div>
