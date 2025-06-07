@@ -197,3 +197,106 @@ body {
 .user-profile .stat-box strong {
     color: var(--accent-color);
 }
+
+
+/* 2FA CALL-OUT */
+
+.callout {
+    max-width: 400px;
+    margin: 1rem auto;
+    background-color: #2b3a42;
+    padding: 1rem 1.5rem;
+    border-left: 4px solid var(--accent-color);
+    color: var(--text-color);
+}
+.callout h3 {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    color: var(--accent-color);
+}
+.callout ol {
+    margin: 0 0 0.5rem 1.2rem;
+}
+.callout em {
+    font-size: 0.9rem;
+    color: #ccc;
+}
+
+.login-container {
+  max-width: 400px;
+  width: 100%;
+  margin: 4rem auto;
+  padding: 2rem;
+  background-color: var(--card-bg-color);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* Naslov */
+.login-container h2 {
+  text-align: center;
+  color: var(--accent-color);
+  font-size: 2rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Form group wrapper */
+.login-container .form-group {
+  margin-bottom: 1.25rem;
+}
+
+/* Label inside form-group */
+.login-container .form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--text-color);
+  font-weight: 600;
+}
+
+/* Inputs */
+.login-container .form-group input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  border: 1px solid #555;
+  border-radius: 6px;
+  background-color: var(--primary-color);
+  color: var(--text-color);
+  transition: border-color 0.2s;
+}
+.login-container .form-group input:focus {
+  outline: none;
+  border-color: var(--accent-color);
+}
+
+/* Submit button */
+.login-container button {
+  width: 100%;
+  padding: 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--primary-color);
+  background-color: var(--accent-color);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  margin-top: 0.5rem;
+}
+.login-container button:hover {
+  background-color: var(--hover-color);
+}
+.login-container button:disabled {
+  background-color: #666;
+  cursor: not-allowed;
+}
+
+/* Error message */
+.login-container .error {
+  color: #ff6b6b;
+  text-align: center;
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
+}
+
+

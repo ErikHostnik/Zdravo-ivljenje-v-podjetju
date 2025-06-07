@@ -109,29 +109,55 @@ export default function Login() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-sm mx-auto p-4 border rounded">
-      <h2 className="text-lg mb-4">Prijava</h2>
-      <input className="w-full mb-2 p-2 border rounded" 
-             placeholder="Uporabniško ime" 
-             value={username} 
-             disabled={pending2FA} 
-             required 
-             onChange={e => setUsername(e.target.value)}/>
-      
-      <input className="w-full mb-2 p-2 border rounded" 
-             type="password"
-             placeholder="Geslo" 
-             value={password} 
-             disabled={pending2FA}  
-             required 
-             onChange={e => setPassword(e.target.value)}/>
+    <>
+      {/* Prijavni obrazec */}
+      <div className="login-container">
+        <h2>🔒 Prijava</h2>
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label htmlFor="username">Uporabniško ime</label>
+            <input
+              id="username"
+              type="text"
+              value={username}
+              disabled={pending2FA}
+              required
+              onChange={e => setUsername(e.target.value)}
+            />
+          </div>
 
-      <button className="w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-              disabled={pending2FA}>
-        {pending2FA ? "Čakam na 2FA potrditev..." : "Prijava"}
-      </button>
-      
-      {error && <p className="mt-2 text-red-600">{error}</p>}
-    </form>
+          <div className="form-group">
+            <label htmlFor="password">Geslo</label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              disabled={pending2FA}
+              required
+              onChange={e => setPassword(e.target.value)}
+            />
+          </div>
+
+          <button type="submit" disabled={pending2FA}>
+            {pending2FA ? '⌛ Čakam na potrditev 2FA...' : '➡️ Prijava'}
+          </button>
+
+          {error && <p className="error">{error}</p>}
+        </form>
+      </div>
+
+      {/* Navodila za 2FA */}
+      <div className="callout">
+        <h3>🔑 Navodila za 2FA</h3>
+        <ol>
+          <li>Prijavite se v <strong>mobilni aplikaciji</strong>.</li>
+          <li>Na mobilni aplikaciji nastavite 2FA - preverjanje obraza</li>
+          <li>Nato vnesite enake podatke tukaj.</li>
+          <li>Potrdite obvestilo na mobilni aplikaciji.</li>
+          <li>Pošljite obraz in počakajte, da se prijava potrdi.</li>
+        </ol>
+        <em>Če ne prejmete obvestila, preverite internetno povezavo.</em>
+      </div>
+    </>
   );
 }
