@@ -49,6 +49,8 @@ def color_jitter_grayscale(image):
     img_jitter = change_brightness(img_contrast, brightness_val)
     return img_jitter
 
+
+
 def augment_image(image, filename_base, counter):
     # Posvetlitev
     bright = change_brightness(image, 30)
@@ -70,6 +72,9 @@ def augment_image(image, filename_base, counter):
     # Color jitter (svetlost + kontrast skupaj, naključno)
     jitter = color_jitter_grayscale(image)
     cv.imwrite(os.path.join(input_folder, f'{filename_base}_aug_jitter_{counter}.png'), jitter)
+
+    rotated = rotate_image(image)
+    cv.imwrite(os.path.join(input_folder, f'{filename_base}_aug_rotated_{counter}.png'), rotated)
 
 
 counter = 0

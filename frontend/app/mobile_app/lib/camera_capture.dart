@@ -66,7 +66,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
       _capturedImages.clear(); // počisti stare slike pred zajemom
     });
 
-    for (int i = 0; i < 100; i++) {
+    for (int i = 0; i < 50; i++) {
       final image = await _captureSingleImage();
       if (image != null) {
         setState(() {
@@ -186,7 +186,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
           ),
           const SizedBox(height: 12),
           Text(
-            'Zajetih slik: ${_capturedImages.length} / 100',
+            'Zajetih slik: ${_capturedImages.length} / 50',
             style: const TextStyle(fontSize: 16),
           ),
           const SizedBox(height: 12),
