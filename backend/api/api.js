@@ -1,5 +1,7 @@
 require('dotenv').config();
 const express = require('express');
+const { start: startActiveDeviceService } = require('./services/ActiveDeviceService');
+const metricsRoutes = require('./routes/MetricsRoutes');
 const mongoose = require('mongoose');
 const path = require('path');
 const cookieParser = require('cookie-parser');
@@ -9,6 +11,7 @@ const MongoStore = require('connect-mongo');
 const createError = require('http-errors');
 const bodyParser = require('body-parser');
 
+startActiveDeviceService();
 
 const app = express();
 
@@ -54,7 +57,7 @@ app.use(function (req, res, next) {
 
 
 var cors = require('cors');
-const allowedOrigins = process.env.ALLOWED_ORIGINS.split(',');app.use(cors({
+const allowedOrigins = process.env.ALLOWED_ORIGINS.split(','); app.use(cors({
   credentials: true,
   origin: function (origin, callback) {
     if (!origin) return callback(null, true);
@@ -72,6 +75,7 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS.split(',');app.use(cors({
 app.use('/api/users', userRoutes);
 app.use('/api/sensordata', sensorDataRoutes);
 app.use('/api/2fa', twoFactorRoutes);
+app.use('/api/metrics', metricsRoutes);
 
 // Catch 404 and forward to error handler
 app.use(function (req, res, next) {
