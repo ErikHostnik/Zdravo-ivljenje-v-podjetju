@@ -1,9 +1,5 @@
 console.log("[DEBUG] ActiveDeviceService.js loaded");
 
-function start() {
-    console.log("[DEBUG] start() called in ActiveDeviceService");
-}
-
 const mqtt = require('mqtt');
 
 const activeUsers = new Map();
@@ -20,17 +16,25 @@ function pruneInactive() {
 }
 
 function start() {
+    console.log("[DEBUG] start() called in ActiveDeviceService");
+
     const brokerUrl = process.env.MQTT_URI || 'mqtt://mosquitto:1883';
+    console.log(`[DEBUG] MQTT URI is: ${brokerUrl}`);
+
     const client = mqtt.connect(brokerUrl);
 
     client.on('connect', () => {
+        console.log(`[MQTT] Connected to broker at ${brokerUrl} and subscribed to ${HEARTBEAT_TOPIC_PREFIX}#`);
         client.subscribe(`${HEARTBEAT_TOPIC_PREFIX}#`, err => {
             if (err) console.error('ActiveDeviceService subscribe error:', err);
         });
     });
 
     client.on('message', (topic, message) => {
+        console.log(`[MQTT] Message received on topic ${topic}: ${message.toString()}`);
+
         if (!topic.startsWith(HEARTBEAT_TOPIC_PREFIX)) return;
+
         const userId = topic.slice(HEARTBEAT_TOPIC_PREFIX.length);
         try {
             const { timestamp } = JSON.parse(message.toString());
