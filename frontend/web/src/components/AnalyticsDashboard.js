@@ -1,3 +1,5 @@
+// frontend/web/src/components/AnalyticsDashboard.js
+
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
@@ -11,7 +13,7 @@ import {
     Tooltip,
     Legend
 } from 'chart.js';
-import { Line, Bar } from 'react-chartjs-2';
+import { Line } from 'react-chartjs-2';
 
 ChartJS.register(
     CategoryScale,
@@ -52,14 +54,14 @@ export default function AnalyticsDashboard() {
 
     const labels = stepsData.map(d => d.date);
     const stepsDataset = {
-        label: 'Global Steps',
+        label: 'Globalni koraki',
         data: stepsData.map(d => d.totalSteps),
         borderColor: 'rgba(75,192,192,1)',
         backgroundColor: 'rgba(75,192,192,0.2)',
         yAxisID: 'y1'
     };
     const usersDataset = {
-        label: 'Active Users',
+        label: 'Aktivni uporabniki',
         data: usersData.map(d => d.count),
         borderColor: 'rgba(255,159,64,1)',
         backgroundColor: 'rgba(255,159,64,0.2)',
@@ -70,11 +72,43 @@ export default function AnalyticsDashboard() {
         responsive: true,
         interaction: { mode: 'index', intersect: false },
         stacked: false,
-        plugins: { title: { display: true, text: 'Global Analytics (last 7 days)' } },
+        plugins: {
+            title: {
+                display: true,
+                text: 'Globalna Analitika (zadnjih 7 dni)',
+                color: '#FFFFFF',
+                font: { size: 20 }
+            },
+            legend: {
+                labels: {
+                    color: '#FFFFFF'
+                }
+            }
+        },
         scales: {
-            y1: { type: 'linear', position: 'left', title: { display: true, text: 'Steps' } },
+            x: {
+                ticks: { color: '#FFFFFF' },
+                grid: { color: 'rgba(255,255,255,0.1)' }
+            },
+            y1: {
+                type: 'linear',
+                position: 'left',
+                title: {
+                    display: true,
+                    text: 'Steps',
+                    color: '#FFFFFF'
+                },
+                ticks: { color: '#FFFFFF' }
+            },
             y2: {
-                type: 'linear', position: 'right', title: { display: true, text: 'Active Users' },
+                type: 'linear',
+                position: 'right',
+                title: {
+                    display: true,
+                    text: 'Active Users',
+                    color: '#FFFFFF'
+                },
+                ticks: { color: '#FFFFFF' },
                 grid: { drawOnChartArea: false }
             }
         }
@@ -82,7 +116,7 @@ export default function AnalyticsDashboard() {
 
     return (
         <div style={{ padding: '20px', color: 'white' }}>
-            <h2>Analitika Globalnih Podatkov</h2>
+            <h2 style={{ color: '#FFFFFF' }}>Analitika Globalnih Podatkov</h2>
             <Line options={options} data={{ labels, datasets: [stepsDataset, usersDataset] }} />
         </div>
     );
