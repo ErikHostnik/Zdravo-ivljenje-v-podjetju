@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const { start: startActiveDeviceService } = require('./services/ActiveDeviceService');
 const metricsRoutes = require('./routes/MetricsRoutes');
+const analyticsRoutes = require('./routes/AnalyticsRoutes');
 const mongoose = require('mongoose');
 const path = require('path');
 const cookieParser = require('cookie-parser');
@@ -76,6 +77,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/sensordata', sensorDataRoutes);
 app.use('/api/2fa', twoFactorRoutes);
 app.use('/api/metrics', metricsRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // Catch 404 and forward to error handler
 app.use(function (req, res, next) {
