@@ -9,7 +9,12 @@ function Header({ title }) {
         <header className="header">
             <div className="header-container">
                 <h1 className="header-title">{title}</h1>
-                <ActiveDeviceWidget />
+
+                {/* only show device count when a user is logged in */}
+                <UserContext.Consumer>
+                    {({ user }) => user && <ActiveDeviceWidget />}
+                </UserContext.Consumer>
+
                 <nav>
                     <ul className="nav-list">
                         <UserContext.Consumer>
