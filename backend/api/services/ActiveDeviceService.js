@@ -1,3 +1,9 @@
+console.log("[DEBUG] ActiveDeviceService.js loaded");
+
+function start() {
+    console.log("[DEBUG] start() called in ActiveDeviceService");
+}
+
 const mqtt = require('mqtt');
 
 const activeUsers = new Map();
