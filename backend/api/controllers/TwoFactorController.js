@@ -222,7 +222,6 @@ module.exports = {
     }
   },
 
-  // Popravljena metoda verifyFace: ob uspešnem ujemanju avtomatsko pokliče approve
   verifyFace: async function (req, res) {
     try {
       const userId = req.params.userId;
@@ -235,7 +234,6 @@ module.exports = {
         return res.status(400).json({ success: false, message: "Slika ni bila poslana." });
       }
 
-      // Pot do modela
       const modelPath = path.join(
         __dirname, '../../scripts/face_recognition/models',
         `${userId}.yml`
@@ -246,24 +244,20 @@ module.exports = {
         return res.status(400).json({ success: false, message: "Model za to osebo ne obstaja." });
       }
 
-      // Priprava slike za preverjanje
       const verifyDir = path.join(__dirname, '../../uploads/verify');
       fs.mkdirSync(verifyDir, { recursive: true });
       const verifyPath = path.join(verifyDir, `${userId}_verify.jpg`);
       fs.copyFileSync(imageFile.path, verifyPath);
       console.log('[verifyFace] Shranjena začasna slika za preverjanje:', verifyPath);
 
-      // Poženemo Python skripto
       const scriptPath = path.join(__dirname, '../../scripts/face_recognition/verify_face.py');
       const cmd = `python "${scriptPath}" --model "${modelPath}" --image "${verifyPath}"`;
       console.log('[verifyFace] Ukaz za exec:', cmd);
 
       exec(cmd, async (error, stdout, stderr) => {
-        // Odstrani začasne datoteke
         fs.unlinkSync(imageFile.path);
         fs.unlinkSync(verifyPath);
 
-        // Iz vzorca preberemo samo zadnjo JSON vrstico
         const lines = stdout.trim().split(/\r?\n/);
         const jsonLine = lines[lines.length - 1];
 
@@ -275,12 +269,10 @@ module.exports = {
           return res.status(500).json({ success: false, message: "Napaka pri obdelavi rezultatov", error: parseErr.message });
         }
 
-        // Če Python skript vrne lastno napako
         if (result.error) {
           return res.status(500).json({ success: false, message: result.error });
         }
 
-        // Če je proces Python-a vrnil exit kodo != 0, a imamo veljaven rezultat, ignoriraj error
         if (error) {
           return res.status(500).json({ success: false, message: "Napaka pri preverjanju obraza", error: error.message });
         }
