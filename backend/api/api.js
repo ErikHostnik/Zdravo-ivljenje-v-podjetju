@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const { start: startActiveDeviceService } = require('./services/ActiveDeviceService');
 const mongoose = require('mongoose');
 const path = require('path');
 const cookieParser = require('cookie-parser');
@@ -9,6 +10,7 @@ const MongoStore = require('connect-mongo');
 const createError = require('http-errors');
 const bodyParser = require('body-parser');
 
+startActiveDeviceService();
 
 const app = express();
 
@@ -54,7 +56,7 @@ app.use(function (req, res, next) {
 
 
 var cors = require('cors');
-const allowedOrigins = process.env.ALLOWED_ORIGINS.split(',');app.use(cors({
+const allowedOrigins = process.env.ALLOWED_ORIGINS.split(','); app.use(cors({
   credentials: true,
   origin: function (origin, callback) {
     if (!origin) return callback(null, true);
