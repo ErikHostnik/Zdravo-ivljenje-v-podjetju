@@ -149,7 +149,7 @@ class _HomePageState extends State<HomePage> {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const challanges()),
+                      MaterialPageRoute(builder: (context) => const Challenges()),
                     );
                   },
                   icon: const Icon(Icons.emoji_events),
