@@ -7,7 +7,7 @@ var authJWT = require('../middlewares/auth.js')
  * GET
  */
 router.get('/', SensorDataController.list);
-router.get('/user/:userId',authJWT,SensorDataController.listByUser);
+router.get('/user/:userId', authJWT, SensorDataController.listByUser);
 
 /*
  * GET
@@ -17,7 +17,7 @@ router.get('/:id', SensorDataController.show);
 /*
  * POST
  */
-router.post('/', SensorDataController.create);
+router.post('/', authJWT, SensorDataController.create);
 
 /*
  * PUT

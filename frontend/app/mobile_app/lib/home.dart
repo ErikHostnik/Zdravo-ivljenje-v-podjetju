@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'twofa_mqtt.dart';
 import 'camera_capture.dart';
+import 'screens/settings_screen.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -41,9 +42,9 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       _isLoggedIn = false;
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Uspešno ste se odjavili.')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Uspešno ste se odjavili.')));
   }
 
   Future<void> _navigateToLogin() async {
@@ -71,6 +72,15 @@ class _HomePageState extends State<HomePage> {
         title: const Text('FitOffice Domov'),
         centerTitle: true,
         backgroundColor: Colors.teal[700],
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const SettingsScreen()),
+            ),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -119,12 +129,17 @@ class _HomePageState extends State<HomePage> {
                   icon: const Icon(Icons.login),
                   label: const Padding(
                     padding: EdgeInsets.symmetric(vertical: 14.0),
-                    child: Text('Prijava / Registracija', style: TextStyle(fontSize: 18)),
+                    child: Text(
+                      'Prijava / Registracija',
+                      style: TextStyle(fontSize: 18),
+                    ),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.teal,
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     minimumSize: const Size(double.infinity, 50),
                   ),
                 ),
@@ -134,12 +149,17 @@ class _HomePageState extends State<HomePage> {
                   icon: const Icon(Icons.directions_run),
                   label: const Padding(
                     padding: EdgeInsets.symmetric(vertical: 14.0),
-                    child: Text('Začni aktivnost', style: TextStyle(fontSize: 18)),
+                    child: Text(
+                      'Začni aktivnost',
+                      style: TextStyle(fontSize: 18),
+                    ),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green[700],
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     minimumSize: const Size(double.infinity, 50),
                   ),
                 ),
@@ -154,7 +174,9 @@ class _HomePageState extends State<HomePage> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blueGrey[700],
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     minimumSize: const Size(double.infinity, 50),
                   ),
                 ),
@@ -171,7 +193,9 @@ class _HomePageState extends State<HomePage> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red[700],
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     minimumSize: const Size(double.infinity, 50),
                   ),
                 ),
