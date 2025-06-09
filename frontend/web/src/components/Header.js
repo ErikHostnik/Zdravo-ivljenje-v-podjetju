@@ -26,6 +26,7 @@ function Header({ title }) {
                                         <li><Link to={`/path/${context.user._id}`}>Zemljevid</Link></li>
                                         <li><Link to={`/userProfile/${context.user._id}`}>Profil</Link></li>
                                         <li><Link to="/leaderboard">Lestvica najboljših</Link></li>
+                                        <li><Link to="/all-sessions">Vse seje</Link></li>
                                         <li><Link to="/logout">Odjava</Link></li>
                                     </>
                                 ) : (

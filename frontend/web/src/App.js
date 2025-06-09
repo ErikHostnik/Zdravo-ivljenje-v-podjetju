@@ -12,6 +12,7 @@ import UserProfile from './components/UserProfile';
 import PathMap from './components/PathMap';
 import Leaderboard from './components/Leaderboard';
 import Compare from './components/Compare';
+import AllSessions from './components/AllSessions';
 
 function App() {
   const [user, setUser] = useState(() => {
@@ -47,6 +48,7 @@ function App() {
             <Route path="/path/:userId" element={<PathMap />} />
             <Route path="/logout" element={<Logout />} />
             <Route path="/analytics" element={<AnalyticsDashboard />} />
+            <Route path="/all-sessions" element={<AllSessions />} />
           </Routes>
         </div>
       </UserContext.Provider>
