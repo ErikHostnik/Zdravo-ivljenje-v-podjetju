@@ -64,7 +64,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
       _capturedImages.clear(); 
     });
 
-    for (int i = 0; i < 50; i++) {
+    for (int i = 0; i < 60; i++) {
       final image = await _captureSingleImage();
       if (image != null) {
         setState(() {
@@ -87,7 +87,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
     final userId = prefs.getString('user_id') ?? '';
 
     // Endpoint za nalaganje slik
-    final uploadUri = Uri.parse('http://192.168.0.26:3001/api/2fa/setup/$userId');
+    final uploadUri = Uri.parse('http://192.168.0.11:3001/api/2fa/setup/$userId');
 
     final request = http.MultipartRequest('POST', uploadUri)
       ..headers['Authorization'] = 'Bearer $token';
@@ -178,7 +178,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
           ),
           const SizedBox(height: 12),
           Text(
-            'Zajetih slik: ${_capturedImages.length} / 50',
+            'Zajetih slik: ${_capturedImages.length} / 60',
             style: const TextStyle(fontSize: 16),
           ),
           const SizedBox(height: 12),
@@ -194,7 +194,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
                   ElevatedButton.icon(
                     onPressed: _isCapturing ? null : _captureMultipleImages,
                     icon: const Icon(Icons.camera),
-                    label: Text(_isCapturing ? 'Zajemanje ...' : 'Zajemi 100 slik'),
+                    label: Text(_isCapturing ? 'Zajemanje ...' : 'Zajemi 60 slik'),
                     style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
                   ),
                   ElevatedButton.icon(

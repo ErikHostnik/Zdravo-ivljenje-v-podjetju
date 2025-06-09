@@ -1,4 +1,3 @@
-version: '3.8'
 
 services:
   mongodb:
@@ -45,6 +44,10 @@ services:
       - mosquitto
     environment:
       - MONGO_URI=mongodb+srv://root:hojladrijadrom@zdravozivpodjetja.1hunr7p.mongodb.net/?retryWrites=true&w=majority&appName=ZdravoZivPodjetja
+    volumes:
+      - ./backend/scripts/face_recognition/models:/app/scripts/face_recognition/models
+      - ./backend/scripts/face_recognition:/app/scripts/face_recognition
+      - ./backend/uploads:/app/uploads
     restart: unless-stopped
 
   frontend:
@@ -76,6 +79,31 @@ services:
         chmod a+rw /output/app-release.apk
       "
     restart: "no"
+
+  apk_installer:
+    build:
+      context: ./apk_installer
+      dockerfile: Dockerfile
+    container_name: apk_installer
+    network_mode: "host"           # so adb can see your device on the LAN
+    volumes:
+      - ./apk_output:/apk_output   # mount the APK output dir
+    environment:
+      - DEVICE_IP=${DEVICE_IP}
+    depends_on:
+      - mobile_builder
+    # because ENTRYPOINT is ["bash","-c"], we can just pass the same -c script here:
+    command: |
+      "
+        echo 'Povežem se na napravo…';
+        adb connect ${DEVICE_IP}:5555;
+        sleep 5;
+        adb devices;
+        echo 'Instaliram APK…';
+        adb install -r /apk_output/app-release.apk;
+        echo 'Namestitev končana!';
+        adb disconnect ${DEVICE_IP}:5555;
+      "
 
 volumes:
   mongo-data:
