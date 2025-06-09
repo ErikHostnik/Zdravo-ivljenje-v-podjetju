@@ -4,6 +4,7 @@ WORKDIR /app
 
 COPY pubspec.* ./
 
+RUN flutter clean
 RUN flutter pub get
 
 COPY . .

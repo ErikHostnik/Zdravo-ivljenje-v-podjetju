@@ -11,7 +11,8 @@ if (-not $DeviceIP) {
 $env:DEVICE_IP = $DeviceIP
 
 Write-Host "Zaženi docker compose..."
-docker compose up --build -d
+docker compose build --no-cache
+docker compose up -d --force-recreate
 
 $apkPath = Join-Path $PSScriptRoot "apk_output\app-release.apk"
 Write-Host "Čakam na APK v $apkPath ..."

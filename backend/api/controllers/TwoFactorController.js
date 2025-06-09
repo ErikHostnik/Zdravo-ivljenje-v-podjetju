@@ -9,7 +9,7 @@ const multer = require('multer');
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     const userId = req.body.user || req.params.userId;
-    const tmpDir = path.join(__dirname, '../../uploads/tmp', userId);
+    const tmpDir = path.join(process.cwd(), 'uploads/tmp', userId);
     fs.mkdirSync(tmpDir, { recursive: true });
     cb(null, tmpDir);
   },
@@ -37,7 +37,7 @@ module.exports = {
       const topic = `2fa/request/${req.body.user}`;
       const message = JSON.stringify({ requestId: newRequest._id.toString() });
       client.publish(topic, message, () => {
-        console.log(`📡 Poslana 2FA zahteva na MQTT temo: ${topic}`);
+        console.log(` Poslana 2FA zahteva na MQTT temo: ${topic}`);
       });
 
       res.status(201).json(newRequest);
@@ -48,92 +48,71 @@ module.exports = {
 
   // Prenos slik za 2FA in obdelava preko Python pipeline
   uploadImages: function (req, res) {
+    console.log('[uploadImages] Zagnana funkcija');
+    console.log('[uploadImages] req.body:', req.body);
+    console.log('[uploadImages] req.files:', req.files);
+    
     upload(req, res, async function (err) {
+      console.log('[uploadImages] Multer callback, err:', err);
       if (err) {
+        console.error('[uploadImages] Napaka pri multer uploadu:', err);
         return res.status(500).json({ message: "Napaka pri nalaganju slik", error: err });
       }
 
-      const userId = req.body.user || req.params.userId;
-      const tmpDir = path.join(__dirname, '../../uploads/tmp', userId);
-      const dataDir = path.join(__dirname, '../../scripts/face_recognition/data', userId);
+      const userId  = req.body.user || req.params.userId;
+      const tmpDir  = path.join(process.cwd(), 'uploads/tmp', userId);
+      const dataDir = path.join(process.cwd(), 'scripts/face_recognition/data', userId);
 
-      // Ustvari direktorij za dataDir, če obstaja ga pobriši najprej
+      console.log('[uploadImages] userId:', userId);
+      console.log('[uploadImages] tmpDir:', tmpDir);
+      console.log('[uploadImages] dataDir:', dataDir);
+
+      // Preverimo, ali tmpDir že obstaja in vsebuje datoteke
+      let tmpFiles = [];
+      try {
+        tmpFiles = fs.readdirSync(tmpDir);
+        console.log('[uploadImages] Vsebina tmpDir pred kopiranjem:', tmpFiles);
+      } catch (e) {
+        console.error('[uploadImages] Napaka pri branju tmpDir:', e.message);
+      }
+
+      // Ustvari/pobriši dataDir
       if (fs.existsSync(dataDir)) {
+        console.log('[uploadImages] dataDir že obstaja, brišem:', dataDir);
         fs.rmSync(dataDir, { recursive: true, force: true });
       }
       fs.mkdirSync(dataDir, { recursive: true });
+      console.log('[uploadImages] Ustvarjen dataDir:', dataDir);
 
+      // Kopiranje slik
       try {
-        const files = fs.readdirSync(tmpDir);
-
-        // Kopira originalne slike iz tmpDir v dataDir
-        for (const file of files) {
+        for (const file of tmpFiles) {
           const sourcePath = path.join(tmpDir, file);
-          const destPath = path.join(dataDir, file);
+          const destPath   = path.join(dataDir, file);
+          console.log(`[uploadImages] Kopiram ${sourcePath} → ${destPath}`);
           fs.copyFileSync(sourcePath, destPath);
         }
+        console.log('[uploadImages] Kopiranje slik uspešno.');
       } catch (copyError) {
+        console.error('[uploadImages] Napaka pri kopiranju slik:', copyError.message);
         return res.status(500).json({ message: "Napaka pri kopiranju slik", error: copyError.message });
       }
 
-      // Klic Python pipeline skripte za obdelavo slik
-      const scriptPath = path.join(__dirname, '../../scripts/face_recognition/process_pipeline.py');
+      // Klic Python pipeline
+      const scriptPath = path.join(process.cwd(), 'scripts/face_recognition/process_pipeline.py');
       const cmd = `python "${scriptPath}" "${dataDir}"`;
+      console.log('[uploadImages] Ukaz za exec:', cmd);
 
       exec(cmd, (error, stdout, stderr) => {
+        console.log('[uploadImages] exec callback, error:', error, 'stderr:', stderr);
         if (error) {
-          console.error(` Napaka pri zagonu process_pipeline.py:`, error);
+          console.error('[uploadImages] Napaka pri zagonu process_pipeline.py:', error);
           return res.status(500).json({ message: "Napaka pri obdelavi slik", error: error.message });
         }
+        console.log('[uploadImages] process_pipeline.py stdout:', stdout);
 
-        console.log(` process_pipeline.py zaključena.`);
-        console.log(stdout);
-        if (stderr) console.error(stderr);
-
-        const preprocessedDir = path.join(dataDir, 'preprocessed');
-
-        try {
-          // Premaknemo vse slike iz preprocessed nazaj v dataDir
-          if (fs.existsSync(preprocessedDir)) {
-            const preprocessedFiles = fs.readdirSync(preprocessedDir);
-            for (const file of preprocessedFiles) {
-              const srcPath = path.join(preprocessedDir, file);
-              const destPath = path.join(dataDir, file);
-              fs.renameSync(srcPath, destPath);
-            }
-            // Izbriši zdaj prazno preprocessed mapo
-            fs.rmdirSync(preprocessedDir);
-          }
-        } catch (moveError) {
-          console.warn(` Napaka pri premiku končnih slik iz preprocessed:`, moveError.message);
-        }
-
-        try {
-          // Izbriši vse datoteke in mape, ki niso augmentirane slike (ne vsebujejo '_aug')
-          const processedFiles = fs.readdirSync(dataDir);
-
-          for (const file of processedFiles) {
-            if (!file.includes('_aug')) {
-              const fullPath = path.join(dataDir, file);
-              const stats = fs.statSync(fullPath);
-              if (stats.isDirectory()) {
-                fs.rmSync(fullPath, { recursive: true, force: true });
-              } else {
-                fs.unlinkSync(fullPath);
-              }
-            }
-          }
-        } catch (cleanupError) {
-          console.warn(` Napaka pri čiščenju končnih slik:`, cleanupError.message);
-        }
-
-        // Počisti začasne slike v tmpDir
-        try {
-          fs.rmSync(tmpDir, { recursive: true, force: true });
-          console.log(` Začasna mapa ${tmpDir} odstranjena.`);
-        } catch (cleanupError) {
-          console.warn(` Napaka pri čiščenju začasnih slik:`, cleanupError.message);
-        }
+        // (ostali cleanup – lahko tudi tukaj dodaš console.log)
+        // …
 
         res.json({ message: "Slike uspešno naložene in obdelava je zaključena." });
       });
@@ -188,37 +167,54 @@ module.exports = {
     try {
       const userId = req.params.userId;
 
-      
+      // Popravljeni dataDir in scriptPath
+      const dataDir = path.join(
+        process.cwd(),                    // /app
+        'scripts/face_recognition/data',  // potem data/<userId>
+        userId
+      );
+      const scriptPath = path.join(
+        process.cwd(),
+        'scripts/face_recognition/recognition_model.py'
+      );
 
-      // Sestavite pot do mape, kjer so že obdelane (augmentirane) slike:
-      const dataDir = path.join(__dirname, '../../scripts/face_recognition/data', userId);
-      // Pot do Python skripte:
-      const scriptPath = path.join(__dirname, '../../scripts/face_recognition/recognition_model.py');
+      console.log('[recognize] dataDir:', dataDir);
+      console.log('[recognize] scriptPath:', scriptPath);
 
-      // Prepričajte se, da mapa dataDir obstaja:
+      // Preveri, da mapa obstaja
       if (!fs.existsSync(dataDir)) {
-        return res.status(400).json({ message: `Podatki za uporabnika ${userId} ne obstajajo.` });
+        return res.status(400).json({
+          message: `Podatki za uporabnika ${userId} ne obstajajo v ${dataDir}.`
+        });
       }
 
-      // Zaženemo Python skripto s parametrom dataDir
-      exec(`python "${scriptPath}" "${dataDir}"`, (error, stdout, stderr) => {
+      // Zaženi Python
+      const cmd = `python "${scriptPath}" "${dataDir}"`;
+      console.log('[recognize] Ukaz za exec:', cmd);
+
+      exec(cmd, (error, stdout, stderr) => {
         if (error) {
-          console.error(`[recognition] Napaka pri zagonu:`, error);
+          console.error('[recognize] Napaka pri zagonu:', error);
           return res.status(500).json({
             message: 'Napaka pri prepoznavanju obrazov',
             error: error.message
           });
         }
+        console.log('[recognize] stdout:', stdout);
+        if (stderr) console.warn('[recognize] stderr:', stderr);
 
-        console.log('[recognition] Rezultat stdout:', stdout);
-        if (stderr) console.warn('[recognition] STDERR:', stderr);
-
-        return res.json({ message: 'Prepoznavanje obrazov je zaključeno.' });
+        res.json({
+          message: 'Prepoznavanje obrazov je zaključeno.',
+          result: stdout.trim()
+        });
       });
 
     } catch (err) {
-      console.error('[recognize controller] Uncaught error:', err);
-      res.status(500).json({ message: 'Napaka pri sprožitvi prepoznave', error: err });
+      console.error('[recognize] Uncaught error:', err);
+      res.status(500).json({
+        message: 'Napaka pri sprožitvi prepoznave',
+        error: err.message
+      });
     }
   },
 
@@ -231,18 +227,21 @@ module.exports = {
 
       console.log('[verifyFace] userId:', userId, 'twoFaId:', twoFaId);
       if (!imageFile) {
-        console.log('[verifyFace] Ni slike v req.file');
         return res.status(400).json({ success: false, message: "Slika ni bila poslana." });
       }
 
       // Pot do modela
       const modelPath = path.join(
-        __dirname, '../../scripts/face_recognition/models',
+        process.cwd(),       // /app
+        'scripts/face_recognition/models',
         `${userId}.yml`
       );
+
+      console.log('[verifyFace] files in models/:', fs.readdirSync(path.join(process.cwd(), 'scripts/face_recognition/models')));
+      console.log('[verifyFace] existsSync:', fs.existsSync(modelPath));
+
       console.log('[verifyFace] Model path:', modelPath);
       if (!fs.existsSync(modelPath)) {
-        console.log('[verifyFace] Model ne obstaja za tega uporabnika');
         return res.status(400).json({ success: false, message: "Model za to osebo ne obstaja." });
       }
 
@@ -251,59 +250,95 @@ module.exports = {
       fs.mkdirSync(verifyDir, { recursive: true });
       const verifyPath = path.join(verifyDir, `${userId}_verify.jpg`);
       fs.copyFileSync(imageFile.path, verifyPath);
-      console.log('[verifyFace] Shranjena začasna slika za preverjanje:', verifyPath);
 
       // Poženemo Python skripto
-      const scriptPath = path.join(__dirname, '../../scripts/face_recognition/verify_face.py');
+      const scriptPath = path.join(
+        process.cwd(),
+        'scripts/face_recognition/verify_face.py'
+      );
       const cmd = `python "${scriptPath}" --model "${modelPath}" --image "${verifyPath}"`;
       console.log('[verifyFace] Ukaz za exec:', cmd);
+      
 
       exec(cmd, async (error, stdout, stderr) => {
-        // Odstrani začasne datoteke
-        fs.unlinkSync(imageFile.path);
-        fs.unlinkSync(verifyPath);
+        // Poženemo čiščenje začasnih slik
+        try {
+          fs.unlinkSync(imageFile.path);
+          fs.unlinkSync(verifyPath);
+        } catch (e) {
+          console.warn('[verifyFace] Težava pri čiščenju začasnih datotek:', e.message);
+        }
 
-        // Iz vzorca preberemo samo zadnjo JSON vrstico
+        // Če je Python vrgel kakšno napako na stderr ali exit kodo
+        if (stderr) {
+          console.warn('[verifyFace] Python stderr:', stderr);
+        }
+        if (error) {
+          console.error('[verifyFace] Exec error:', error);
+        }
+
+        // Preverimo, ali je stdout sploh kaj
+        if (!stdout || !stdout.trim()) {
+          console.error('[verifyFace] Python skripta ni vrnila izhoda.');
+          return res.status(500).json({
+            success: false,
+            message: "Python skripta ni vrnila rezultata. Preveri logs.",
+            stderr: stderr || null,
+            execError: error ? error.message : null
+          });
+        }
+
+        // Parsing JSON-a iz zadnje vrstice
         const lines = stdout.trim().split(/\r?\n/);
         const jsonLine = lines[lines.length - 1];
+        console.log('[verifyFace] JSON iz Python skripte:', jsonLine);
 
-        let result;
+        let pyResult;
         try {
-          result = JSON.parse(jsonLine);
+          pyResult = JSON.parse(jsonLine);
         } catch (parseErr) {
-          console.error('Neveljaven JSON iz Python skripta:', jsonLine);
-          return res.status(500).json({ success: false, message: "Napaka pri obdelavi rezultatov", error: parseErr.message });
+          console.error('[verifyFace] Neveljaven JSON iz Python skripte:', jsonLine);
+          return res.status(500).json({
+            success: false,
+            message: "Neveljaven JSON iz Python skripte",
+            error: parseErr.message,
+            rawStdout: stdout
+          });
         }
 
-        // Če Python skript vrne lastno napako
-        if (result.error) {
-          return res.status(500).json({ success: false, message: result.error });
+        if (pyResult.error) {
+          return res.status(500).json({ success: false, message: pyResult.error });
         }
 
-        // Če je proces Python-a vrnil exit kodo != 0, a imamo veljaven rezultat, ignoriraj error
-        if (error) {
-          return res.status(500).json({ success: false, message: "Napaka pri preverjanju obraza", error: error.message });
-        }
-
+        // Uporabi parse-ani rezultat
         try {
-          const result = JSON.parse(stdout);
-
           const request = await TwoFactorRequest.findById(twoFaId);
           if (!request) {
             return res.status(404).json({ success: false, message: "2FA zahteva ne obstaja." });
           }
 
-          if (result.match) {
+          if (pyResult.match) {
             request.approved = true;
             await request.save();
-            return res.json({ success: true, match: true, confidence: result.confidence, label: result.label });
+            return res.json({
+              success: true,
+              match: true,
+              confidence: pyResult.confidence,
+              label: pyResult.label
+            });
           } else {
             request.rejected = true;
             await request.save();
-            return res.status(401).json({ success: false, match: false, message: "Preverjanje obraza ni uspelo", confidence: result.confidence });
+            return res.status(401).json({
+              success: false,
+              match: false,
+              message: "Preverjanje obraza ni uspelo",
+              confidence: pyResult.confidence
+            });
           }
-        } catch (parseError) {
-          return res.status(500).json({ success: false, message: "Napaka pri obdelavi rezultatov", error: parseError.message, raw: stdout });
+        } catch (dbErr) {
+          console.error('[verifyFace] Napaka z bazo:', dbErr);
+          return res.status(500).json({ success: false, message: "Napaka pri shranjevanju rezultata", error: dbErr.message });
         }
       });
 

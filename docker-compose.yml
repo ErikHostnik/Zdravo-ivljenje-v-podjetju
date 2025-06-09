@@ -44,6 +44,10 @@ services:
       - mosquitto
     environment:
       - MONGO_URI=mongodb+srv://root:hojladrijadrom@zdravozivpodjetja.1hunr7p.mongodb.net/?retryWrites=true&w=majority&appName=ZdravoZivPodjetja
+    volumes:
+      - ./backend/scripts/face_recognition/models:/app/scripts/face_recognition/models
+      - ./backend/scripts/face_recognition:/app/scripts/face_recognition
+      - ./backend/uploads:/app/uploads
     restart: unless-stopped
 
   frontend:

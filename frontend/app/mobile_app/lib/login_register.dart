@@ -27,7 +27,7 @@ class _LoginRegisterPageState extends State<LoginRegisterPage> {
   Timer? _heartbeatTimer;
   String? _currentUserId;
 
-  static const String _broker = '192.168.0.26';
+  static const String _broker = '192.168.0.11';
   static const int _port = 1883;
 
   Future<void> _submit() async {
