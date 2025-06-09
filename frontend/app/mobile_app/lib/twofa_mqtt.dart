@@ -209,7 +209,6 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
         throw Exception('No cameras available');
       }
 
-      // Najdi sprednjo kamero
       CameraDescription? frontCamera;
       for (var camera in cameras) {
         if (camera.lensDirection == CameraLensDirection.front) {

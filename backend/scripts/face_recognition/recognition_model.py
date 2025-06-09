@@ -25,30 +25,24 @@ BACKEND_URL = "http://localhost:3001"
 UPDATE_FACE_MODEL_ENDPOINT = "/api/users/update_model"
 
 def train_and_save_model_for_user(user_id, image_paths):
-    print(f"[DEBUG][train_and_save_model_for_user] Začenjam trenirati model za user_id '{user_id}' s {len(image_paths)} slikami.")
     faces, labels = [], []
 
     for idx, img_path in enumerate(image_paths):
-        print(f"[DEBUG][train_and_save_model_for_user] Nalagam sliko ({idx+1}/{len(image_paths)}): {img_path}")
         img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
         if img is None:
-            print(f"[DEBUG][train_and_save_model_for_user] Opozorilo: Slika {img_path} ni bila naložena (None). Preskakujem.")
             continue
         try:
             img_resized = cv2.resize(img, IMAGE_SIZE)
         except Exception as e:
-            print(f"[DEBUG][train_and_save_model_for_user] Napaka pri spreminjanju velikosti slike {img_path}: {e}. Preskakujem.")
             continue
         faces.append(img_resized)
-        labels.append(0)  # Vse slike istega uporabnika imamo oznako 0
+        labels.append(0)
 
     if len(faces) < 2:
-        print(f"[DEBUG][train_and_save_model_for_user] Premalo uporabnih slik ({len(faces)}). Ne treniram modela.")
         return None
 
     faces = np.array(faces)
     labels = np.array(labels)
-    print(f"[DEBUG][train_and_save_model_for_user] Skupno {faces.shape[0]} obrazov pripravljeno za treniranje.")
 
     # Razdelitev na učno in testno množico
     try:
@@ -56,25 +50,18 @@ def train_and_save_model_for_user(user_id, image_paths):
             faces, labels, test_size=TEST_SIZE, random_state=42
         )
     except Exception as e:
-        print(f"[DEBUG][train_and_save_model_for_user] Napaka pri train_test_split: {e}")
         return None
 
-    print(f"[DEBUG][train_and_save_model_for_user] Začetek treniranja LBPH modela...")
     try:
         model = cv2.face.LBPHFaceRecognizer_create()
         model.train(X_train, y_train)
     except Exception as e:
-        print(f"[DEBUG][train_and_save_model_for_user] Napaka pri treniranju modela: {e}")
         return None
-    print(f"[DEBUG][train_and_save_model_for_user] Treniranje končano.")
 
-    # Preveri ali obstaja MODEL_DIR, sicer ga ustvari
     if not os.path.exists(MODEL_DIR):
         try:
-            os.makedirs(MODEL_DIR, exist_ok=True)  # Uporabi exist_ok=True za varnost
-            print(f"[DEBUG][train_and_save_model_for_user] Ustvarjam mapo za modele: {MODEL_DIR}")
+            os.makedirs(MODEL_DIR, exist_ok=True)
         except Exception as e:
-            print(f"[DEBUG][train_and_save_model_for_user] Napaka pri ustvarjanju mape '{MODEL_DIR}': {e}")
             return None
     else:
         print(f"[DEBUG][train_and_save_model_for_user] Mapa za modele že obstaja: {MODEL_DIR}")
@@ -83,15 +70,11 @@ def train_and_save_model_for_user(user_id, image_paths):
     try:
         model.write(model_path)
     except Exception as e:
-        print(f"[DEBUG][train_and_save_model_for_user] Napaka pri shranjevanju modela v '{model_path}': {e}")
         return None
-    print(f"[DEBUG][train_and_save_model_for_user] Model shranjen: {model_path}")
 
-    # Izračun testne natančnosti (opcijsko)
     try:
         correct = sum(1 for i, img in enumerate(X_test) if model.predict(img)[0] == y_test[i])
         accuracy = (correct / len(X_test)) * 100
-        print(f"[DEBUG][train_and_save_model_for_user] Natančnost na testni množici: {accuracy:.2f}% ({correct}/{len(X_test)})")
     except Exception as e:
         print(f"[DEBUG][train_and_save_model_for_user] Napaka pri oceni modela: {e}")
 
@@ -103,10 +86,8 @@ def update_model_path_in_backend(user_id, model_path):
         "userId": user_id,
         "faceModelPath": model_path
     }
-    print(f"[DEBUG][update_model_path_in_backend] Posredujem pot modela v bazo za user_id '{user_id}': {model_path}")
     try:
         resp = requests.post(url, json=payload)
-        print(f"[DEBUG][update_model_path_in_backend] HTTP POST {url} → status {resp.status_code}")
         if resp.status_code == 200:
             print(f"[DEBUG][update_model_path_in_backend] faceModel pot za '{user_id}' posodobljena v bazi.")
         else:
@@ -120,9 +101,7 @@ def main():
     print(f"[DEBUG][main] BASE_DIR: {BASE_DIR}")
     print(f"[DEBUG][main] MODEL_DIR: {MODEL_DIR}")
 
-    # 1) Preverimo, ali je podan argument (pot do mape s slikami)
     if len(sys.argv) < 2:
-        print("[DEBUG][main] Napaka: Ni bil podan argument z potjo do mape s slikami.")
         raise RuntimeError("Pokliči: python recognition_model.py <pot_do_data_dir_for_single_user>")
 
     BASE_DATA_DIR = sys.argv[1]
@@ -130,12 +109,10 @@ def main():
 
     # 2) Preverimo, ali ta mapa obstaja
     if not os.path.exists(BASE_DATA_DIR):
-        print(f"[DEBUG][main] Napaka: Directory '{BASE_DATA_DIR}' ne obstaja.")
         raise RuntimeError(f"Directory '{BASE_DATA_DIR}' ne obstaja.")
 
     # 3) Iz imena mape izluščimo user_id
     user_id = os.path.basename(BASE_DATA_DIR.rstrip("/\\"))
-    print(f"[DEBUG][main] Ime uporabnika (user_id) je: '{user_id}'.")
 
     # 4) Zberemo vse slikovne datoteke iz te mape
     try:
@@ -149,7 +126,6 @@ def main():
         for f in all_files
         if f.lower().endswith(('.png', '.jpg', '.jpeg'))
     ]
-    print(f"[DEBUG][main] Najdenih slik v mapi '{BASE_DATA_DIR}': {len(image_paths)}")
 
     if not image_paths:
         print(f"[DEBUG][main] Ni slik v '{BASE_DATA_DIR}'. Preskakujem treniranje.")
@@ -163,8 +139,6 @@ def main():
 
     # 6) Pošljemo pot do modela v backend bazo
     update_model_path_in_backend(user_id, model_path)
-
-    print("[DEBUG][main] recognition_model.py končan uspešno.")
-
+    
 if __name__ == "__main__":
     main()
