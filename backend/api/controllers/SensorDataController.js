@@ -41,8 +41,8 @@ module.exports = {
   create: async function (req, res) {
     try {
       const newSensorData = new SensordataModel({
-        user: req.user._id,
-        activity: req.body.activity,  
+        user: req.userId,
+        activity: req.body.activity,
         weather: req.body.weather
       });
 
@@ -71,8 +71,8 @@ module.exports = {
       sensorData.steps = req.body.steps ?? sensorData.steps;
       sensorData.speed = req.body.speed ?? sensorData.speed;
       sensorData.temperature = req.body.temperature ?? sensorData.temperature;
-      sensorData.location = req.body.location  ?? sensorData.location;
-      sensorData.weather= req.body.weather ?? sensorData.weather;
+      sensorData.location = req.body.location ?? sensorData.location;
+      sensorData.weather = req.body.weather ?? sensorData.weather;
 
       const updated = await sensorData.save();
       return res.json(updated);
@@ -104,17 +104,17 @@ module.exports = {
   },
 
   listByUser: async function (req, res) {
-  const userId = req.params.userId;
-  try {
-    const data = await SensordataModel.find({ user: userId });
-    return res.json(data);
-  } catch (err) {
-    return res.status(500).json({
-      message: 'Error fetching user\'s SensorData',
-      error: err
-    });
-  }
-},
+    const userId = req.params.userId;
+    try {
+      const data = await SensordataModel.find({ user: userId });
+      return res.json(data);
+    } catch (err) {
+      return res.status(500).json({
+        message: 'Error fetching user\'s SensorData',
+        error: err
+      });
+    }
+  },
 
-  
+
 };
