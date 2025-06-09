@@ -83,37 +83,32 @@ def calculate_speed_stats(session):
     return avg_speed, min_speed, max_speed
 
 def calculate_total_ascent(session):
-    total_ascent = 0.0
-    prev_altitude = None
+    altitudes = [entry.get("altitude") for entry in session if entry.get("altitude") is not None]
 
-    for entry in session:
-        altitude = entry.get("altitude")
-        if altitude is None:
-            continue
+    valid_altitudes = []
+    for a in altitudes:
+        try:
+            valid_altitudes.append(float(a))
+        except (ValueError, TypeError):
+            pass
 
-        if prev_altitude is not None:
-            diff = altitude - prev_altitude
-            if diff > 0:
-                total_ascent += diff
+    if not valid_altitudes:
+        return 0.0
 
-        prev_altitude = altitude
-
+    total_ascent = max(valid_altitudes) - min(valid_altitudes)
     return total_ascent
 
 def update_daily_stats(user_id, steps, distance, avg_speed, min_speed, max_speed, total_ascent):
     today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
 
-    # Najprej posodobi skupni seštevek uporabnika
     user_collection.update_one(
         {"_id": user_id},
         {"$inc": {"stepCount": steps, "distance": distance}}
     )
 
-    # Preveri, če že obstaja dnevni vnos za danes
     user = user_collection.find_one({"_id": user_id, "dailyStats.date": today}, {"dailyStats.$": 1})
 
     if user and "dailyStats" in user:
-        # Če obstaja, povečaj korake in razdaljo
         existing = user["dailyStats"][0]
         updated_data = {
             "stepCount": existing.get("stepCount", 0) + steps,
@@ -130,7 +125,6 @@ def update_daily_stats(user_id, steps, distance, avg_speed, min_speed, max_speed
             {"$set": {"dailyStats.$": updated_data}}
         )
     else:
-        # Če ne obstaja, dodaj nov vnos
         daily_data = {
             "date": today,
             "stepCount": steps,
