@@ -215,10 +215,27 @@ module.exports = {
             return res.status(500).json({ message: 'Login error.', error: err.message });
         }
     }, */
-    
 
+        login: async function (req, res) {
+        const { username, password } = req.body;
 
-    login: async function (req, res) {
+        try {
+            const user = await UserModel.authenticate(username, password);
+            if (!user) {
+                return res.status(401).json({ message: 'Invalid credentials.' });
+            }
+
+            // Za testiranje brez 2FA: takoj izdamo token
+            const token = jwt.sign({ id: user._id }, secret, { expiresIn: '1h' });
+            return res.json({ user, token });
+
+        } catch (err) {
+            console.error("Login Error:", err);
+            return res.status(500).json({ message: 'Login error.', error: err.message });
+        }
+    },
+
+    /*login: async function (req, res) {
         const { username, password, isMobile } = req.body;
 
         try {
@@ -263,7 +280,7 @@ module.exports = {
             console.error("Login Error:", err);
             return res.status(500).json({ message: 'Login error.', error: err.message });
         }
-    },
+    },*/
     
     logout: async function (req, res) {
         try {
