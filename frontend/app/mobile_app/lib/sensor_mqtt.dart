@@ -247,27 +247,22 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
     _isPublishing = false;
     _timer?.cancel();
 
-    SyncService.instance.addSession(_collectedData);
+    final data = List<Map<String, dynamic>>.from(_collectedData);
+    _collectedData.clear();
+    _path.clear();
+    stepCount = 0;
 
     if (client.connectionStatus?.state == MqttConnectionState.connected &&
-        _collectedData.isNotEmpty) {
-      final payload = jsonEncode({
-        'userId': _userId,
-        'session': _collectedData,
-      });
-
-      final builder = MqttClientPayloadBuilder();
-      builder.addString(payload);
-
+        data.isNotEmpty) {
+      final payload = jsonEncode({'userId': _userId, 'session': data});
+      final builder = MqttClientPayloadBuilder()..addString(payload);
       client.publishMessage(topic, MqttQos.atLeastOnce, builder.payload!);
-      _updateStatus("Podatki poslani: ${_collectedData.length} točk");
-      setState(() {
-        _collectedData.clear();
-        _path.clear();
-        stepCount = 0;
-      });
+      _updateStatus("Podatki poslani: ${data.length} točk");
+    } else if (data.isNotEmpty) {
+      SyncService.instance.addSession(data);
+      _updateStatus("Seja v vrsti za sinhronizacijo: ${data.length} točk");
     } else {
-      _updateStatus("Ni podatkov za pošiljanje ali ni povezave.");
+      _updateStatus("Ni novih podatkov za pošiljanje.");
     }
   }
 

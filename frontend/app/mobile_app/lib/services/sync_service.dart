@@ -2,40 +2,45 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
-import 'package:flutter/foundation.dart';
 
 class SyncService {
   static final SyncService instance = SyncService._internal();
   SyncService._internal();
 
   static const _key = 'pending_sessions';
+  static const _intervalKey = 'sync_interval_secs';
   Timer? _poller;
 
   Future<void> init() async {
-    _poller = Timer.periodic(const Duration(seconds: 30), (_) async {
+    await dispose();
+
+    final prefs = await SharedPreferences.getInstance();
+    final interval = prefs.getInt(_intervalKey) ?? 30;
+
+    _poller = Timer.periodic(Duration(seconds: interval), (_) async {
       try {
         final result = await InternetAddress.lookup('example.com');
         if (result.isNotEmpty && result.first.rawAddress.isNotEmpty) {
           await syncAll();
         }
-      } catch (_) {
-        // no connection
-      }
+      } catch (_) {}
     });
   }
 
   Future<void> dispose() async {
     _poller?.cancel();
+    _poller = null;
   }
 
   Future<void> addSession(List<Map<String, dynamic>> session) async {
-    if (session.isEmpty) return; // ⛔ Skip empty sessions
+    if (session.isEmpty) return;
 
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_key);
-    final List<dynamic> list = raw == null ? [] : json.decode(raw);
+    final list = raw == null ? <dynamic>[] : json.decode(raw) as List<dynamic>;
     list.add(session);
     await prefs.setString(_key, json.encode(list));
   }
@@ -44,10 +49,9 @@ class SyncService {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_key);
     if (raw == null) return [];
-    return (json.decode(raw) as List)
-        .map<List<Map<String, dynamic>>>(
-          (e) => List<Map<String, dynamic>>.from(e),
-        )
+    final decoded = json.decode(raw) as List<dynamic>;
+    return decoded
+        .map((e) => List<Map<String, dynamic>>.from(e as List))
         .toList();
   }
 
@@ -62,7 +66,7 @@ class SyncService {
     for (var session in pending) {
       try {
         final payload = {'activity': session};
-        debugPrint('🔄 SyncService: sending payload → ${jsonEncode(payload)}');
+        debugPrint('🔄 SyncService: sending → ${jsonEncode(payload)}');
         final res = await http.post(
           uri,
           headers: {
@@ -73,7 +77,6 @@ class SyncService {
         );
         debugPrint('🔄 SyncService: got ${res.statusCode} → ${res.body}');
         if (res.statusCode != 201) {
-          // abort on any error
           return;
         }
       } catch (e) {
@@ -82,8 +85,7 @@ class SyncService {
       }
     }
 
-    // all batches succeeded
-    debugPrint('🔄 SyncService: all sessions synced, clearing queue.');
+    debugPrint('🔄 SyncService: all sessions synced; clearing queue.');
     await prefs.remove(_key);
   }
 
