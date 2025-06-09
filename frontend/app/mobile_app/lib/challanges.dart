@@ -31,7 +31,7 @@ class _ChallengesState extends State<Challenges> {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('jwt_token') ?? '';
     final userId = prefs.getString('user_id') ?? '';
-    final url = Uri.parse('https://localhost:3001/api/users/$userId');
+    final url = Uri.parse('http://192.168.0.26:3001/api/users/$userId');
     final response = await http.get(
       url,
       headers: {'Authorization': 'Bearer $token'},
@@ -86,12 +86,12 @@ class _ChallengesState extends State<Challenges> {
     final weeklyCalories = (weeklySteps * 0.04 + weeklyAltitude * 0.1).round();
 
     return [
-      // Daily challenges - FIXED: use local variables defined above
+      // Daily challenges
       Challenge('Naredi 8000 korakov', dailySteps, 8000),
       Challenge('Porabi 8000 kalorij', dailyCalories, 8000),
       Challenge('Dosezi 1000 m nadmorske višine', dailyAltitude, 1000),
       
-      // Weekly challenges - FIXED: use local variables defined above
+      // Weekly challenges
       Challenge('Naredi 24000 korakov', weeklySteps, 24000),
       Challenge('Porabi 24000 kalorij', weeklyCalories, 24000),
       Challenge('Dosezi 3000 m nadmorske višine', weeklyAltitude, 3000),
@@ -114,72 +114,101 @@ class _ChallengesState extends State<Challenges> {
             return Center(child: Text('Napaka: ${snapshot.error}'));
           }
           final challenges = snapshot.data!;
-          return Padding(
+
+          // Ločimo na dnevne in tedenske izzive
+          final dailyChallenges = challenges.sublist(0, 3);
+          final weeklyChallenges = challenges.sublist(3);
+
+          return SingleChildScrollView(
             padding: const EdgeInsets.all(20),
-            child: ListView.builder(
-              itemCount: challenges.length,
-              itemBuilder: (context, index) {
-                final c = challenges[index];
-                final progress = (c.current / c.goal).clamp(0.0, 1.0);
-                return Card(
-                  elevation: 3,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                  margin: const EdgeInsets.only(bottom: 15),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          c.title,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          '${c.current} / ${c.goal}',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: LinearProgressIndicator(
-                            value: progress,
-                            minHeight: 12,
-                            backgroundColor: Colors.grey[300],
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              progress >= 1.0 ? Colors.green : Colors.teal,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 5),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: Text(
-                            '${(progress * 100).toStringAsFixed(1)}%',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: progress >= 1.0
-                                  ? Colors.green
-                                  : Colors.grey[700],
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Dnevni izzivi',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.orange,
                   ),
-                );
-              },
+                ),
+                const SizedBox(height: 10),
+                ...dailyChallenges.map((c) => _buildChallengeCard(c)),
+                const SizedBox(height: 30),
+                const Text(
+                  'Tedenski izzivi',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.orange,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                ...weeklyChallenges.map((c) => _buildChallengeCard(c)),
+              ],
             ),
           );
         },
+      ),
+    );
+  }
+
+  // Helper za gradnjo kartice izziva
+  Widget _buildChallengeCard(Challenge c) {
+    final progress = (c.current / c.goal).clamp(0.0, 1.0);
+    return Card(
+      elevation: 3,
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.only(bottom: 15),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              c.title,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              '${c.current} / ${c.goal}',
+              style: const TextStyle(
+                fontSize: 14,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 12,
+                backgroundColor: Colors.grey[300],
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  progress >= 1.0 ? Colors.green : Colors.teal,
+                ),
+              ),
+            ),
+            const SizedBox(height: 5),
+            Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                '${(progress * 100).toStringAsFixed(1)}%',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: progress >= 1.0
+                      ? Colors.green
+                      : Colors.grey[700],
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
