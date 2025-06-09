@@ -8,6 +8,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:sensors_plus/sensors_plus.dart';
+import 'services/sync_service.dart';
 import 'map.dart';
 
 class SensorMQTTPage extends StatefulWidget {
@@ -245,6 +246,8 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
   void _stopAndSendData() {
     _isPublishing = false;
     _timer?.cancel();
+
+    SyncService.instance.addSession(_collectedData);
 
     if (client.connectionStatus?.state == MqttConnectionState.connected &&
         _collectedData.isNotEmpty) {
