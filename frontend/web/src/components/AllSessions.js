@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { MapContainer, TileLayer, Polyline, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Polyline } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
 export default function AllSessions() {
@@ -9,28 +9,28 @@ export default function AllSessions() {
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        const fetchAll = async () => {
+        async function fetchAllSessions() {
             try {
                 const token = localStorage.getItem('token');
                 const res = await axios.get('/api/sensordata', {
                     headers: token ? { Authorization: `Bearer ${token}` } : {}
                 });
-                setSessions(res.data);
+                setSessions(res.data || []);
             } catch (err) {
-                console.error(err);
+                console.error('Napaka pri pridobivanju sej:', err);
                 setError(err.response?.data?.message || err.message);
             } finally {
                 setLoading(false);
             }
-        };
-        fetchAll();
+        }
+        fetchAllSessions();
     }, []);
 
-    if (loading) return <p>Loading all sessions…</p>;
+    if (loading) return <p>Nalaganje vseh sej…</p>;
     if (error) return <p style={{ color: 'red' }}>Error: {error}</p>;
-    if (!sessions.length) return <p>No sessions found.</p>;
+    if (!sessions.length) return <p>Ni najdenih sej.</p>;
 
-    const allPoints = sessions.flatMap(s => s.session.map(p => [p.latitude, p.longitude]));
+    const allPoints = sessions.flatMap(s => (s.session || s.activity || []).map(p => [p.latitude, p.longitude]));
 
     return (
         <div style={{ padding: 20 }}>
@@ -45,40 +45,40 @@ export default function AllSessions() {
                         attribution="&copy; OpenStreetMap contributors"
                         url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
                     />
-                    {sessions.map((s, i) => (
-                        <React.Fragment key={i}>
-                            {s.session.length > 0 && (
-                                <Polyline
-                                    positions={s.session.map(p => [p.latitude, p.longitude])}
-                                    weight={2}
-                                    opacity={0.7}
-                                />
-                            )}
-                        </React.Fragment>
-                    ))}
+                    {sessions.map((s, i) => {
+                        const pts = s.session || s.activity || [];
+                        return pts.length > 0 ? (
+                            <Polyline
+                                key={i}
+                                positions={pts.map(p => [p.latitude, p.longitude])}
+                                weight={2}
+                                opacity={0.7}
+                            />
+                        ) : null;
+                    })}
                 </MapContainer>
             </div>
 
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                     <tr>
-                        <th>User</th>
-                        <th>Points</th>
-                        <th>First Timestamp</th>
-                        <th>Last Timestamp</th>
+                        <th>Uporabnik</th>
+                        <th>Točke</th>
+                        <th>Prva aktivnost</th>
+                        <th>Zadnja aktivnost</th>
                     </tr>
                 </thead>
                 <tbody>
                     {sessions.map((s, idx) => {
-                        const pts = s.session;
+                        const pts = s.session || s.activity || [];
                         const first = pts[0]?.timestamp || '—';
                         const last = pts[pts.length - 1]?.timestamp || '—';
                         return (
                             <tr key={idx} style={{ borderTop: '1px solid #ccc' }}>
                                 <td>{s.user}</td>
                                 <td>{pts.length}</td>
-                                <td>{new Date(first).toLocaleString()}</td>
-                                <td>{new Date(last).toLocaleString()}</td>
+                                <td>{first !== '—' ? new Date(first).toLocaleString() : '—'}</td>
+                                <td>{last !== '—' ? new Date(last).toLocaleString() : '—'}</td>
                             </tr>
                         );
                     })}
