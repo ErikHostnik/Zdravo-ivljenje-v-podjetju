@@ -36,9 +36,15 @@ def calculate_total_steps_and_distance(session):
     total_steps = 0
     total_distance = 0.0
     prev_point = None
+    prev_steps = None
 
     for entry in session:
-        total_steps += entry.get("steps", 0)
+        current_steps = entry.get("steps", 0)
+        if prev_steps is not None:
+            diff = current_steps - prev_steps
+            if diff > 0:
+                total_steps += diff
+        prev_steps = current_steps
 
         lat = entry.get("latitude")
         lon = entry.get("longitude")
@@ -56,13 +62,22 @@ def calculate_total_steps_and_distance(session):
 
     return total_steps, total_distance
 
+
 def calculate_speed_stats(session):
     speeds = [entry.get("speed") for entry in session if "speed" in entry and entry["speed"] is not None]
+
     if not speeds:
-        return None, None, None  # Če ni podatkov o hitrosti
+        return None, None, None  
 
     avg_speed = sum(speeds) / len(speeds)
-    min_speed = min(speeds)
+
+    positive_speeds = [s for s in speeds if s > 0]
+
+    if positive_speeds:
+        min_speed = min(positive_speeds)
+    else:
+        min_speed = None  
+
     max_speed = max(speeds)
 
     return avg_speed, min_speed, max_speed
