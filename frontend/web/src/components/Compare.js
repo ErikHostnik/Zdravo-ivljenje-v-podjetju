@@ -61,7 +61,7 @@ export default function Compare() {
     );
   }
 
-  // Pripravimo podatke za izračun statistike
+  // Pripravimo podatke za izračun dnevne statistike
   const now = new Date();
   const todayStr = now.toISOString().substring(0, 10);
 
@@ -73,12 +73,26 @@ export default function Compare() {
     const steps = todayEntry ? todayEntry.stepCount : 0;
     const distance = todayEntry ? todayEntry.distance : 0;
     const calories = +(steps * 0.04).toFixed(2);
+    const speed = todayEntry && todayEntry.durationSeconds
+      ? +((distance / (todayEntry.durationSeconds / 3600))).toFixed(2)
+      : 0;
+    const altitude = todayEntry ? todayEntry.altitudeDistance : 0;
+    const date = todayEntry ? new Date(todayEntry.date).toLocaleDateString('sl-SI') : '-';
+    const stepGoal = u.stepGoal ?? 0;
+    const progressPerc = stepGoal > 0
+      ? Math.min(100, Math.round((steps / stepGoal) * 100))
+      : 0;
 
     return {
       username: u.username,
       steps,
       distance: +distance.toFixed(2),
       calories,
+      speed,
+      altitude,
+      date,
+      stepGoal,
+      progressPerc
     };
   };
 
@@ -119,6 +133,7 @@ export default function Compare() {
           display: 'flex',
           flexDirection: 'column'
         }}>
+          {/* Glava z avatarjem */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -148,6 +163,7 @@ export default function Compare() {
             }}>{stats1.username}</h3>
           </div>
           
+          {/* Vsa statistika */}
           <div style={{ 
             color: '#E0E0FF',
             flex: '1',
@@ -155,18 +171,63 @@ export default function Compare() {
             flexDirection: 'column',
             justifyContent: 'space-between'
           }}>
+            {/* Progress bar za korake */}
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
-                <span><strong>Koraki danes:</strong></span>
-                <span>{stats1.steps.toLocaleString('sl-SI')}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span>0</span>
+                <span>{stats1.stepGoal.toLocaleString('sl-SI')} korakov</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
-                <span><strong>Razdalja danes:</strong></span>
-                <span>{stats1.distance.toLocaleString('sl-SI', { minimumFractionDigits: 2 })} km</span>
+              <div style={{ backgroundColor: '#333', borderRadius: '8px', overflow: 'hidden', margin: '10px 0' }}>
+                <div
+                  style={{
+                    backgroundColor: '#4CAF50',
+                    width: `${stats1.progressPerc}%`,
+                    padding: '10px',
+                    color: 'white',
+                    textAlign: 'center'
+                  }}
+                >
+                  {stats1.steps.toLocaleString('sl-SI')}
+                </div>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
-                <span><strong>Kalorije danes:</strong></span>
-                <span>{stats1.calories.toLocaleString('sl-SI', { minimumFractionDigits: 2 })} kcal</span>
+              <div style={{ textAlign: 'center', color: '#FFEB3B' }}>{stats1.progressPerc}%</div>
+            </div>
+
+            {/* Podatki v dveh stolpcih */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              rowGap: '15px',
+              columnGap: '40px',
+              marginTop: '20px'
+            }}>
+              <div style={{ display: 'flex' }}>
+                <strong>🚶‍♂️ Koraki:</strong>
+                <span style={{ marginLeft: 'auto' }}>{stats1.steps.toLocaleString('sl-SI')}</span>
+              </div>
+              <div style={{ display: 'flex' }}>
+                <strong>🛣️ Razdalja:</strong>
+                <span style={{ marginLeft: 'auto' }}>{stats1.distance} km</span>
+              </div>
+              <div style={{ display: 'flex' }}>
+                <strong>🔥 Kalorije:</strong>
+                <span style={{ marginLeft: 'auto' }}>{stats1.calories} kcal</span>
+              </div>
+              <div style={{ display: 'flex' }}>
+                <strong>💨 Hitrost:</strong>
+                <span style={{ marginLeft: 'auto' }}>{stats1.speed} km/h</span>
+              </div>
+              <div style={{ display: 'flex' }}>
+                <strong>⛰️ Višina:</strong>
+                <span style={{ marginLeft: 'auto' }}>{stats1.altitude} m</span>
+              </div>
+              <div style={{ display: 'flex' }}>
+                <strong>📅 Datum:</strong>
+                <span style={{ marginLeft: 'auto' }}>{stats1.date}</span>
+              </div>
+              <div style={{ display: 'flex' }}>
+                <strong>🎯 Cilj:</strong>
+                <span style={{ marginLeft: 'auto' }}>{stats1.stepGoal.toLocaleString('sl-SI')}</span>
               </div>
             </div>
           </div>
@@ -221,17 +282,60 @@ export default function Compare() {
             justifyContent: 'space-between'
           }}>
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
-                <span><strong>Koraki danes:</strong></span>
-                <span>{stats2.steps.toLocaleString('sl-SI')}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span>0</span>
+                <span>{stats2.stepGoal.toLocaleString('sl-SI')} korakov</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
-                <span><strong>Razdalja danes:</strong></span>
-                <span>{stats2.distance.toLocaleString('sl-SI', { minimumFractionDigits: 2 })} km</span>
+              <div style={{ backgroundColor: '#333', borderRadius: '8px', overflow: 'hidden', margin: '10px 0' }}>
+                <div
+                  style={{
+                    backgroundColor: '#4CAF50',
+                    width: `${stats2.progressPerc}%`,
+                    padding: '10px',
+                    color: 'white',
+                    textAlign: 'center'
+                  }}
+                >
+                  {stats2.steps.toLocaleString('sl-SI')}
+                </div>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
-                <span><strong>Kalorije danes:</strong></span>
-                <span>{stats2.calories.toLocaleString('sl-SI', { minimumFractionDigits: 2 })} kcal</span>
+              <div style={{ textAlign: 'center', color: '#FFEB3B' }}>{stats2.progressPerc}%</div>
+            </div>
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              rowGap: '15px',
+              columnGap: '40px',
+              marginTop: '20px'
+            }}>
+              <div style={{ display: 'flex' }}>
+                <strong>🚶‍♂️ Koraki:</strong>
+                <span style={{ marginLeft: 'auto' }}>{stats2.steps.toLocaleString('sl-SI')}</span>
+              </div>
+              <div style={{ display: 'flex' }}>
+                <strong>🛣️ Razdalja:</strong>
+                <span style={{ marginLeft: 'auto' }}>{stats2.distance} km</span>
+              </div>
+              <div style={{ display: 'flex' }}>
+                <strong>🔥 Kalorije:</strong>
+                <span style={{ marginLeft: 'auto' }}>{stats2.calories} kcal</span>
+              </div>
+              <div style={{ display: 'flex' }}>
+                <strong>💨 Hitrost:</strong>
+                <span style={{ marginLeft: 'auto' }}>{stats2.speed} km/h</span>
+              </div>
+              <div style={{ display: 'flex' }}>
+                <strong>⛰️ Višina:</strong>
+                <span style={{ marginLeft: 'auto' }}>{stats2.altitude} m</span>
+              </div>
+              <div style={{ display: 'flex' }}>
+                <strong>📅 Datum:</strong>
+                <span style={{ marginLeft: 'auto' }}>{stats2.date}</span>
+              </div>
+              <div style={{ display: 'flex' }}>
+                <strong>🎯 Cilj:</strong>
+                <span style={{ marginLeft: 'auto' }}>{stats2.stepGoal.toLocaleString('sl-SI')}</span>
               </div>
             </div>
           </div>
