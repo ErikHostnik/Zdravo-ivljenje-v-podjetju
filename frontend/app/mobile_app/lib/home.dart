@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'twofa_mqtt.dart';
 import 'camera_capture.dart';
+import 'challanges.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -138,6 +139,26 @@ class _HomePageState extends State<HomePage> {
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green[700],
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    minimumSize: const Size(double.infinity, 50),
+                  ),
+                ),
+
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const Challenges()),
+                    );
+                  },
+                  icon: const Icon(Icons.emoji_events),
+                  label: const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 14.0),
+                    child: Text('Izzivi', style: TextStyle(fontSize: 18)),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange[700],
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     minimumSize: const Size(double.infinity, 50),
