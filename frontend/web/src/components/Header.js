@@ -22,6 +22,7 @@ function Header({ title }) {
                                 context.user ? (
                                     <>
                                         <li><Link to="/">Domov</Link></li>
+                                        <li><Link to="/analytics">Analitika</Link></li>
                                         <li><Link to={`/path/${context.user._id}`}>Zemljevid</Link></li>
                                         <li><Link to={`/userProfile/${context.user._id}`}>Profil</Link></li>
                                         <li><Link to="/leaderboard">Lestvica najboljših</Link></li>

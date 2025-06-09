@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { UserContext } from "./userContext";
 import 'leaflet/dist/leaflet.css';
-
+import AnalyticsDashboard from './components/AnalyticsDashboard';
 import Home from './components/Home';
 import Header from "./components/Header";
 import Login from "./components/Login";
@@ -38,14 +38,15 @@ function App() {
         <div className="App">
           <Header title="Fit Office" />
           <Routes>
-            <Route path="/" element={<Home />} /> 
+            <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/userProfile/:userId" element={<UserProfile />} />
-            <Route path="/leaderboard" element={<Leaderboard/>} />
-            <Route path="/compare/:id1/:id2" element={<Compare/>} />
+            <Route path="/leaderboard" element={<Leaderboard />} />
+            <Route path="/compare/:id1/:id2" element={<Compare />} />
             <Route path="/path/:userId" element={<PathMap />} />
             <Route path="/logout" element={<Logout />} />
+            <Route path="/analytics" element={<AnalyticsDashboard />} />
           </Routes>
         </div>
       </UserContext.Provider>
