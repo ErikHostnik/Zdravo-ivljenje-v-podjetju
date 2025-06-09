@@ -5,11 +5,12 @@ const fs = require('fs');
 const { exec } = require('child_process');
 const multer = require('multer');
 
-// Detect if the application is running inside Docker
 const isDocker = process.env.IS_DOCKER === 'true';
-
-// Base path adjustments for Docker vs local
-const basePath = isDocker ? '/usr/src/app' : __dirname;
+// if inside Docker, scripts live at /usr/src/app/scripts
+// otherwise, go up two levels: controllers → api → backend
+const basePath = isDocker
+  ? '/usr/src/app'
+  : path.resolve(__dirname, '..', '..');
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {

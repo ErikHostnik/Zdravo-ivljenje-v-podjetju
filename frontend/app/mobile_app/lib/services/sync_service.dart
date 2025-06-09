@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 
@@ -10,14 +10,21 @@ class SyncService {
   SyncService._internal();
 
   static const _key = 'pending_sessions';
-  late StreamSubscription<ConnectivityResult> _sub;
+  Timer? _poller;
 
   Future<void> init() async {
-    _sub = Connectivity().onConnectivityChanged.listen((result) {
-      if (result != ConnectivityResult.none) {
-        syncAll();
-      }
+    _poller = Timer.periodic(const Duration(seconds: 30), (_) async {
+      try {
+        final result = await InternetAddress.lookup('example.com');
+        if (result.isNotEmpty && result.first.rawAddress.isNotEmpty) {
+          await syncAll();
+        }
+      } catch (_) {}
     });
+  }
+
+  Future<void> dispose() async {
+    _poller?.cancel();
   }
 
   Future<void> addSession(List<Map<String, dynamic>> session) async {
@@ -40,10 +47,10 @@ class SyncService {
   }
 
   Future<void> syncAll() async {
-    final prefs = await SharedPreferences.getInstance();
     final pending = await getPending();
     if (pending.isEmpty) return;
 
+    final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('jwt_token') ?? '';
     final uri = Uri.parse('http://192.168.0.242:3001/api/sensordata');
 
@@ -57,21 +64,18 @@ class SyncService {
           },
           body: json.encode({'activity': session}),
         );
-        if (res.statusCode != 201) {
-          return;
-        }
+        if (res.statusCode != 201) return;
       } catch (_) {
         return;
       }
     }
 
-    await prefs.remove(_key);
+    final prefs2 = await SharedPreferences.getInstance();
+    await prefs2.remove(_key);
   }
 
   Future<int> pendingCount() async {
     final list = await getPending();
     return list.length;
   }
-
-  void dispose() => _sub.cancel();
 }

@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
-import 'services/sync_service.dart';
 import 'home.dart';
 import 'sensor_mqtt.dart';
 import 'login_register.dart';
+import 'services/sync_service.dart'; // ensure this import is here
 
-void main() {
-
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await SyncService.instance.init();
-
+  await SyncService.instance.init(); // now allowed inside async main
   runApp(const FitOfficeApp());
 }
 
