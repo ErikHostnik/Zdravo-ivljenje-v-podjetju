@@ -86,32 +86,46 @@ def calculate_total_ascent(session):
     return total_ascent
 
 def update_daily_stats(user_id, steps, distance, avg_speed, min_speed, max_speed, total_ascent):
-
-
     today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
 
+    # Najprej posodobi skupni seštevek uporabnika
     user_collection.update_one(
         {"_id": user_id},
         {"$inc": {"stepCount": steps, "distance": distance}}
     )
 
-    daily_data = {
-        "date": today,
-        "stepCount": steps,
-        "distance": distance,
-        "avgSpeed": avg_speed, 
-        "minSpeed": min_speed,
-        "maxSpeed": max_speed,
-        "altitudeDistance": total_ascent
+    # Preveri, če že obstaja dnevni vnos za danes
+    user = user_collection.find_one({"_id": user_id, "dailyStats.date": today}, {"dailyStats.$": 1})
 
-    }
+    if user and "dailyStats" in user:
+        # Če obstaja, povečaj korake in razdaljo
+        existing = user["dailyStats"][0]
+        updated_data = {
+            "stepCount": existing.get("stepCount", 0) + steps,
+            "distance": existing.get("distance", 0.0) + distance,
+            "avgSpeed": avg_speed,
+            "minSpeed": min_speed,
+            "maxSpeed": max_speed,
+            "altitudeDistance": total_ascent,
+            "date": today
+        }
 
-    result = user_collection.update_one(
-        {"_id": user_id, "dailyStats.date": today},
-        {"$set": {"dailyStats.$": daily_data}}
-    )
+        user_collection.update_one(
+            {"_id": user_id, "dailyStats.date": today},
+            {"$set": {"dailyStats.$": updated_data}}
+        )
+    else:
+        # Če ne obstaja, dodaj nov vnos
+        daily_data = {
+            "date": today,
+            "stepCount": steps,
+            "distance": distance,
+            "avgSpeed": avg_speed,
+            "minSpeed": min_speed,
+            "maxSpeed": max_speed,
+            "altitudeDistance": total_ascent
+        }
 
-    if result.modified_count == 0:
         user_collection.update_one(
             {"_id": user_id},
             {"$push": {"dailyStats": daily_data}}

@@ -48,73 +48,91 @@ module.exports = {
 
   // Prenos slik za 2FA in obdelava preko Python pipeline
   uploadImages: function (req, res) {
-    console.log('[uploadImages] Zagnana funkcija');
-    console.log('[uploadImages] req.body:', req.body);
-    console.log('[uploadImages] req.files:', req.files);
-    
     upload(req, res, async function (err) {
-      console.log('[uploadImages] Multer callback, err:', err);
       if (err) {
-        console.error('[uploadImages] Napaka pri multer uploadu:', err);
         return res.status(500).json({ message: "Napaka pri nalaganju slik", error: err });
       }
 
-      const userId  = req.body.user || req.params.userId;
-      const tmpDir  = path.join(process.cwd(), 'uploads/tmp', userId);
+      const userId = req.body.user || req.params.userId;
+      const tmpDir = path.join(process.cwd(), 'uploads/tmp', userId);
       const dataDir = path.join(process.cwd(), 'scripts/face_recognition/data', userId);
 
-      console.log('[uploadImages] userId:', userId);
-      console.log('[uploadImages] tmpDir:', tmpDir);
-      console.log('[uploadImages] dataDir:', dataDir);
-
-      // Preverimo, ali tmpDir že obstaja in vsebuje datoteke
-      let tmpFiles = [];
-      try {
-        tmpFiles = fs.readdirSync(tmpDir);
-        console.log('[uploadImages] Vsebina tmpDir pred kopiranjem:', tmpFiles);
-      } catch (e) {
-        console.error('[uploadImages] Napaka pri branju tmpDir:', e.message);
-      }
-
-      // Ustvari/pobriši dataDir
+      // Pobriši in ponovno ustvari dataDir
       if (fs.existsSync(dataDir)) {
-        console.log('[uploadImages] dataDir že obstaja, brišem:', dataDir);
         fs.rmSync(dataDir, { recursive: true, force: true });
       }
       fs.mkdirSync(dataDir, { recursive: true });
-      console.log('[uploadImages] Ustvarjen dataDir:', dataDir);
 
-      // Kopiranje slik
+      // Kopiranje originalnih slik iz tmpDir v dataDir
       try {
-        for (const file of tmpFiles) {
+        const files = fs.readdirSync(tmpDir);
+        for (const file of files) {
           const sourcePath = path.join(tmpDir, file);
-          const destPath   = path.join(dataDir, file);
-          console.log(`[uploadImages] Kopiram ${sourcePath} → ${destPath}`);
+          const destPath = path.join(dataDir, file);
           fs.copyFileSync(sourcePath, destPath);
         }
-        console.log('[uploadImages] Kopiranje slik uspešno.');
       } catch (copyError) {
-        console.error('[uploadImages] Napaka pri kopiranju slik:', copyError.message);
         return res.status(500).json({ message: "Napaka pri kopiranju slik", error: copyError.message });
       }
 
-      // Klic Python pipeline
+      // Zaženi Python pipeline
       const scriptPath = path.join(process.cwd(), 'scripts/face_recognition/process_pipeline.py');
       const cmd = `python "${scriptPath}" "${dataDir}"`;
-      console.log('[uploadImages] Ukaz za exec:', cmd);
 
       exec(cmd, (error, stdout, stderr) => {
-        console.log('[uploadImages] exec callback, error:', error, 'stderr:', stderr);
         if (error) {
-          console.error('[uploadImages] Napaka pri zagonu process_pipeline.py:', error);
+          console.error(`[uploadImages] Napaka pri zagonu process_pipeline.py:`, error);
           return res.status(500).json({ message: "Napaka pri obdelavi slik", error: error.message });
         }
-        console.log('[uploadImages] process_pipeline.py stdout:', stdout);
 
-        // (ostali cleanup – lahko tudi tukaj dodaš console.log)
-        // …
+        console.log(`[uploadImages] process_pipeline.py zaključena.`);
+        console.log(stdout);
+        if (stderr) console.error(stderr);
 
-        res.json({ message: "Slike uspešno naložene in obdelava je zaključena." });
+        // Premik augmentiranih slik nazaj, brisanje ostalih
+        const preprocessedDir = path.join(dataDir, 'preprocessed');
+
+        try {
+          // Premakni vse slike iz preprocessed v dataDir
+          if (fs.existsSync(preprocessedDir)) {
+            const preprocessedFiles = fs.readdirSync(preprocessedDir);
+            for (const file of preprocessedFiles) {
+              const srcPath = path.join(preprocessedDir, file);
+              const destPath = path.join(dataDir, file);
+              fs.renameSync(srcPath, destPath);
+            }
+            fs.rmSync(preprocessedDir, { recursive: true, force: true });
+          }
+        } catch (moveError) {
+          console.warn(`[uploadImages] Napaka pri premiku slik:`, moveError.message);
+        }
+
+        try {
+          // Očisti vse, kar ni augmentirana slika (ne vsebuje "_aug")
+          const files = fs.readdirSync(dataDir);
+          for (const file of files) {
+            if (!file.includes('_aug')) {
+              const fullPath = path.join(dataDir, file);
+              const stats = fs.statSync(fullPath);
+              if (stats.isDirectory()) {
+                fs.rmSync(fullPath, { recursive: true, force: true });
+              } else {
+                fs.unlinkSync(fullPath);
+              }
+            }
+          }
+        } catch (cleanupError) {
+          console.warn(`[uploadImages] Napaka pri čiščenju neaugmentiranih slik:`, cleanupError.message);
+        }
+
+        try {
+          fs.rmSync(tmpDir, { recursive: true, force: true });
+          console.log(`[uploadImages] tmpDir izbrisan: ${tmpDir}`);
+        } catch (tmpErr) {
+          console.warn(`[uploadImages] Napaka pri brisanju tmpDir:`, tmpErr.message);
+        }
+
+        res.json({ message: "Slike uspešno naložene in obdelane." });
       });
     });
   },
