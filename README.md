@@ -51,7 +51,7 @@ Preden začnete, poskrbite, da imate nameščeno:
 Klonirajte repozitorij z GitHub-a:
 
 ```bash
-git clone https://github.com/VAŠ_UPORABNIŠKI_NAZIV/fit-office.git
+git clone (https://github.com/ErikHostnik/Zdravo-ivljenje-v-podjetju.git)
 cd fit-office
 ```
 
@@ -178,6 +178,6 @@ docker-compose up --build
 
 ## Kontakt
 
-- Avtor: Vaše Ime  
-- E-pošta: vaš.email@domena.com  
-- GitHub: [github.com/VAŠ_UPORABNIŠKI_NAZIV/fit-office](https://github.com/VAŠ_UPORABNIŠKI_NAZIV/fit-office)  
+- Avtor: Martin Jevševar, Erik Hostnik 
+- E-pošta: martin.jevsevar@gmail.com, erikhostnik@gmail.com
+- GitHub: [https://github.com/VAŠ_UPORABNIŠKI_NAZIV/fit-office](https://github.com/ErikHostnik/Zdravo-ivljenje-v-podjetju.git) 
