@@ -95,7 +95,7 @@ export default function AnalyticsDashboard() {
                 position: 'left',
                 title: {
                     display: true,
-                    text: 'Steps',
+                    text: 'Koraki',
                     color: '#FFFFFF'
                 },
                 ticks: { color: '#FFFFFF' }
@@ -105,7 +105,7 @@ export default function AnalyticsDashboard() {
                 position: 'right',
                 title: {
                     display: true,
-                    text: 'Active Users',
+                    text: 'Aktivni uporabniki',
                     color: '#FFFFFF'
                 },
                 ticks: { color: '#FFFFFF' },

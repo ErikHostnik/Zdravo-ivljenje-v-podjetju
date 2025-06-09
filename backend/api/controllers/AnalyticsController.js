@@ -9,16 +9,27 @@ async function globalSteps(req, res) {
 
     try {
         const results = await SensorDataModel.aggregate([
-            { $unwind: '$activity' },
-            { $match: { 'activity.timestamp': { $gte: cutoff } } },
+            { $unwind: '$session' },
+
+            {
+                $addFields: {
+                    sessionDate: {
+                        $dateFromString: { dateString: '$session.timestamp' }
+                    }
+                }
+            },
+
+            { $match: { sessionDate: { $gte: cutoff } } },
+
             {
                 $group: {
                     _id: {
-                        $dateToString: { format: '%Y-%m-%d', date: '$activity.timestamp' }
+                        $dateToString: { format: '%Y-%m-%d', date: '$sessionDate' }
                     },
-                    totalSteps: { $sum: '$activity.steps' }
+                    totalSteps: { $sum: '$session.steps' }
                 }
             },
+
             { $sort: { '_id': 1 } }
         ]);
 
@@ -30,10 +41,13 @@ async function globalSteps(req, res) {
             const rec = results.find(r => r._id === dayStr);
             data.push({ date: dayStr, totalSteps: rec ? rec.totalSteps : 0 });
         }
-        res.json(data);
+
+        return res.json(data);
     } catch (err) {
         console.error('globalSteps error:', err);
-        res.status(500).json({ message: 'Error computing global steps', error: err });
+        return res
+            .status(500)
+            .json({ message: 'Error computing global steps', error: err });
     }
 }
 
@@ -46,12 +60,16 @@ function activeUsersPerDay(req, res) {
     for (let i = days - 1; i >= 0; i--) {
         const day = new Date(today);
         day.setDate(today.getDate() - i);
-        const dayStart = day.getTime();
-        const dayEnd = dayStart + 24 * 3600 * 1000;
-
-        results.push({ date: day.toISOString().substring(0, 10), count: getCount() });
+        results.push({
+            date: day.toISOString().substring(0, 10),
+            count: getCount()
+        });
     }
-    res.json(results);
+
+    return res.json(results);
 }
 
-module.exports = { globalSteps, activeUsersPerDay };
+module.exports = {
+    globalSteps,
+    activeUsersPerDay
+};
