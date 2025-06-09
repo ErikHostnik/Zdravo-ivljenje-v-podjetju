@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'services/sync_service.dart';
 import 'home.dart';
 import 'sensor_mqtt.dart';
 import 'login_register.dart';
 
 void main() {
+
+  WidgetsFlutterBinding.ensureInitialized();
+  await SyncService.instance.init();
+
   runApp(const FitOfficeApp());
 }
 
