@@ -36,9 +36,15 @@ def calculate_total_steps_and_distance(session):
     total_steps = 0
     total_distance = 0.0
     prev_point = None
+    prev_steps = None
 
     for entry in session:
-        total_steps += entry.get("steps", 0)
+        current_steps = entry.get("steps", 0)
+        if prev_steps is not None:
+            diff = current_steps - prev_steps
+            if diff > 0:
+                total_steps += diff
+        prev_steps = current_steps
 
         lat = entry.get("latitude")
         lon = entry.get("longitude")
@@ -56,38 +62,43 @@ def calculate_total_steps_and_distance(session):
 
     return total_steps, total_distance
 
+
 def calculate_speed_stats(session):
     speeds = [entry.get("speed") for entry in session if "speed" in entry and entry["speed"] is not None]
+
     if not speeds:
-        return None, None, None  # Če ni podatkov o hitrosti
+        return None, None, None  
 
     avg_speed = sum(speeds) / len(speeds)
-    min_speed = min(speeds)
+
+    positive_speeds = [s for s in speeds if s > 0]
+
+    if positive_speeds:
+        min_speed = min(positive_speeds)
+    else:
+        min_speed = None  
+
     max_speed = max(speeds)
 
     return avg_speed, min_speed, max_speed
 
 def calculate_total_ascent(session):
-    total_ascent = 0.0
-    prev_altitude = None
+    altitudes = [entry.get("altitude") for entry in session if entry.get("altitude") is not None]
 
-    for entry in session:
-        altitude = entry.get("altitude")
-        if altitude is None:
-            continue
+    valid_altitudes = []
+    for a in altitudes:
+        try:
+            valid_altitudes.append(float(a))
+        except (ValueError, TypeError):
+            pass
 
-        if prev_altitude is not None:
-            diff = altitude - prev_altitude
-            if diff > 0:
-                total_ascent += diff
+    if not valid_altitudes:
+        return 0.0
 
-        prev_altitude = altitude
-
+    total_ascent = max(valid_altitudes) - min(valid_altitudes)
     return total_ascent
 
 def update_daily_stats(user_id, steps, distance, avg_speed, min_speed, max_speed, total_ascent):
-
-
     today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
 
     user_collection.update_one(
@@ -95,23 +106,35 @@ def update_daily_stats(user_id, steps, distance, avg_speed, min_speed, max_speed
         {"$inc": {"stepCount": steps, "distance": distance}}
     )
 
-    daily_data = {
-        "date": today,
-        "stepCount": steps,
-        "distance": distance,
-        "avgSpeed": avg_speed, 
-        "minSpeed": min_speed,
-        "maxSpeed": max_speed,
-        "altitudeDistance": total_ascent
+    user = user_collection.find_one({"_id": user_id, "dailyStats.date": today}, {"dailyStats.$": 1})
 
-    }
+    if user and "dailyStats" in user:
+        existing = user["dailyStats"][0]
+        updated_data = {
+            "stepCount": existing.get("stepCount", 0) + steps,
+            "distance": existing.get("distance", 0.0) + distance,
+            "avgSpeed": avg_speed,
+            "minSpeed": min_speed,
+            "maxSpeed": max_speed,
+            "altitudeDistance": total_ascent,
+            "date": today
+        }
 
-    result = user_collection.update_one(
-        {"_id": user_id, "dailyStats.date": today},
-        {"$set": {"dailyStats.$": daily_data}}
-    )
+        user_collection.update_one(
+            {"_id": user_id, "dailyStats.date": today},
+            {"$set": {"dailyStats.$": updated_data}}
+        )
+    else:
+        daily_data = {
+            "date": today,
+            "stepCount": steps,
+            "distance": distance,
+            "avgSpeed": avg_speed,
+            "minSpeed": min_speed,
+            "maxSpeed": max_speed,
+            "altitudeDistance": total_ascent
+        }
 
-    if result.modified_count == 0:
         user_collection.update_one(
             {"_id": user_id},
             {"$push": {"dailyStats": daily_data}}

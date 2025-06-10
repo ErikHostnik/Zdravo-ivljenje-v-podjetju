@@ -46,7 +46,7 @@ try:
 
     label, confidence = model.predict(face_resized)
 
-    threshold = 90 
+    threshold = 96
     match = confidence <= threshold
 
     result_json = json.dumps({

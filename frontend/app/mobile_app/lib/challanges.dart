@@ -31,7 +31,7 @@ class _ChallengesState extends State<Challenges> {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('jwt_token') ?? '';
     final userId = prefs.getString('user_id') ?? '';
-    final url = Uri.parse('http://192.168.0.26:3001/api/users/$userId');
+    final url = Uri.parse('http://192.168.0.11:3001/api/users/$userId');
     final response = await http.get(
       url,
       headers: {'Authorization': 'Bearer $token'},

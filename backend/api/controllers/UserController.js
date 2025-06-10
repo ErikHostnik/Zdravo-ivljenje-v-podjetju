@@ -165,7 +165,7 @@ module.exports = {
         }
     },
 
-    /*login: async function (req, res) {
+    login: async function (req, res) {
         const { username, password, isMobile } = req.body;
 
         try {
@@ -214,9 +214,9 @@ module.exports = {
             console.error("Login Error:", err);
             return res.status(500).json({ message: 'Login error.', error: err.message });
         }
-    }, */
+    }, 
 
-        login: async function (req, res) {
+        /*login: async function (req, res) {
         const { username, password } = req.body;
 
         try {
@@ -233,7 +233,7 @@ module.exports = {
             console.error("Login Error:", err);
             return res.status(500).json({ message: 'Login error.', error: err.message });
         }
-    },
+    },*/
 
     /*login: async function (req, res) {
         const { username, password, isMobile } = req.body;
