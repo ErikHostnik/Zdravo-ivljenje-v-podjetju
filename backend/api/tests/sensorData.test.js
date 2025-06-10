@@ -42,7 +42,12 @@ describe("SensorData API testi", () => {
 
     const res = await request(app)
       .post("/api/sensordata")
+      .set('Accept', 'application/json')
+      .set('Content-Type', 'application/json')
       .send(payload);
+
+    // for debugging, uncomment to inspect body on failure
+    // console.log(res.body);
 
     expect(res.statusCode).toBe(201);
     expect(res.body).toHaveProperty("_id");
