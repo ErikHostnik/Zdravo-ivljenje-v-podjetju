@@ -236,6 +236,7 @@ module.exports = {
     }
   },
 
+  // Popravljena metoda verifyFace: ob uspešnem ujemanju avtomatsko pokliče approve
   verifyFace: async function (req, res) {
     try {
       const userId = req.params.userId;
@@ -247,6 +248,7 @@ module.exports = {
         return res.status(400).json({ success: false, message: "Slika ni bila poslana." });
       }
 
+      // Pot do modela
       const modelPath = path.join(
         process.cwd(),       // /app
         'scripts/face_recognition/models',
@@ -261,6 +263,7 @@ module.exports = {
         return res.status(400).json({ success: false, message: "Model za to osebo ne obstaja." });
       }
 
+      // Priprava slike za preverjanje
       const verifyDir = path.join(__dirname, '../../uploads/verify');
       fs.mkdirSync(verifyDir, { recursive: true });
       const verifyPath = path.join(verifyDir, `${userId}_verify.jpg`);
@@ -271,7 +274,6 @@ module.exports = {
         process.cwd(),
         'scripts/face_recognition/verify_face.py'
       );
-
       const cmd = `python "${scriptPath}" --model "${modelPath}" --image "${verifyPath}"`;
       console.log('[verifyFace] Ukaz za exec:', cmd);
       
@@ -305,7 +307,6 @@ module.exports = {
         }
 
         // Parsing JSON-a iz zadnje vrstice
-
         const lines = stdout.trim().split(/\r?\n/);
         const jsonLine = lines[lines.length - 1];
         console.log('[verifyFace] JSON iz Python skripte:', jsonLine);
@@ -325,7 +326,6 @@ module.exports = {
 
         if (pyResult.error) {
           return res.status(500).json({ success: false, message: pyResult.error });
-
         }
 
         // Uporabi parse-ani rezultat

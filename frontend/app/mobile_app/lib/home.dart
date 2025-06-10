@@ -200,11 +200,7 @@ class _HomePageState extends State<HomePage> {
 
               const SizedBox(height: 40),
 
-              // Debug info (lahko odstraniš pozneje)
-              Text(
-                'DEBUG: _isLoggedIn = $_isLoggedIn',
-                style: const TextStyle(fontSize: 12, color: Colors.grey),
-              ),
+              
             ],
           ),
         ),

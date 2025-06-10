@@ -10,7 +10,8 @@ if (-not $DeviceIP) {
 
 $env:DEVICE_IP = $DeviceIP
 
-Write-Host "Zaženi docker compose..."
+
+Write-Host "Nato zaženem apk_installer..."
 docker compose up --build -d
 
 
