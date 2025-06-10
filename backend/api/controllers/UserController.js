@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const TwoFactorRequest = require('../models/TwoFactorRequestModel.js');
 const mqtt = require('mqtt');
 const mqttClient = mqtt.connect(process.env.MQTT_URI);
+const bcrypt = require('bcrypt');
 
 const secret = process.env.JWT_SECRET;
 
@@ -17,9 +18,9 @@ module.exports = {
         const { userId, faceModelPath } = req.body;
         try {
             const updatedUser = await UserModel.findByIdAndUpdate(
-            userId,
-            { faceModel: faceModelPath },
-            { new: true }
+                userId,
+                { faceModel: faceModelPath },
+                { new: true }
             );
             if (!updatedUser) {
                 return res.status(404).json({
@@ -29,8 +30,8 @@ module.exports = {
             return res.json({ success: true, user: updatedUser });
         } catch (err) {
             return res.status(500).json({
-            message: 'Error when updating faceModel.',
-            error: err
+                message: 'Error when updating faceModel.',
+                error: err
             });
         }
     },
@@ -54,11 +55,11 @@ module.exports = {
      * UserController.show()
      */
     show: async function (req, res) {
-    const id = req.params.id;
+        const id = req.params.id;
 
         try {
             const User = await UserModel.findById(id)
-                .populate('activities'); 
+                .populate('activities');
 
             if (!User) {
                 return res.status(404).json({
@@ -67,7 +68,7 @@ module.exports = {
             }
 
             if (!User.stepGoal) {
-                User.stepGoal = 10000; 
+                User.stepGoal = 10000;
                 await User.save();
             }
 
@@ -121,6 +122,18 @@ module.exports = {
                 });
             }
 
+            if (req.body.oldPassword) {
+                const match = await bcrypt.compare(req.body.oldPassword, User.password);
+                if (!match) {
+                    return res.status(400).json({ message: 'Staro geslo ni pravilno.' });
+                }
+            }
+
+            if (req.body.password) {
+                User.password = req.body.password;
+            }
+
+
             User.name = req.body.name || User.name;
             User.email = req.body.email || User.email;
             User.stepCount = req.body.stepCount || User.stepCount;
@@ -164,7 +177,7 @@ module.exports = {
         }
     },
 
-login: async function (req, res) {
+    login: async function (req, res) {
         const { username, password, isMobile } = req.body;
 
         try {
@@ -263,7 +276,7 @@ login: async function (req, res) {
             return res.status(500).json({ message: 'Login error.', error: err.message });
         }
     },*/
-    
+
     logout: async function (req, res) {
         try {
             await req.session.destroy();
@@ -279,13 +292,13 @@ login: async function (req, res) {
     },
 
     verify2fa: async (req, res) => {
-    const { requestId } = req.body;
+        const { requestId } = req.body;
         try {
             const req2FA = await TwoFactorRequest.findById(requestId).populate('user');
             if (!req2FA) return res.status(404).json({ message: '2FA request not found.' });
 
             if (req2FA.rejected) return res.status(403).json({ message: 'Access denied.' });
-            if (!req2FA.approved)  return res.json({ pending: true });
+            if (!req2FA.approved) return res.json({ pending: true });
 
             const token = jwt.sign({ id: req2FA.user._id }, secret, { expiresIn: '1h' });
             return res.json({ user: req2FA.user, token });
