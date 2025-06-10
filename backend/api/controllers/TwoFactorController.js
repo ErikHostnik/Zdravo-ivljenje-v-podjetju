@@ -57,7 +57,6 @@ module.exports = {
       const tmpDir = path.join(__dirname, '../../uploads/tmp', userId);
       const dataDir = path.join(__dirname, '../../scripts/face_recognition/data', userId);
 
-      // Ustvari direktorij za dataDir, če obstaja ga pobriši najprej
       if (fs.existsSync(dataDir)) {
         fs.rmSync(dataDir, { recursive: true, force: true });
       }
@@ -66,7 +65,7 @@ module.exports = {
       try {
         const files = fs.readdirSync(tmpDir);
 
-        // Kopira originalne slike iz tmpDir v dataDir
+        // Kopira slike iz tmpDir v dataDir
         for (const file of files) {
           const sourcePath = path.join(tmpDir, file);
           const destPath = path.join(dataDir, file);
@@ -101,7 +100,7 @@ module.exports = {
               const destPath = path.join(dataDir, file);
               fs.renameSync(srcPath, destPath);
             }
-            // Izbriši zdaj prazno preprocessed mapo
+            // Izbriši prazno preprocessed mapo
             fs.rmdirSync(preprocessedDir);
           }
         } catch (moveError) {
@@ -189,7 +188,6 @@ module.exports = {
       const userId = req.params.userId;
 
       
-
       // Sestavite pot do mape, kjer so že obdelane (augmentirane) slike:
       const dataDir = path.join(__dirname, '../../scripts/face_recognition/data', userId);
       // Pot do Python skripte:

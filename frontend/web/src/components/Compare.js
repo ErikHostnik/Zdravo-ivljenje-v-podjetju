@@ -1,4 +1,3 @@
-// src/components/Compare.js
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useParams } from 'react-router-dom';
@@ -61,7 +60,7 @@ export default function Compare() {
     );
   }
 
-  // Pripravimo podatke za izračun dnevne statistike
+  // Izračun dnevne statistike
   const now = new Date();
   const todayStr = now.toISOString().substring(0, 10);
 
@@ -133,7 +132,6 @@ export default function Compare() {
           display: 'flex',
           flexDirection: 'column'
         }}>
-          {/* Glava z avatarjem */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
