@@ -15,6 +15,7 @@ router.get('/logout', UserController.logout);
  */
 router.get('/:id',authJWT, UserController.show);
 
+
 /*
  * POST
  */
@@ -32,6 +33,6 @@ router.put('/:id', UserController.update);
 /*
  * DELETE
  */
-router.delete('/:id', UserController.remove);
+router.delete('/:id', authJWT, UserController.remove);
 
 module.exports = router;

@@ -1,5 +1,6 @@
 require('dotenv').config();
 const UserModel = require('../models/UserModel.js');
+const SensorDataModel = require('../models/SensorDataModel.js');
 const jwt = require('jsonwebtoken');
 const TwoFactorRequest = require('../models/TwoFactorRequestModel.js');
 const mqtt = require('mqtt');
@@ -70,8 +71,9 @@ module.exports = {
                 User.stepGoal = 10000; 
                 await User.save();
             }
+            const SensorData = await SensorDataModel.find({ user: id });
 
-            return res.json(User);
+            return res.json({ ...User.toObject(), sensorData: SensorData });
         } catch (err) {
             return res.status(500).json({
                 message: 'Error when getting User.',
@@ -120,7 +122,6 @@ module.exports = {
                     message: 'No such User'
                 });
             }
-
             User.name = req.body.name || User.name;
             User.email = req.body.email || User.email;
             User.stepCount = req.body.stepCount || User.stepCount;
@@ -164,7 +165,77 @@ module.exports = {
         }
     },
 
-   login: async function (req, res) {
+    login: async function (req, res) {
+        const { username, password, isMobile } = req.body;
+
+        try {
+            const user = await UserModel.authenticate(username, password);
+            if (!user) {
+                return res.status(401).json({ message: 'Invalid credentials.' });
+            }
+            //Zaasna prijava za testiranje spletne aplikacije (brez 2FA):
+           //const token = jwt.sign({ id: user._id }, secret, { expiresIn: '1h' });
+           //return res.json({ user, token });
+
+            //  ORIGINALNA 2FA LOGIKA (za spletno aplikacijo) — trenutno zakomentirano:
+
+            if (isMobile) {
+                const token = jwt.sign({ id: user._id }, secret, { expiresIn: '1h' });
+                return res.json({ user, token });
+            }
+
+            const existing = await TwoFactorRequest.findOne({
+                user: user._id,
+                approved: false,
+                rejected: false
+            });
+
+            if (existing) {
+                return res.json({
+                    pending2FA: true,
+                    twoFactorRequestId: existing._id
+                });
+            }
+
+            const twoFa = new TwoFactorRequest({ user: user._id });
+            await twoFa.save();
+
+            mqttClient.publish(
+                `2fa/request/${user._id}`,
+                JSON.stringify({ requestId: twoFa._id })
+            );
+
+            return res.json({
+                pending2FA: true,
+                twoFactorRequestId: twoFa._id
+            });
+            
+        } catch (err) {
+            console.error("Login Error:", err);
+            return res.status(500).json({ message: 'Login error.', error: err.message });
+        }
+    }, 
+
+        /*login: async function (req, res) {
+        const { username, password } = req.body;
+
+        try {
+            const user = await UserModel.authenticate(username, password);
+            if (!user) {
+                return res.status(401).json({ message: 'Invalid credentials.' });
+            }
+
+            // Za testiranje brez 2FA: takoj izdamo token
+            const token = jwt.sign({ id: user._id }, secret, { expiresIn: '1h' });
+            return res.json({ user, token });
+
+        } catch (err) {
+            console.error("Login Error:", err);
+            return res.status(500).json({ message: 'Login error.', error: err.message });
+        }
+    },*/
+
+    /*login: async function (req, res) {
         const { username, password, isMobile } = req.body;
 
         try {
@@ -209,8 +280,8 @@ module.exports = {
             console.error("Login Error:", err);
             return res.status(500).json({ message: 'Login error.', error: err.message });
         }
-    },
-
+    },*/
+    
     logout: async function (req, res) {
         try {
             await req.session.destroy();
@@ -227,18 +298,37 @@ module.exports = {
 
     verify2fa: async (req, res) => {
     const { requestId } = req.body;
-        try {
-            const req2FA = await TwoFactorRequest.findById(requestId).populate('user');
-            if (!req2FA) return res.status(404).json({ message: '2FA request not found.' });
+    console.log('[verify2fa] Prejeto requestId:', requestId);
 
-            if (req2FA.rejected) return res.status(403).json({ message: 'Access denied.' });
-            if (!req2FA.approved)  return res.json({ pending: true });
+    try {
+        const req2FA = await TwoFactorRequest
+        .findById(requestId)
+        .populate('user');
+        console.log('[verify2fa] Najdena 2FA zahteva:', req2FA);
 
-            const token = jwt.sign({ id: req2FA.user._id }, secret, { expiresIn: '1h' });
-            return res.json({ user: req2FA.user, token });
-        } catch (err) {
-            console.error("verify2fa Error:", err);
-            return res.status(500).json({ message: 'verify2fa error.', error: err.message });
+        if (!req2FA) {
+        console.log('[verify2fa] 2FA request ni najden.');
+        return res.status(404).json({ message: '2FA request not found.' });
         }
+        if (req2FA.rejected) {
+        console.log('[verify2fa] Zahteva že zavrnjena.');
+        return res.status(403).json({ message: 'Access denied.' });
+        }
+        if (!req2FA.approved)  {
+        console.log('[verify2fa] Zahteva še ni potrjena – pending.');
+        return res.json({ pending: true });
+        }
+
+        console.log('[verify2fa] Zahteva odobrena, generiram JWT...');
+        const token = jwt.sign({ id: req2FA.user._id }, secret, { expiresIn: '1h' });
+        console.log('[verify2fa] Token:', token);
+
+        return res.json({ user: req2FA.user, token });
+    } catch (err) {
+        console.error('[verify2fa] Napaka:', err);
+        return res.status(500).json({ message: 'verify2fa error.', error: err.message });
+    }
     },
+
+    
 };

@@ -22,21 +22,36 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
   String status = 'Povezovanje...';
   int stepCount = 0;
   Timer? _timer;
+  Timer? _activityTimer;
   StreamSubscription<AccelerometerEvent>? _accelSubscription;
 
   static const broker = '192.168.0.11';
   static const port = 1883;
   static const topic = 'sensors/test';
-  final _maxPathPoints = 1000;
+  final _maxPathPoints = 5000;
+
+  static const _heartbeatPrefix = 'status/heartbeat/';
+  static const _heartbeatTopic = 'status/heartbeat/#';
+  static const Duration _heartbeatTimeout = Duration(seconds: 90);
+
+  final Map<String, DateTime> _activeUsers = {};
+
+  Timer? _heartbeatCleanupTimer;
+  Timer? _heartbeatPublishTimer;
 
   bool _isPublishing = false;
-  List<Map<String, dynamic>> _collectedData = [];
-  List<LatLng> _path = [];
+  final List<Map<String, dynamic>> _collectedData = [];
+  final List<LatLng> _path = [];
   String? _userId;
 
   double _prevMagnitude = 0;
-  int _stepThreshold = 12;
+  int _stepThreshold = 18;
+
   bool _stepDetected = false;
+
+  // Timer variables
+  Duration _activityDuration = Duration.zero;
+  DateTime? _activityStartTime;
 
   @override
   void initState() {
@@ -57,6 +72,10 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
       _initializeAccelerometer();
       await _initializeMqttClient();
       await _connectToBroker();
+
+      _heartbeatCleanupTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+        _cleanupHeartbeatEntries();
+      });
     } else {
       _updateStatus('Dovoljenja za lokacijo ali senzorje zavrnjena.');
     }
@@ -65,8 +84,11 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
   void _initializeAccelerometer() {
     _accelSubscription = accelerometerEvents.listen(
       (event) {
-        final double magnitude = sqrt(event.x * event.x + event.y * event.y + event.z * event.z);
-        if (!_stepDetected && magnitude > _stepThreshold && _prevMagnitude <= _stepThreshold) {
+        final double magnitude =
+            sqrt(event.x * event.x + event.y * event.y + event.z * event.z);
+        if (!_stepDetected &&
+            magnitude > _stepThreshold &&
+            _prevMagnitude <= _stepThreshold) {
           setState(() {
             stepCount++;
           });
@@ -77,7 +99,8 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
         }
         _prevMagnitude = magnitude;
       },
-      onError: (error) => _updateStatus('Napaka pri branju akcelerometra: $error'),
+      onError: (error) =>
+          _updateStatus('Napaka pri branju akcelerometra: $error'),
       cancelOnError: true,
     );
   }
@@ -102,7 +125,27 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
     try {
       await client.connect();
       if (client.connectionStatus!.state == MqttConnectionState.connected) {
-        _updateStatus('Povezan na MQTT strežnik!');
+        _updateStatus('Začnite aktivnost');
+
+        client.subscribe(_heartbeatTopic, MqttQos.atLeastOnce);
+
+        client.updates!.listen((List<MqttReceivedMessage<MqttMessage>> c) {
+          for (final msg in c) {
+            final recTopic = msg.topic;
+            if (recTopic.startsWith(_heartbeatPrefix)) {
+              final userId = recTopic.substring(_heartbeatPrefix.length);
+              setState(() {
+                _activeUsers[userId] = DateTime.now();
+              });
+            }
+          }
+        });
+
+        _sendHeartbeat();
+        _heartbeatPublishTimer =
+            Timer.periodic(const Duration(seconds: 60), (_) {
+          _sendHeartbeat();
+        });
       } else {
         _updateStatus('Napaka: ${client.connectionStatus!.returnCode}');
       }
@@ -126,13 +169,55 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
     _updateStatus('Povezava prekinjena.');
     _isPublishing = false;
     _timer?.cancel();
+    _activityTimer?.cancel();
+    _heartbeatCleanupTimer?.cancel();
+    _heartbeatPublishTimer?.cancel();
+  }
+
+  void _sendHeartbeat() {
+    if (client.connectionStatus?.state == MqttConnectionState.connected &&
+        _userId != null) {
+      final topicHb = '${_heartbeatPrefix}$_userId';
+      final payloadMap = {
+        'timestamp': DateTime.now().toUtc().toIso8601String(),
+      };
+      final builder = MqttClientPayloadBuilder()..addString(jsonEncode(payloadMap));
+      client.publishMessage(topicHb, MqttQos.atLeastOnce, builder.payload!);
+    }
+  }
+
+  void _cleanupHeartbeatEntries() {
+    final now = DateTime.now();
+    final toRemove = <String>[];
+    _activeUsers.forEach((userId, lastTime) {
+      if (now.difference(lastTime) > _heartbeatTimeout) {
+        toRemove.add(userId);
+      }
+    });
+    if (toRemove.isNotEmpty) {
+      setState(() {
+        for (final u in toRemove) {
+          _activeUsers.remove(u);
+        }
+      });
+    }
   }
 
   void _startCollecting() {
     _collectedData.clear();
     _path.clear();
     _isPublishing = true;
-    _updateStatus("Zajemanje podatkov ...");
+    _activityDuration = Duration.zero;
+    _activityStartTime = DateTime.now();
+    
+    // Start activity timer
+    _activityTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        _activityDuration = DateTime.now().difference(_activityStartTime!);
+      });
+    });
+
+    _updateStatus("Začetek aktivnosti...");
 
     _timer = Timer.periodic(const Duration(seconds: 1), (_) async {
       try {
@@ -140,8 +225,10 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
           desiredAccuracy: LocationAccuracy.bestForNavigation,
         );
 
-        if (position.latitude.isNaN || position.longitude.isNaN ||
-            position.latitude.abs() > 90 || position.longitude.abs() > 180) {
+        if (position.latitude.isNaN ||
+            position.longitude.isNaN ||
+            position.latitude.abs() > 90 ||
+            position.longitude.abs() > 180) {
           throw Exception('Neveljavne koordinate');
         }
 
@@ -152,6 +239,7 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
           'altitude': position.altitude,
           'speed': position.speed,
           'steps': stepCount,
+          'duration': _activityDuration.inSeconds,
         };
 
         setState(() {
@@ -162,7 +250,7 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
           }
         });
 
-        _updateStatus('Zbranih točk: ${_collectedData.length}');
+        // Removed point counter status update
       } catch (e) {
         _updateStatus('Napaka pri lokaciji: $e');
       }
@@ -172,12 +260,14 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
   void _stopAndSendData() {
     _isPublishing = false;
     _timer?.cancel();
+    _activityTimer?.cancel();
 
     if (client.connectionStatus?.state == MqttConnectionState.connected &&
         _collectedData.isNotEmpty) {
       final payload = jsonEncode({
         'userId': _userId,
         'session': _collectedData,
+        'totalDuration': _activityDuration.inSeconds,
       });
 
       final builder = MqttClientPayloadBuilder();
@@ -189,6 +279,7 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
         _collectedData.clear();
         _path.clear();
         stepCount = 0;
+        _activityDuration = Duration.zero;
       });
     } else {
       _updateStatus("Ni podatkov za pošiljanje ali ni povezave.");
@@ -214,20 +305,41 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
     }
   }
 
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final hours = twoDigits(duration.inHours);
+    final minutes = twoDigits(duration.inMinutes.remainder(60));
+    final seconds = twoDigits(duration.inSeconds.remainder(60));
+    return '$hours:$minutes:$seconds';
+  }
+
   @override
   void dispose() {
     _timer?.cancel();
+    _activityTimer?.cancel();
     _accelSubscription?.cancel();
     client.disconnect();
+    _heartbeatCleanupTimer?.cancel();
+    _heartbeatPublishTimer?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Senzorji'), centerTitle: true),
+      appBar: AppBar(title: const Text('Aktivnost'), centerTitle: true),
       body: Column(
         children: [
+          // Status display (always visible)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 0),
+            child: Text(
+              status,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+          ),
+          
           Expanded(
             flex: 2,
             child: Center(
@@ -237,27 +349,28 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      status,
-                      textAlign: TextAlign.center,
+                      'Število korakov: $stepCount',
                       style: const TextStyle(fontSize: 18),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 16),
                     Text(
-                      'Število korakov: $stepCount',
-                      style: const TextStyle(fontSize: 16),
+                      'Trajanje: ${_formatDuration(_activityDuration)}',
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
               ),
             ),
           ),
+
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 ElevatedButton.icon(
-                  onPressed: _isPublishing || _userId == null ? null : _startCollecting,
+                  onPressed:
+                      _isPublishing || _userId == null ? null : _startCollecting,
                   icon: const Icon(Icons.play_arrow),
                   label: const Text("Začni zajemanje"),
                 ),
@@ -274,9 +387,28 @@ class _SensorMQTTPageState extends State<SensorMQTTPage> {
               ],
             ),
           ),
+
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.people, size: 16),
+                const SizedBox(width: 4),
+                Text(
+                  'Online: ${_activeUsers.length}',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
           const SizedBox(height: 16),
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 50),
+            padding: const EdgeInsets.symmetric(vertical: 25),
             child: Center(
               child: ClipOval(
                 child: Container(

@@ -1,4 +1,4 @@
-name: Run Backend Tests and Push Images
+name: Run Backend Tests
 
 on:
   push:
@@ -13,18 +13,6 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-
-    services:
-      mongodb:
-        image: mongo:latest
-       
-        ports:
-          - 27017:27017
-        options: >-
-          --health-cmd "mongosh --eval 'db.runCommand({ connectionStatus: 1 })'"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=3
 
     defaults:
       run:
@@ -42,39 +30,15 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Run backend tests
+      - name: Run all API tests
         env:
-          MONGODB_URI: 'mongodb://localhost:27017/testdb'
-        run: npm test -- --verbose --runInBand --forceExit
-
-  docker-push:
-    needs: test
-    runs-on: ubuntu-latest
-    if: (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main') && github.event_name == 'push'
-
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Login to DockerHub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Build and push backend image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./backend/api
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/zdravoziv-backend:latest
-
-      - name: Build and push frontend image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./frontend/web
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/zdravoziv-frontend:latest
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          ALLOWED_ORIGINS: ${{ secrets.ALLOWED_ORIGINS }}
+          MQTT_URI: mqtt://192.168.0.11:1883
+          BROKER_HOST: "192.168.0.11"
+          BROKER_PORT: 1883
+          TOPIC: sensors/test
+          TWO_FA_TOPIC_PREFIX: 2fa/confirm/
+        run: npx jest tests/*.test.js --verbose --runInBand --forceExit
