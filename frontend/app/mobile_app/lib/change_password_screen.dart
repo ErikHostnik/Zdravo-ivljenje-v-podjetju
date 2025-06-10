@@ -25,6 +25,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     final userId = prefs.getString('user_id') ?? '';
     final uri = Uri.parse('http://192.168.0.242:3001/api/users/$userId');
 
+    print('🔑 changePassword userId="$userId"');
+    print('🔗 PUT to: ${uri.toString()}');
+
     final res = await http.put(
       uri,
       headers: {
@@ -64,9 +67,8 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   labelText: 'Novo geslo',
                   border: OutlineInputBorder(),
                 ),
-                validator: (v) => (v == null || v.length < 6)
-                    ? 'Geslo mora imeti vsaj 6 znakov.'
-                    : null,
+                validator:
+                    (v) => (v == null || v.isEmpty) ? 'Vnesite geslo.' : null,
               ),
               const SizedBox(height: 16),
               TextFormField(
@@ -76,16 +78,17 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   labelText: 'Potrdi novo geslo',
                   border: OutlineInputBorder(),
                 ),
-                validator: (v) =>
-                    v != newPassCtrl.text ? 'Gesli se ne ujemata.' : null,
+                validator:
+                    (v) =>
+                        v != newPassCtrl.text ? 'Gesli se ne ujemata.' : null,
               ),
               const SizedBox(height: 24),
               _isSaving
                   ? const CircularProgressIndicator()
                   : ElevatedButton(
-                      onPressed: _savePassword,
-                      child: const Text('Shrani geslo'),
-                    ),
+                    onPressed: _savePassword,
+                    child: const Text('Shrani geslo'),
+                  ),
             ],
           ),
         ),
