@@ -12,6 +12,7 @@ class ChangePasswordScreen extends StatefulWidget {
 
 class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   final _formKey = GlobalKey<FormState>();
+  final TextEditingController oldPassCtrl = TextEditingController();
   final TextEditingController newPassCtrl = TextEditingController();
   final TextEditingController confirmCtrl = TextEditingController();
   bool _isSaving = false;
@@ -25,16 +26,16 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     final userId = prefs.getString('user_id') ?? '';
     final uri = Uri.parse('http://192.168.0.242:3001/api/users/$userId');
 
-    print('🔑 changePassword userId="$userId"');
-    print('🔗 PUT to: ${uri.toString()}');
-
     final res = await http.put(
       uri,
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
       },
-      body: jsonEncode({'password': newPassCtrl.text.trim()}),
+      body: jsonEncode({
+        'oldPassword': oldPassCtrl.text.trim(),
+        'password': newPassCtrl.text.trim(),
+      }),
     );
 
     setState(() => _isSaving = false);
@@ -44,9 +45,11 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       );
       Navigator.pop(context);
     } else {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Napaka: ${res.statusCode}')));
+      final msg =
+          res.statusCode == 400
+              ? 'Staro geslo ni pravilno.'
+              : 'Napaka: ${res.statusCode}';
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     }
   }
 
@@ -61,6 +64,20 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           child: Column(
             children: [
               TextFormField(
+                controller: oldPassCtrl,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Staro geslo',
+                  border: OutlineInputBorder(),
+                ),
+                validator:
+                    (v) =>
+                        (v == null || v.isEmpty)
+                            ? 'Vnesite staro geslo.'
+                            : null,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
                 controller: newPassCtrl,
                 obscureText: true,
                 decoration: const InputDecoration(
@@ -68,7 +85,8 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   border: OutlineInputBorder(),
                 ),
                 validator:
-                    (v) => (v == null || v.isEmpty) ? 'Vnesite geslo.' : null,
+                    (v) =>
+                        (v == null || v.isEmpty) ? 'Vnesite novo geslo.' : null,
               ),
               const SizedBox(height: 16),
               TextFormField(

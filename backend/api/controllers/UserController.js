@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const TwoFactorRequest = require('../models/TwoFactorRequestModel.js');
 const mqtt = require('mqtt');
 const mqttClient = mqtt.connect(process.env.MQTT_URI);
+const bcrypt = require('bcrypt');
 
 const secret = process.env.JWT_SECRET;
 
@@ -119,6 +120,13 @@ module.exports = {
                 return res.status(404).json({
                     message: 'No such User'
                 });
+            }
+
+            if (req.body.oldPassword) {
+                const match = await bcrypt.compare(req.body.oldPassword, User.password);
+                if (!match) {
+                    return res.status(400).json({ message: 'Staro geslo ni pravilno.' });
+                }
             }
 
             if (req.body.password) {
