@@ -17,7 +17,7 @@ describe("SensorData API testi", () => {
   });
 
   it("osnovni trivialen test", () => {
-    // preprost test za zagotovitev, da testni suite teče
+    // test, da testni suite teče
     expect(true).toBe(true);
   });
 

@@ -186,10 +186,6 @@ module.exports = {
     try {
       const userId = req.params.userId;
 
-      
-
-
-
       console.log('[recognize] dataDir:', dataDir);
       console.log('[recognize] scriptPath:', scriptPath);
 
@@ -230,7 +226,7 @@ module.exports = {
     }
   },
 
-  // Popravljena metoda verifyFace: ob uspešnem ujemanju avtomatsko pokliče approve
+  // verifyFace: ob uspešnem ujemanju avtomatsko pokliče approve
   verifyFace: async function (req, res) {
     try {
       const userId = req.params.userId;
@@ -244,7 +240,7 @@ module.exports = {
 
       // Pot do modela
       const modelPath = path.join(
-        process.cwd(),       // /app
+        process.cwd(),
         'scripts/face_recognition/models',
         `${userId}.yml`
       );

@@ -18,20 +18,22 @@ if not os.path.exists(args.image):
     exit(1)
 
 try:
+    # .xml datoteke z vnaprej naučenimi klasifikatorji
     cascade_path = cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
     if not os.path.exists(cascade_path):
         print(json.dumps({"error": "Manjka Haar cascade datoteka"}))
         exit(1)
+    # stopenjska detekcija obraza
     face_cascade = cv2.CascadeClassifier(cascade_path)
 
     image = cv2.imread(args.image)
     if image is None:
         print(json.dumps({"error": "Napaka pri branju slike"}))
         exit(1)
-
+    # detectMultiScale() rabi sivinsko slko    
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-    # Detekcija obrazov
+    # Detekcija obrazov (večkrat) vedno za scaleFactor manjši
     faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(100, 100))
     if len(faces) == 0:
         print(json.dumps({"error": "Obraz ni bil zaznan"}))
@@ -41,6 +43,7 @@ try:
     face_roi = gray[y:y+h, x:x+w]
     face_resized = cv2.resize(face_roi, (100, 100))
 
+    # naložim natreniran model
     model = cv2.face.LBPHFaceRecognizer_create()
     model.read(args.model)
 

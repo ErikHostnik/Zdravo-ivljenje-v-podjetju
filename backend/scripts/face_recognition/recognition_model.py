@@ -7,15 +7,9 @@ import requests
 
 sys.stdout.reconfigure(encoding='utf-8')
 
-# -------------------------------------------------------------------
-# Debug različica recognition_model.py
-# Prebere argument iz ukazne vrstice kot pot do uporabniške mape.
-# -------------------------------------------------------------------
-
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # točka znotraj backend/scripts
 MODEL_DIR = os.path.normpath(os.path.join(BASE_DIR, 'models'))
 
-# Dodaj debug izpis za MODEL_DIR
 print(f"[DEBUG][INIT] BASE_DIR: {BASE_DIR}")
 print(f"[DEBUG][INIT] MODEL_DIR: {MODEL_DIR}")
 
@@ -107,14 +101,12 @@ def main():
     BASE_DATA_DIR = sys.argv[1]
     print(f"[DEBUG][main] Prejeto sys.argv[1]: {BASE_DATA_DIR}")
 
-    # 2) Preverimo, ali ta mapa obstaja
     if not os.path.exists(BASE_DATA_DIR):
         raise RuntimeError(f"Directory '{BASE_DATA_DIR}' ne obstaja.")
 
-    # 3) Iz imena mape izluščimo user_id
+    # Iz imena mape izluščimo user_id
     user_id = os.path.basename(BASE_DATA_DIR.rstrip("/\\"))
 
-    # 4) Zberemo vse slikovne datoteke iz te mape
     try:
         all_files = os.listdir(BASE_DATA_DIR)
     except Exception as e:
@@ -131,13 +123,11 @@ def main():
         print(f"[DEBUG][main] Ni slik v '{BASE_DATA_DIR}'. Preskakujem treniranje.")
         return
 
-    # 5) Treniramo in shranimo model
     model_path = train_and_save_model_for_user(user_id, image_paths)
     if not model_path:
         print(f"[DEBUG][main] Model za user_id '{user_id}' ni bil ustvarjen (vrnjeno None).")
         return
 
-    # 6) Pošljemo pot do modela v backend bazo
     update_model_path_in_backend(user_id, model_path)
     
 if __name__ == "__main__":
