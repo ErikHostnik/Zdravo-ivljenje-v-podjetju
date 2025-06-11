@@ -180,4 +180,4 @@ docker-compose up --build
 
 - Avtor: Martin Jevševar, Erik Hostnik 
 - E-pošta: martin.jevsevar@gmail.com, erikhostnik@gmail.com
-- GitHub: [https://github.com/VAŠ_UPORABNIŠKI_NAZIV/fit-office](https://github.com/ErikHostnik/Zdravo-ivljenje-v-podjetju.git) 
+- GitHub: [(https://github.com/ErikHostnik/Zdravo-ivljenje-v-podjetju.git) ]
