@@ -20,7 +20,6 @@ TOPIC = os.getenv("TOPIC")
 TWO_FA_TOPIC_PREFIX = os.getenv("TWO_FA_TOPIC_PREFIX")
 
 HEARTBEAT_TOPIC_PREFIX = os.getenv("HEARTBEAT_TOPIC_PREFIX", "status/heartbeat/")
-
 HEARTBEAT_TIMEOUT_SECONDS = int(os.getenv("HEARTBEAT_TIMEOUT_SECONDS", "90"))
 
 mongo_client = MongoClient(MONGO_URI)
@@ -256,7 +255,7 @@ def on_message(client, userdata, msg):
 def remove_inactive_users():
     """
     Pregled vsakega userId-ja iz active_users in odstrani tiste,
-    katerih zadnji heartbeat je starejši od HEARTBEAT_TIMEOUT_SECONDS.
+    ki imajo zadnji heartbeat starejši od HEARTBEAT_TIMEOUT_SECONDS.
     """
     now = datetime.now(timezone.utc)
     to_remove = []
@@ -273,7 +272,7 @@ def remove_inactive_users():
 
 def monitor_active_users():
     """
-    Aal background-thread, ki vsakih 30s pokliče remove_inactive_users
+    background-thread, ki vsakih 30s pokliče remove_inactive_users,
     in izpiše trenutno število aktivnih uporabnikov.
     """
     while True:

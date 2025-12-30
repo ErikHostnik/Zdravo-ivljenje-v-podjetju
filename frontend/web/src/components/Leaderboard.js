@@ -1,5 +1,3 @@
-// src/components/Leaderboard.js
-
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -16,7 +14,6 @@ export default function Leaderboard() {
 
   const navigate = useNavigate();
 
-  // Dodani novi sortKey: speed, altitude, progress
   const sortOptions = [
     { key: 'steps',     label: 'Koraki (danes)' },
     { key: 'distance',  label: 'Razdalja (km)' },
@@ -50,12 +47,11 @@ export default function Leaderboard() {
           const distance = todayEntry?.distance ?? 0;
           const calories = +(steps * 0.04).toFixed(2);
 
-          // nove metrike
           const duration = todayEntry?.durationSeconds ?? 0;
           const speed = duration > 0 ? +(distance / (duration / 3600)).toFixed(2) : 0;
           const altitude = todayEntry?.altitudeDistance ?? 0;
 
-          // napredek glede na dnevni cilj (če obstaja)
+          // napredek
           const stepGoal = u.stepGoal ?? 0;
           const progress = stepGoal > 0
             ? Math.min(100, Math.round((steps / stepGoal) * 100))
@@ -100,7 +96,6 @@ export default function Leaderboard() {
     );
   }
 
-  // Razvrščanje uporabnikov po izbranem ključu
   const sorted = [...usersData].sort((a, b) => {
     const aVal = a[sortKey] ?? 0;
     const bVal = b[sortKey] ?? 0;
@@ -118,7 +113,6 @@ export default function Leaderboard() {
     });
   };
 
-  // Prikaže metriko glede na sortKey
   const renderMetric = user => {
     switch (sortKey) {
       case 'steps':

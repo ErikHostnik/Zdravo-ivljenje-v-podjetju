@@ -57,7 +57,7 @@ module.exports = {
       const tmpDir = path.join(process.cwd(), 'uploads/tmp', userId);
       const dataDir = path.join(process.cwd(), 'scripts/face_recognition/data', userId);
 
-      // Pobriši in ponovno ustvari dataDir
+      // Ustvari direktorij za dataDir, če obstaja ga pobriši najprej.
       if (fs.existsSync(dataDir)) {
         fs.rmSync(dataDir, { recursive: true, force: true });
       }
@@ -66,6 +66,7 @@ module.exports = {
       // Kopiranje originalnih slik iz tmpDir v dataDir
       try {
         const files = fs.readdirSync(tmpDir);
+
         for (const file of files) {
           const sourcePath = path.join(tmpDir, file);
           const destPath = path.join(dataDir, file);
@@ -101,7 +102,7 @@ module.exports = {
               const destPath = path.join(dataDir, file);
               fs.renameSync(srcPath, destPath);
             }
-            fs.rmSync(preprocessedDir, { recursive: true, force: true });
+
           }
         } catch (moveError) {
           console.warn(`[uploadImages] Napaka pri premiku slik:`, moveError.message);
@@ -185,17 +186,6 @@ module.exports = {
     try {
       const userId = req.params.userId;
 
-      // Popravljeni dataDir in scriptPath
-      const dataDir = path.join(
-        process.cwd(),                    // /app
-        'scripts/face_recognition/data',  // potem data/<userId>
-        userId
-      );
-      const scriptPath = path.join(
-        process.cwd(),
-        'scripts/face_recognition/recognition_model.py'
-      );
-
       console.log('[recognize] dataDir:', dataDir);
       console.log('[recognize] scriptPath:', scriptPath);
 
@@ -236,7 +226,7 @@ module.exports = {
     }
   },
 
-  // Popravljena metoda verifyFace: ob uspešnem ujemanju avtomatsko pokliče approve
+  // verifyFace: ob uspešnem ujemanju avtomatsko pokliče approve
   verifyFace: async function (req, res) {
     try {
       const userId = req.params.userId;
@@ -250,7 +240,7 @@ module.exports = {
 
       // Pot do modela
       const modelPath = path.join(
-        process.cwd(),       // /app
+        process.cwd(),
         'scripts/face_recognition/models',
         `${userId}.yml`
       );
