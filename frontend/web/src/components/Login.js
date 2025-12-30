@@ -80,7 +80,7 @@ export default function Login() {
         body: JSON.stringify({ 
           username, 
           password,
-          isMobile: false // Dodaj to za spletno prijavo
+          isMobile: false 
         })
       });
       

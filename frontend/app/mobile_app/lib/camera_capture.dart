@@ -87,7 +87,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
     final userId = prefs.getString('user_id') ?? '';
 
     // Endpoint za nalaganje slik
-    final uploadUri = Uri.parse('http://192.168.0.11:3001/api/2fa/setup/$userId');
+    final uploadUri = Uri.parse('http://164.8.162.37:3001/api/2fa/setup/$userId');
 
     final request = http.MultipartRequest('POST', uploadUri)
       ..headers['Authorization'] = 'Bearer $token';
@@ -125,7 +125,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen> {
   }
 
   Future<void> _runRecognition(String userId, String token) async {
-    final recogUri = Uri.parse('http://192.168.0.11:3001/api/2fa/recognize/$userId');
+    final recogUri = Uri.parse('http://164.8.162.37:3001/api/2fa/recognize/$userId');
     try {
       final response = await http.post(
         recogUri,

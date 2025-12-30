@@ -165,7 +165,7 @@ module.exports = {
         }
     },
 
-    login: async function (req, res) {
+    /*login: async function (req, res) {
         const { username, password, isMobile } = req.body;
 
         try {
@@ -174,12 +174,12 @@ module.exports = {
                 return res.status(401).json({ message: 'Invalid credentials.' });
             }
             //Zaasna prijava za testiranje spletne aplikacije (brez 2FA):
-           //const token = jwt.sign({ id: user._id }, secret, { expiresIn: '1h' });
-           //return res.json({ user, token });
+           const token = jwt.sign({ id: user._id }, secret, { expiresIn: '1h' });
+           return res.json({ user, token });
 
             //  ORIGINALNA 2FA LOGIKA (za spletno aplikacijo) — trenutno zakomentirano:
 
-            if (isMobile) {
+            /*if (isMobile) {
                 const token = jwt.sign({ id: user._id }, secret, { expiresIn: '1h' });
                 return res.json({ user, token });
             }
@@ -214,9 +214,9 @@ module.exports = {
             console.error("Login Error:", err);
             return res.status(500).json({ message: 'Login error.', error: err.message });
         }
-    }, 
+    }, */
 
-        /*login: async function (req, res) {
+    login: async function (req, res) {
         const { username, password } = req.body;
 
         try {
@@ -233,7 +233,7 @@ module.exports = {
             console.error("Login Error:", err);
             return res.status(500).json({ message: 'Login error.', error: err.message });
         }
-    },*/
+    },
 
     /*login: async function (req, res) {
         const { username, password, isMobile } = req.body;

@@ -12,7 +12,8 @@ $env:DEVICE_IP = $DeviceIP
 
 
 Write-Host "Nato zaženem apk_installer..."
-docker compose up --build -d
+docker compose build mobile_builder
+docker compose up
 
 
 $apkPath = Join-Path $PSScriptRoot "apk_output\app-release.apk"

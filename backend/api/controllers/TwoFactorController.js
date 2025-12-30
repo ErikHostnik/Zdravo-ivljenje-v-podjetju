@@ -93,7 +93,7 @@ module.exports = {
         const preprocessedDir = path.join(dataDir, 'preprocessed');
 
         try {
-          // Premakni vse slike iz preprocessed v dataDir
+          // Premakne vse slike iz preprocessed v dataDir
           if (fs.existsSync(preprocessedDir)) {
             const preprocessedFiles = fs.readdirSync(preprocessedDir);
             for (const file of preprocessedFiles) {
