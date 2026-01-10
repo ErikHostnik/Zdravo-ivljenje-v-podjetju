@@ -4,6 +4,8 @@
  * Module dependencies.
  */
 
+
+require('../tcp/tcpServer').startTcpServer();
 var app = require('../api');
 var debug = require('debug')('api:server');
 var http = require('http');
