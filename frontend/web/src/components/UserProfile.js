@@ -2,6 +2,8 @@ import React, { useEffect, useState, useMemo } from 'react';
 import axios from 'axios';
 import { useParams } from 'react-router-dom';
 import { Bar, Line } from 'react-chartjs-2';
+import LiveActivityPanel from './LiveActivityPanel';
+
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -301,6 +303,9 @@ export default function UserProfile() {
       <h2 style={{ textAlign: 'center', marginBottom: '30px', color: 'white', fontSize: '2rem' }}>
         📊 Profil uporabnika
       </h2>
+
+      <LiveActivityPanel userId={userId} />
+
 
       {/* Osnovni podatki */}
       <div style={{ backgroundColor: '#1F2235', padding: '30px', borderRadius: '12px', marginBottom: '30px', color: '#E0E0FF' }}>

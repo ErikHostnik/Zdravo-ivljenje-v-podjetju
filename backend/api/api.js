@@ -90,10 +90,13 @@ app.use(cors({
 const userRoutes = require('./routes/UserRoutes');
 const sensorDataRoutes = require('./routes/SensorDataRoutes');
 const twoFactorRoutes = require('./routes/TwoFactorRoutes');
+const streamRoutes = require('./routes/StreamRoutes');
 
 app.use('/api/users', userRoutes);
 app.use('/api/sensordata', sensorDataRoutes);
 app.use('/api/2fa', twoFactorRoutes);
+app.use('/api/stream', streamRoutes);
+
 
 
 app.use((req, res, next) => {

@@ -3,6 +3,7 @@ const SensorData = require('../models/SensorDataModel');
 const User = require('../models/UserModel');
 const { compress, decompress } = require('../utils/kodiranjeRLE');
 const { bitsToBuffer } = require('../utils/bitpack');
+const { broadcast } = require('../utils/liveHub');
 
 const TCP_PORT = 9000;
 const START_LAT = 46.0569;
@@ -24,6 +25,7 @@ module.exports.startTcpServer = function () {
 
     const user = await User.findOne({ username: 'stm32' });
     if (!user) { console.error('[TCP] User "stm32" not found'); socket.destroy(); return; }
+    const userId = user._id.toString();
 
     let lastSample = null;
     let buffer = '';
@@ -48,9 +50,14 @@ module.exports.startTcpServer = function () {
     const ys = [];
     const zs = [];
 
+    broadcast(userId, 'session', { state: 'started', ts: Date.now() });
+
     const watchdog = setInterval(() => {
       if (!lastPacketTs) return;
-      if (Date.now() - lastPacketTs > 20000) { console.log('[TCP] Timeout – closing socket'); socket.end(); }
+      if (Date.now() - lastPacketTs > 20000) {
+        console.log('[TCP] Timeout – closing socket');
+        socket.end();
+      }
     }, 2000);
 
     socket.on('data', data => {
@@ -61,22 +68,24 @@ module.exports.startTcpServer = function () {
         const line = buffer.slice(0, buffer.indexOf('\n')).trim();
         buffer = buffer.slice(buffer.indexOf('\n') + 1);
         if (!line) continue;
+
         try {
           const pkt = JSON.parse(line);
-          const speed = Math.sqrt(pkt.x * pkt.x + pkt.y * pkt.y + pkt.z * pkt.z);
 
-          const sample = { x: pkt.x, y: pkt.y, z: pkt.z };
+          const sample = { x: Number(pkt.x), y: Number(pkt.y), z: Number(pkt.z), id: pkt.id ?? null };
+          const speed = Math.sqrt(sample.x * sample.x + sample.y * sample.y + sample.z * sample.z);
+
           if (lastSample) {
             const dx = sample.x - lastSample.x;
             const dy = sample.y - lastSample.y;
             const dz = sample.z - lastSample.z;
-            distance += Math.sqrt(dx*dx + dy*dy + dz*dz) * 0.01;
+            distance += Math.sqrt(dx * dx + dy * dy + dz * dz) * 0.01;
           }
 
           const stepped = detectStep(lastSample, sample);
           if (stepped) {
             stepCount++;
-            const angle = Math.atan2(pkt.y, pkt.x);
+            const angle = Math.atan2(sample.y, sample.x);
             const dx_m = Math.cos(angle) * STEP_METERS;
             const dy_m = Math.sin(angle) * STEP_METERS;
             currentLat += dy_m / 111111;
@@ -90,16 +99,39 @@ module.exports.startTcpServer = function () {
 
           lastSample = sample;
 
-          xs.push(toQ(pkt.x));
-          ys.push(toQ(pkt.y));
-          zs.push(toQ(pkt.z));
-        } catch { console.warn('[TCP] Invalid JSON:', line); }
+          xs.push(toQ(sample.x));
+          ys.push(toQ(sample.y));
+          zs.push(toQ(sample.z));
+
+          const live = {
+            ts: Date.now(),
+            id: sample.id,
+            x: sample.x,
+            y: sample.y,
+            z: sample.z,
+            mag: speed,
+            step: stepped,
+            stepCount,
+            distance,
+            avgSpeed: speedSum / samples,
+            minSpeed: speedMin === Infinity ? 0 : speedMin,
+            maxSpeed: speedMax === -Infinity ? 0 : speedMax,
+            lat: currentLat,
+            lon: currentLon
+          };
+
+          broadcast(userId, 'sample', live);
+        } catch {
+          console.warn('[TCP] Invalid JSON:', line);
+        }
       }
     });
 
     socket.on('end', async () => {
       clearInterval(watchdog);
       console.log('[TCP] STM32 disconnected – saving compressed only');
+      broadcast(userId, 'session', { state: 'ended', ts: Date.now() });
+
       if (!samples) { console.warn('[TCP] Empty session – nothing saved'); return; }
 
       const stats = {
@@ -145,7 +177,7 @@ module.exports.startTcpServer = function () {
       const saved = await activity.save();
       user.activities.push(saved._id);
 
-      const today = new Date(); today.setHours(0,0,0,0);
+      const today = new Date(); today.setHours(0, 0, 0, 0);
       let daily = user.dailyStats.find(d => new Date(d.date).getTime() === today.getTime());
       if (!daily) {
         daily = { date: today, stepCount: 0, distance: 0, avgSpeed: stats.avgSpeed, minSpeed: stats.minSpeed, maxSpeed: stats.maxSpeed, altitudeDistance: 0 };
@@ -159,9 +191,15 @@ module.exports.startTcpServer = function () {
 
       await user.save();
       console.log('[TCP] Activity saved:', saved._id.toString());
+
+      broadcast(userId, 'saved', { activityId: saved._id.toString(), stats, ratio, ts: Date.now() });
     });
 
-    socket.on('error', err => { clearInterval(watchdog); console.error('[TCP] Socket error:', err.message); });
+    socket.on('error', err => {
+      clearInterval(watchdog);
+      console.error('[TCP] Socket error:', err.message);
+      broadcast(userId, 'session', { state: 'error', message: err.message, ts: Date.now() });
+    });
   });
 
   server.listen(TCP_PORT, () => { console.log(`[TCP] Listening on ${TCP_PORT}`); });

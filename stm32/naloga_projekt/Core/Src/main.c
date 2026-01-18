@@ -29,10 +29,10 @@
 
 #define GYRO_SENS_500DPS  (0.0175f)
 
-#define WIFI_SSID "iPhone"
-#define WIFI_PASS "hojladrijadrom"
+#define WIFI_SSID "7C5E04"
+#define WIFI_PASS "erikSmrdi"
 
-#define TCP_SERVER_IP "192.168.0.11"
+#define TCP_SERVER_IP "172.20.10.2"
 #define TCP_SERVER_PORT 9000
 
 #define SEND_EVERY_MS 50
@@ -368,7 +368,13 @@ static bool ESP_OpenTCP(const char *ip, int port)
     if (pos < sizeof(acc) - 1) acc[pos++] = (char)v;
     acc[pos] = 0;
 
-    if (strstr(acc, "ERROR") || strstr(acc, "FAIL")) return false;
+    if (strstr(acc, "ERROR") || strstr(acc, "FAIL")) {
+      CDC_SendString("CIPSTART RESP:\r\n");
+      CDC_SendString(acc);
+      CDC_SendString("\r\n");
+      return false;
+    }
+
 
     if (strstr(acc, "ALREADY CONNECTED")) return true;
     if (strstr(acc, "CONNECT")) return true;
