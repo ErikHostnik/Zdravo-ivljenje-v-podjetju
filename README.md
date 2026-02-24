@@ -2,6 +2,12 @@
 
 *Kratek opis: Fit Office je celovita rešitev za spremljanje in vizualizacijo vaše športne aktivnosti, dostopna prek spletne aplikacije (React + Node.js) in mobilne aplikacije (Flutter).*
 
+## Spletna stran
+<img width="1992" height="1068" alt="image" src="https://github.com/user-attachments/assets/e90922f1-8631-42f3-8a84-1a5ccfb33e5f" />
+
+## Predstavitev projekta - PDF
+[FitOffice_predstavitev (1).pptx](https://github.com/user-attachments/files/25520259/FitOffice_predstavitev.1.pptx)
+
 ---
 
 ## Vsebina datoteke
